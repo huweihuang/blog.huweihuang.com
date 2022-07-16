@@ -1,0 +1,2155 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<link rel="canonical" type="text/html" href="https://k8s.huweihuang.com/kubernetes-notes/concepts/">
+<link rel="alternate" type="application/rss&#43;xml" href="https://k8s.huweihuang.com/kubernetes-notes/concepts/index.xml">
+<meta name="robots" content="noindex, nofollow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>基本概念 | HUWEIHUAHG</title>
+<meta name="description" content="">
+<meta property="og:title" content="基本概念" />
+<meta property="og:description" content="Kubernetes学习笔记" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://k8s.huweihuang.com/kubernetes-notes/concepts/" /><meta property="og:site_name" content="HUWEIHUAHG" />
+
+<meta itemprop="name" content="基本概念">
+<meta itemprop="description" content="Kubernetes学习笔记"><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="基本概念"/>
+<meta name="twitter:description" content="Kubernetes学习笔记"/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.cd6c2bbb05cdf98237b53882fed8c7a8b3fd7a7f7963d7cb305dd0d984782137.css" as="style">
+<link href="/scss/main.min.cd6c2bbb05cdf98237b53882fed8c7a8b3fd7a7f7963d7cb305dd0d984782137.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-00000000-0', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-section">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">HUWEIHUAHG</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/kubernetes-notes/" ><span class="active">Kubernetes学习笔记</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input type="search" class="form-control td-search-input" placeholder="&#xf002; 站内搜索…" aria-label="站内搜索…" autocomplete="off">
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+
+
+
+
+<div class="td-content">
+<div class="pageinfo pageinfo-primary d-print-none">
+<p>
+这是本节的多页打印视图。
+<a href="#" onclick="print();return false;">点击此处打印</a>.
+</p><p>
+<a href="/kubernetes-notes/concepts/">返回本页常规视图</a>.
+</p>
+</div>
+
+
+
+<h1 class="title">基本概念</h1>
+
+
+
+
+
+    <ul>
+    
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>1: <a href="#pg-de32fae571e364e320e9c4fbf60e7384">kubernetes架构</a></li>
+
+
+    
+    <ul>
+        
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>1.1: <a href="#pg-b545a2ca17b93b0d5b41f439c5c49f76">Kubernetes总架构图</a></li>
+
+
+    
+  
+    
+    
+	
+<li>1.2: <a href="#pg-765e34ca75800e04fc456ceb521a5c40"> 基于Docker及Kubernetes技术构建容器云（PaaS）平台</a></li>
+
+
+    
+  
+
+    </ul>
+    
+  
+    
+    
+	
+<li>2: <a href="#pg-9de22f41eb289fe9a19743bc4cc793ff">kubernetes对象</a></li>
+
+
+    
+    <ul>
+        
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>2.1: <a href="#pg-466c1b420cb16e44f962be13caafa2ec">Kubernetes基本概念</a></li>
+
+
+    
+  
+    
+    
+	
+<li>2.2: <a href="#pg-96fe330e8ab07dd38ff1d1c60fbc950f">理解kubernetes对象</a></li>
+
+
+    
+  
+
+    </ul>
+    
+  
+    
+    
+	
+<li>3: <a href="#pg-8c4dce12f691e4d3b4ce5485de3575e0">Pod对象</a></li>
+
+
+    
+    <ul>
+        
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>3.1: <a href="#pg-ad3d37233d0ef73ff0433086563ab781">Pod介绍</a></li>
+
+
+    
+  
+    
+    
+	
+<li>3.2: <a href="#pg-dfe3dc8e698614b183a38620c6373d26">Pod定义文件</a></li>
+
+
+    
+  
+    
+    
+	
+<li>3.3: <a href="#pg-2ce568b236047ef5eb3a0c713a4ef70d">Pod生命周期</a></li>
+
+
+    
+  
+    
+    
+	
+<li>3.4: <a href="#pg-f8cc746df04add11975d611fdc6db65f">Pod健康检查</a></li>
+
+
+    
+  
+    
+    
+	
+<li>3.5: <a href="#pg-e9050fa070dd1f1567bd49d2d8fb0629">Pod存储卷</a></li>
+
+
+    
+  
+    
+    
+	
+<li>3.6: <a href="#pg-61971721a88dac7a1e8a7796dc21b6d3">Pod调度</a></li>
+
+
+    
+  
+    
+    
+	
+<li>3.7: <a href="#pg-e8afcbe09f3cadc6988fab9470d287a9">Pod伸缩与升级</a></li>
+
+
+    
+  
+
+    </ul>
+    
+  
+    
+    
+	
+<li>4: <a href="#pg-0d04a1bda6875a57535ee9e5c3a27a52">配置</a></li>
+
+
+    
+    <ul>
+        
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>4.1: <a href="#pg-8e56be8a3b34365d46ef8a4fcb36166e">ConfigMap</a></li>
+
+
+    
+  
+
+    </ul>
+    
+  
+
+    </ul>
+
+
+<div class="content">
+      
+</div>
+</div>
+
+
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-de32fae571e364e320e9c4fbf60e7384">1 - kubernetes架构</h1>
+    
+	
+</div>
+
+
+
+    
+      
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-b545a2ca17b93b0d5b41f439c5c49f76">1.1 - Kubernetes总架构图</h1>
+    
+	<h1 id="1-kubernetes的总架构图">1. Kubernetes的总架构图</h1>
+<img src="http://res.cloudinary.com/dqxtn0ick/image/upload/v1512807164/article/kubernetes/arch/k8s-arch.jpg" width="100%">
+<h1 id="2-kubernetes各个组件介绍">2. Kubernetes各个组件介绍</h1>
+<h2 id="2-1-kube-master-控制节点">2.1 kube-master[控制节点]</h2>
+<p><strong>master的工作流程图</strong></p>
+<img src="http://res.cloudinary.com/dqxtn0ick/image/upload/v1510578888/article/kubernetes/arch/master.png" width="100%">
+<ol>
+<li>Kubecfg将特定的请求，比如创建Pod，发送给Kubernetes Client。</li>
+<li>Kubernetes Client将请求发送给API server。</li>
+<li>API Server根据请求的类型，比如创建Pod时storage类型是pods，然后依此选择何种REST Storage API对请求作出处理。</li>
+<li>REST Storage API对的请求作相应的处理。</li>
+<li>将处理的结果存入高可用键值存储系统Etcd中。</li>
+<li>在API Server响应Kubecfg的请求后，Scheduler会根据Kubernetes Client获取集群中运行Pod及Minion/Node信息。</li>
+<li>依据从Kubernetes Client获取的信息，Scheduler将未分发的Pod分发到可用的Minion/Node节点上。</li>
+</ol>
+<h2 id="2-1-1-api-server-资源操作入口">2.1.1 API Server[资源操作入口]</h2>
+<ol>
+<li>
+<p>提供了资源对象的唯一操作入口，其他所有组件都必须通过它提供的API来操作资源数据，只有API Server与存储通信，其他模块通过API Server访问集群状态。</p>
+<p>第一，是为了保证集群状态访问的安全。</p>
+<p>第二，是为了隔离集群状态访问的方式和后端存储实现的方式：API Server是状态访问的方式，不会因为后端存储技术etcd的改变而改变。</p>
+</li>
+<li>
+<p>作为kubernetes系统的入口，封装了核心对象的增删改查操作，以RESTFul接口方式提供给外部客户和内部组件调用。对相关的资源数据“全量查询”+“变化监听”，实时完成相关的业务功能。</p>
+</li>
+</ol>
+<p>更多API Server信息请参考：<a href="http://www.huweihuang.com/article/kubernetes/core-principle/kubernetes-core-principle-api-server/">Kubernetes核心原理（一）之API Server</a></p>
+<h2 id="2-1-2-controller-manager-内部管理控制中心">2.1.2 Controller Manager[内部管理控制中心]</h2>
+<ol>
+<li>实现集群故障检测和恢复的自动化工作，负责执行各种控制器，主要有：
+<ul>
+<li>endpoint-controller：定期关联service和pod(关联信息由endpoint对象维护)，保证service到pod的映射总是最新的。</li>
+<li>replication-controller：定期关联replicationController和pod，保证replicationController定义的复制数量与实际运行pod的数量总是一致的。</li>
+</ul>
+</li>
+</ol>
+<p>更多Controller Manager信息请参考：<a href="http://www.huweihuang.com/article/kubernetes/core-principle/kubernetes-core-principle-controller-manager/">Kubernetes核心原理（二）之Controller Manager</a></p>
+<h2 id="2-1-3-scheduler-集群分发调度器">2.1.3 Scheduler[集群分发调度器]</h2>
+<ol>
+<li>Scheduler收集和分析当前Kubernetes集群中所有Minion/Node节点的资源(内存、CPU)负载情况，然后依此分发新建的Pod到Kubernetes集群中可用的节点。</li>
+<li>实时监测Kubernetes集群中未分发和已分发的所有运行的Pod。</li>
+<li>Scheduler也监测Minion/Node节点信息，由于会频繁查找Minion/Node节点，Scheduler会缓存一份最新的信息在本地。</li>
+<li>最后，Scheduler在分发Pod到指定的Minion/Node节点后，会把Pod相关的信息Binding写回API Server。</li>
+</ol>
+<p>更多Scheduler信息请参考：<a href="http://www.huweihuang.com/article/kubernetes/core-principle/kubernetes-core-principle-scheduler/">Kubernetes核心原理（三）之Scheduler</a></p>
+<h2 id="2-2-kube-node-服务节点">2.2 kube-node[服务节点]</h2>
+<p><strong>kubelet结构图</strong></p>
+<img src="http://res.cloudinary.com/dqxtn0ick/image/upload/v1510578888/article/kubernetes/arch/kubelet.png" width="60%">
+<h2 id="2-2-1-kubelet-节点上的pod管家">2.2.1 Kubelet[节点上的Pod管家]</h2>
+<ol>
+<li>
+<p>负责Node节点上pod的创建、修改、监控、删除等全生命周期的管理</p>
+</li>
+<li>
+<p>定时上报本Node的状态信息给API Server。</p>
+</li>
+<li>
+<p>kubelet是Master API Server和Minion/Node之间的桥梁，接收Master API Server分配给它的commands和work，通过kube-apiserver间接与Etcd集群交互，读取配置信息。</p>
+</li>
+<li>
+<p>具体的工作如下：</p>
+<ol>
+<li>
+<p>设置容器的环境变量、给容器绑定Volume、给容器绑定Port、根据指定的Pod运行一个单一容器、给指定的Pod创建network 容器。</p>
+</li>
+<li>
+<p>同步Pod的状态、同步Pod的状态、从cAdvisor获取container info、 pod info、 root info、 machine info。</p>
+</li>
+<li>
+<p>在容器中运行命令、杀死容器、删除Pod的所有容器。</p>
+</li>
+</ol>
+</li>
+</ol>
+<p>更多Kubelet信息请参考：<a href="http://www.huweihuang.com/article/kubernetes/core-principle/kubernetes-core-principle-kubelet/">Kubernetes核心原理（四）之Kubelet</a></p>
+<h2 id="2-2-2-proxy-负载均衡-路由转发">2.2.2 Proxy[负载均衡、路由转发]</h2>
+<ol>
+<li>Proxy是为了解决外部网络能够访问跨机器集群中容器提供的应用服务而设计的，运行在每个Minion/Node上。Proxy提供TCP/UDP sockets的proxy，每创建一种Service，Proxy主要从etcd获取Services和Endpoints的配置信息（也可以从file获取），然后根据配置信息在Minion/Node上启动一个Proxy的进程并监听相应的服务端口，当外部请求发生时，Proxy会根据Load Balancer将请求分发到后端正确的容器处理。</li>
+<li>Proxy不但解决了同一主宿机相同服务端口冲突的问题，还提供了Service转发服务端口对外提供服务的能力，Proxy后端使用了随机、轮循负载均衡算法。</li>
+</ol>
+<h2 id="2-2-3-kubectl-集群管理命令行工具集">2.2.3 kubectl[集群管理命令行工具集]</h2>
+<ol>
+<li>通过客户端的kubectl命令集操作，API Server响应对应的命令结果，从而达到对kubernetes集群的管理。</li>
+</ol>
+<p>参考文章：</p>
+<p><a href="https://yq.aliyun.com/articles/47308?spm=5176.100240.searchblog.19.jF7FFa">https://yq.aliyun.com/articles/47308?spm=5176.100240.searchblog.19.jF7FFa</a></p>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-765e34ca75800e04fc456ceb521a5c40">1.2 -  基于Docker及Kubernetes技术构建容器云（PaaS）平台</h1>
+    
+	<p>[编者的话]</p>
+<p>目前很多的容器云平台通过Docker及Kubernetes等技术提供应用运行平台，从而实现运维自动化，快速部署应用、弹性伸缩和动态调整应用环境资源，提高研发运营效率。</p>
+<p>从宏观到微观（从抽象到具体）的思路来理解：云计算→PaaS→ App Engine→XAE[XXX App Engine] （XAE泛指一类应用运行平台，例如GAE、SAE、BAE等）。</p>
+<p>本文简要介绍了与容器云相关的几个重要概念：PaaS、App Engine、Dokcer、Kubernetes。</p>
+<h1 id="1-paas概述">1. PaaS概述</h1>
+<h2 id="1-1-paas概念">1.1. PaaS概念</h2>
+<ol>
+<li>PaaS(Platform as a service)，平台即服务，指将软件研发的平台（或业务基础平台）作为一种服务，以SaaS的模式提交给用户。</li>
+<li>PaaS是云计算服务的其中一种模式，云计算是一种按使用量付费的模式的服务，类似一种租赁服务，服务可以是基础设施计算资源（IaaS），平台（PaaS），软件（SaaS）。租用IT资源的方式来实现业务需要，如同水力、电力资源一样，计算、存储、网络将成为企业IT运行的一种被使用的资源，无需自己建设，可按需获得。</li>
+<li>PaaS的实质是将互联网的资源服务化为可编程接口，为第三方开发者提供有商业价值的资源和服务平台。简而言之，<strong>IaaS就是卖硬件及计算资源，PaaS就是卖开发、运行环境，SaaS就是卖软件</strong>。</li>
+</ol>
+<h2 id="1-2-iaas-paas-saas说明">1.2. IaaS/PaaS/SaaS说明</h2>
+<img src="http://res.cloudinary.com/dqxtn0ick/image/upload/v1510577867/article/caas/cloud-computing.jpg" width="40%">
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>说明</th>
+<th>比喻</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IaaS:Infrastructure-as-a-Service(基础设施即服务)</td>
+<td>提供的服务是计算基础设施</td>
+<td>地皮，需要自己盖房子</td>
+<td>Amazon EC2（亚马逊弹性云计算）</td>
+</tr>
+<tr>
+<td>PaaS: Platform-as-a-Service(平台即服务)</td>
+<td>提供的服务是软件研发的平台或业务基础平台</td>
+<td>商品房，需要自己装修</td>
+<td>GAE（谷歌开发者平台）</td>
+</tr>
+<tr>
+<td>SaaS: Software-as-a-Service(软件即服务)</td>
+<td>提供的服务是运行在云计算基础设施上的应用程序</td>
+<td>酒店套房，可以直接入住</td>
+<td>谷歌的Gmail邮箱</td>
+</tr>
+</tbody>
+</table>
+<img src="http://res.cloudinary.com/dqxtn0ick/image/upload/v1510577869/article/caas/paas.jpg" width="70%">
+<h2 id="1-3-paas的特点-三种层次">1.3. PaaS的特点（三种层次）</h2>
+<table>
+<thead>
+<tr>
+<th>特点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>平台即服务</td>
+<td>PaaS提供的服务就是个基础平台，一个环境，而不是具体的应用</td>
+</tr>
+<tr>
+<td>平台及服务</td>
+<td>不仅提供平台，还提供对该平台的技术支持、优化等服务</td>
+</tr>
+<tr>
+<td>平台级服务</td>
+<td>“平台级服务”即强大稳定的平台和专业的技术支持团队，保障应用的稳定使用</td>
+</tr>
+</tbody>
+</table>
+<h1 id="2-app-engine概述">2. App Engine概述</h1>
+<h2 id="2-1-app-engine概念">2.1. App Engine概念</h2>
+<p>App Engine是PaaS模式的一种实现方式，App Engine将应用运行所需的 IT 资源和基础设施以服务的方式提供给用户，包括了中间件服务、资源管理服务、弹性调度服务、消息服务等多种服务形式。App Engine的目标是对应用提供完整生命周期（包括设计、开发、测试和部署等阶段）的支持，从而减少了用户在购置和管理应用生命周期内所必须的软硬件以及部署应用和IT 基础设施的成本，同时简化了以上工作的复杂度。常见的App Engine有：GAE(Google App Engine)，SAE(Sina App Engine)，BAE(Baidu App Engine)。</p>
+<p>App Engine利用虚拟化与自动化技术实现快速搭建部署应用运行环境和动态调整应用运行时环境资源这两个目标。一方面实现即时部署以及快速回收，降低了环境搭建时间，避免了手工配置错误，快速重复搭建环境，及时回收资源， 减少了低利用率硬件资源的空置。另一方面，根据应用运行时的需求对应用环境进行动态调整，实现了应用平台的弹性扩展和自优化，减少了非高峰时硬件资源的空置。</p>
+<p>简而言之，<strong>App Engine主要目标是：Easy to maintain(维护), Easy to scale(扩容), Easy to build(构建)</strong>。</p>
+<h2 id="2-2-架构设计">2.2. 架构设计</h2>
+<img src="http://res.cloudinary.com/dqxtn0ick/image/upload/v1510577868/article/caas/AppEngine.jpg" width="80%">
+<h2 id="2-3-组成模块说明">2.3. 组成模块说明</h2>
+<table>
+<thead>
+<tr>
+<th>组成模块</th>
+<th>模块说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>App Router[流量接入层]</td>
+<td>接收用户请求，并转发到不同的App Runtime。</td>
+</tr>
+<tr>
+<td>App Runtime[应用运行层]</td>
+<td>应用运行环境，为各个应用提供基本的运行引擎，从而让app能够运行起来。</td>
+</tr>
+<tr>
+<td>Services[基础服务层]</td>
+<td>各个通用基础服务，主要是对主流的服务提供通用的接入，例如数据库等。</td>
+</tr>
+<tr>
+<td>Platform Control[平台控制层]</td>
+<td>整个平台的控制中心，实现业务调度，弹性扩容、资源审计、集群管理等相关工作。</td>
+</tr>
+<tr>
+<td>Manage System[管理界面层]</td>
+<td>提供友好可用的管理操作界面方便平台管理员来控制管理整个平台。</td>
+</tr>
+<tr>
+<td>Platform Support[平台支持层]</td>
+<td>为应用提供相关的支持，比如应用监控、问题定位、分布式日志重建、统计分析等。</td>
+</tr>
+<tr>
+<td>Log Center[日志中心]</td>
+<td>实时收集相关应用及系统的日志（日志收集），提供实时计算和分析平台（日志处理）。</td>
+</tr>
+<tr>
+<td>Code Center[代码中心]</td>
+<td>完成代码存储、部署上线相关的工作。</td>
+</tr>
+</tbody>
+</table>
+<h1 id="3-容器云平台技术栈">3. 容器云平台技术栈</h1>
+<table>
+<thead>
+<tr>
+<th>功能组成部分</th>
+<th>使用工具</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>应用载体</td>
+<td>Docker</td>
+</tr>
+<tr>
+<td>编排工具</td>
+<td>Kubernetes</td>
+</tr>
+<tr>
+<td>配置数据</td>
+<td>Etcd</td>
+</tr>
+<tr>
+<td>网络管理</td>
+<td>Flannel</td>
+</tr>
+<tr>
+<td>存储管理</td>
+<td>Ceph</td>
+</tr>
+<tr>
+<td>底层实现</td>
+<td>Linux内核的Namespace[资源隔离]和CGroups[资源控制]</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Namespace[资源隔离]</strong>
+Namespaces机制提供一种资源隔离方案。PID,IPC,Network等系统资源不再是全局性的，而是属于某个特定的Namespace。每个namespace下的资源对于其他namespace下的资源都是透明，不可见的。</li>
+<li><strong>CGroups[资源控制]</strong>
+CGroup（control group）是将任意进程进行分组化管理的Linux内核功能。CGroup本身是提供将进程进行分组化管理的功能和接口的基础结构，I/O或内存的分配控制等具体的资源管理功能是通过这个功能来实现的。CGroups可以限制、记录、隔离进程组所使用的物理资源（包括：CPU、memory、IO等），为容器实现虚拟化提供了基本保证。CGroups本质是内核附加在程序上的一系列钩子（hooks），通过程序运行时对资源的调度触发相应的钩子以达到资源追踪和限制的目的。</li>
+</ul>
+<h1 id="4-docker概述">4. Docker概述</h1>
+<p>更多详情请参考：<a href="http://www.huweihuang.com/article/docker/docker-architecture/">Docker整体架构图</a></p>
+<h2 id="4-1-docker介绍">4.1. Docker介绍</h2>
+<ol>
+<li>Docker - Build, Ship, and Run Any App, Anywhere</li>
+<li>Docker是一种Linux容器工具集，它是为“构建（Build）、交付（Ship）和运行（Run）”分布式应用而设计的。</li>
+<li>Docker相当于把应用以及应用所依赖的环境完完整整地打成了一个包，这个包拿到哪里都能原生运行。因此可以在开发、测试、运维中保证环境的一致性。</li>
+<li><strong>Docker的本质：Docker=LXC(Namespace+CGroups)+Docker Images，即在Linux内核的Namespace[资源隔离]和CGroups[资源控制]技术的基础上通过镜像管理机制来实现轻量化设计。</strong></li>
+</ol>
+<h2 id="4-2-docker的基本概念">4.2. Docker的基本概念</h2>
+<img src="http://res.cloudinary.com/dqxtn0ick/image/upload/v1510577868/article/caas/docker.png" width="70%">
+<h2 id="4-2-1-镜像">4.2.1. 镜像</h2>
+<p>Docker 镜像就是一个只读的模板，可以把镜像理解成一个模子（模具），由模子（镜像）制作的成品（容器）都是一样的（除非在生成时加额外参数），修改成品（容器）本身并不会对模子（镜像）产生影响（除非将成品提交成一个模子），容器重启时，即由模子（镜像）重新制作成一个成品（容器），与其他由该模子制作成的成品并无区别。</p>
+<p>例如：一个镜像可以包含一个完整的 ubuntu 操作系统环境，里面仅安装了 Apache 或用户需要的其它应用程序。镜像可以用来创建 Docker 容器。Docker 提供了一个很简单的机制来创建镜像或者更新现有的镜像，用户可以直接从其他人那里下载一个已经做好的镜像来直接使用。</p>
+<h2 id="4-2-2-容器">4.2.2. 容器</h2>
+<p>Docker 利用容器来运行应用。容器是从镜像创建的运行实例。它可以被启动、开始、停止、删除。每个容器都是相互隔离的、保证安全的平台。可以把容器看做是一个简易版的 Linux 环境（包括root用户权限、进程空间、用户空间和网络空间等）和运行在其中的应用程序。</p>
+<h2 id="4-2-3-仓库">4.2.3. 仓库</h2>
+<p>仓库是集中存放镜像文件的场所。有时候会把仓库和仓库注册服务器（Registry）混为一谈，并不严格区分。实际上，仓库注册服务器上往往存放着多个仓库，每个仓库中又包含了多个镜像，每个镜像有不同的标签（tag）。</p>
+<h2 id="4-3-docker的优势">4.3. Docker的优势</h2>
+<img src="http://res.cloudinary.com/dqxtn0ick/image/upload/v1510577868/article/caas/ContainerVSVMs.jpg" width="80%">
+<ol>
+<li>
+<p>容器的快速轻量</p>
+<p>容器的启动，停止和销毁都是以秒或毫秒为单位的，并且相比传统的虚拟化技术，使用容器在CPU、内存，网络IO等资源上的性能损耗都有同样水平甚至更优的表现。</p>
+</li>
+<li>
+<p>一次构建，到处运行</p>
+<p>当将容器固化成镜像后，就可以非常快速地加载到任何环境中部署运行。而构建出来的镜像打包了应用运行所需的程序、依赖和运行环境， 这是一个完整可用的应用集装箱，在任何环境下都能保证环境一致性。</p>
+</li>
+<li>
+<p>完整的生态链</p>
+<p>容器技术并不是Docker首创，但是以往的容器实现只关注于如何运行，而Docker站在巨人的肩膀上进行整合和创新，特别是Docker镜像的设计，完美地解决了容器从构建、交付到运行，提供了完整的生态链支持。</p>
+</li>
+</ol>
+<h1 id="5-kubernetes概述">5. Kubernetes概述</h1>
+<p>更多详情请参考：<a href="http://www.huweihuang.com/article/kubernetes/kubernetes-architecture/">Kubernetes总架构图</a></p>
+<h2 id="5-1-kubernetes介绍">5.1. Kubernetes介绍</h2>
+<p>Kubernetes是Google开源的容器集群管理系统。它构建Docker技术之上，为容器化的应用提供资源调度、部署运行、服务发现、扩容缩容等整一套功能，本质上可看作是基于容器技术的Micro-PaaS平台，即第三代PaaS的代表性项目。</p>
+<h2 id="5-2-kubernetes的基本概念">5.2. Kubernetes的基本概念</h2>
+<h2 id="5-2-1-pod">5.2.1. Pod</h2>
+<p>Pod是若干个相关容器的组合，是一个逻辑概念，Pod包含的容器运行在同一个宿主机上，这些容器使用相同的网络命名空间、IP地址和端口，相互之间能通过localhost来发现和通信，共享一块存储卷空间。在Kubernetes中创建、调度和管理的最小单位是Pod。一个Pod一般只放一个业务容器和一个用于统一网络管理的网络容器。</p>
+<h2 id="5-2-2-replication-controller">5.2.2. Replication Controller</h2>
+<p>Replication Controller是用来控制管理Pod副本(Replica，或者称实例)，Replication Controller确保任何时候Kubernetes集群中有指定数量的Pod副本在运行，如果少于指定数量的Pod副本，Replication Controller会启动新的Pod副本，反之会杀死多余的以保证数量不变。另外Replication Controller是弹性伸缩、滚动升级的实现核心。</p>
+<h2 id="5-2-3-service">5.2.3. Service</h2>
+<p>Service是真实应用服务的抽象，定义了Pod的逻辑集合和访问这个Pod集合的策略，Service将代理Pod对外表现为一个单一访问接口，外部不需要了解后端Pod如何运行，这给扩展或维护带来很大的好处，提供了一套简化的服务代理和发现机制。</p>
+<h2 id="5-2-4-label">5.2.4. Label</h2>
+<p>Label是用于区分Pod、Service、Replication Controller的Key/Value键值对，实际上Kubernetes中的任意API对象都可以通过Label进行标识。每个API对象可以有多个Label，但是每个Label的Key只能对应一个Value。Label是Service和Replication Controller运行的基础，它们都通过Label来关联Pod，相比于强绑定模型，这是一种非常好的松耦合关系。</p>
+<h2 id="5-2-5-node">5.2.5. Node</h2>
+<p>Kubernets属于主从的分布式集群架构，Kubernets Node（简称为Node，早期版本叫做Minion）运行并管理容器。Node作为Kubernetes的操作单元，将用来分配给Pod（或者说容器）进行绑定，Pod最终运行在Node上，Node可以认为是Pod的宿主机。</p>
+<h2 id="5-3-kubernetes架构">5.3. Kubernetes架构</h2>
+<img src="http://res.cloudinary.com/dqxtn0ick/image/upload/v1512807966/article/caas/architecture.png" width="100%">
+
+</div>
+
+
+
+    
+	
+  
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-9de22f41eb289fe9a19743bc4cc793ff">2 - kubernetes对象</h1>
+    
+	
+</div>
+
+
+
+    
+      
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-466c1b420cb16e44f962be13caafa2ec">2.1 - Kubernetes基本概念</h1>
+    
+	<h1 id="1-master">1. Master</h1>
+<p>集群的控制节点，负责整个集群的管理和控制，kubernetes的所有的命令基本都是发给Master，由它来负责具体的执行过程。</p>
+<h2 id="1-1-master的组件">1.1. Master的组件</h2>
+<ul>
+<li>kube-apiserver：资源增删改查的入口</li>
+<li>kube-controller-manager：资源对象的大总管</li>
+<li>kube-scheduler：负责资源调度（Pod调度）</li>
+<li>etcd Server:kubernetes的所有的资源对象的数据保存在etcd中。</li>
+</ul>
+<h1 id="2-node">2. Node</h1>
+<p>Node是集群的工作负载节点，默认情况kubelet会向Master注册自己，一旦Node被纳入集群管理范围，kubelet会定时向Master汇报自身的情报，包括操作系统，Docker版本，机器资源情况等。</p>
+<p>如果Node超过指定时间不上报信息，会被Master判断为“失联”，标记为Not Ready，随后Master会触发Pod转移。</p>
+<h2 id="2-1-node的组件">2.1. Node的组件</h2>
+<ul>
+<li>kubelet:Pod的管家，与Master通信</li>
+<li>kube-proxy：实现kubernetes Service的通信与负载均衡机制的重要组件</li>
+<li>Docker：容器的创建和管理</li>
+</ul>
+<h2 id="2-2-node相关命令">2.2. Node相关命令</h2>
+<p>kubectl get nodes</p>
+<p>kuebctl describe node {node_name}</p>
+<h2 id="2-3-describe命令的node信息">2.3. describe命令的Node信息</h2>
+<ul>
+<li>Node基本信息：名称、标签、创建时间等</li>
+<li>Node当前的状态，Node启动后会进行自检工作，磁盘是否满，内存是否不足，若都正常则切换为Ready状态。</li>
+<li>Node的主机地址与主机名</li>
+<li>Node上的资源总量：CPU,内存，最大可调度Pod数量等</li>
+<li>Node可分配资源量：当前Node可用于分配的资源量</li>
+<li>主机系统信息：主机唯一标识符UUID，Linux kernel版本号，操作系统，kubernetes版本，kubelet与kube-proxy版本</li>
+<li>当前正在运行的Pod列表及概要信息</li>
+<li>已分配的资源使用概要，例如资源申请的最低、最大允许使用量占系统总量的百分比</li>
+<li>Node相关的Event信息。</li>
+</ul>
+<h1 id="3-pod">3. Pod</h1>
+<p>Pod是Kubernetes中操作的基本单元。每个Pod中有个根容器(Pause容器)，Pause容器的状态代表整个容器组的状态，其他业务容器共享Pause的IP，即Pod IP，共享Pause挂载的Volume，这样简化了同个Pod中不同容器之间的网络问题和文件共享问题。</p>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578930/article/kubernetes/concept/pod.png" alt="pod"></p>
+<ol>
+<li>Kubernetes集群中，同宿主机的或不同宿主机的Pod之间要求能够TCP/IP直接通信，因此采用虚拟二层网络技术来实现，例如Flannel，Openvswitch(OVS)等，这样在同个集群中，不同的宿主机的Pod IP为不同IP段的IP，集群中的所有Pod IP都是唯一的，不同Pod之间可以直接通信。</li>
+<li>Pod有两种类型：普通Pod和静态Pod。静态Pod即不通过K8S调度和创建，直接在某个具体的Node机器上通过具体的文件来启动。普通Pod则是由K8S创建、调度，同时数据存放在ETCD中。</li>
+<li>Pod IP和具体的容器端口（ContainnerPort）组成一个具体的通信地址，即Endpoint。一个Pod中可以存在多个容器，可以有多个端口，Pod IP一样，即有多个Endpoint。</li>
+<li>Pod Volume是定义在Pod之上，被各个容器挂载到自己的文件系统中，可以用分布式文件系统实现后端存储功能。</li>
+<li>Pod中的Event事件可以用来排查问题，可以通过kubectl describe pod xxx 来查看对应的事件。</li>
+<li>每个Pod可以对其能使用的服务器上的计算资源设置限额，一般为CPU和Memory。K8S中一般将千分之一个的CPU配置作为最小单位，用m表示，是一个绝对值，即100m对于一个Core的机器还是48个Core的机器都是一样的大小。Memory配额也是个绝对值，单位为内存字节数。</li>
+<li>资源配额的两个参数</li>
+</ol>
+<ul>
+<li>Requests:该资源的最小申请量，系统必须满足要求。</li>
+<li>Limits:该资源最大允许使用量，当超过该量，K8S会kill并重启Pod。</li>
+</ul>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578930/article/kubernetes/concept/pod2.png" alt="pod2"></p>
+<h1 id="4-label">4. Label</h1>
+<ol>
+<li>Label是一个键值对，可以附加在任何对象上，比如Node,Pod,Service,RC等。Label和资源对象是多对多的关系，即一个Label可以被添加到多个对象上，一个对象也可以定义多个Label。</li>
+<li>Label的作用主要用来实现精细的、多维度的资源分组管理，以便进行资源分配，调度，配置，部署等工作。</li>
+<li>Label通俗理解就是“标签”，通过标签来过滤筛选指定的对象，进行具体的操作。k8s通过Label Selector(标签选择器)来筛选指定Label的资源对象，类似SQL语句中的条件查询（WHERE语句）。</li>
+<li>Label Selector有基于等式和基于集合的两种表达方式，可以多个条件进行组合使用。</li>
+</ol>
+<ul>
+<li>基于等式：name=redis-slave（匹配name=redis-slave的资源对象）;env!=product(匹配所有不具有标签env=product的资源对象)</li>
+<li>基于集合：name in (redis-slave,redis-master);name not in (php-frontend)（匹配所有不具有标签name=php-frontend的资源对象）</li>
+</ul>
+<p><strong>使用场景</strong></p>
+<ol>
+<li>kube-controller进程通过资源对象RC上定义的Label Selector来筛选要监控的Pod副本数，从而实现副本数始终保持预期数目。</li>
+<li>kube-proxy进程通过Service的Label Selector来选择对应Pod，自动建立每个Service到对应Pod的请求转发路由表，从而实现Service的智能负载均衡机制。</li>
+<li>kube-scheduler实现Pod定向调度：对Node定义特定的Label，并且在Pod定义文件中使用NodeSelector标签调度策略。</li>
+</ol>
+<h1 id="5-replication-controller-rc">5. Replication Controller(RC)</h1>
+<p>RC是k8s系统中的核心概念，定义了一个期望的场景。</p>
+<p>主要包括：</p>
+<ul>
+<li>Pod期望的副本数（replicas）</li>
+<li>用于筛选目标Pod的Label Selector</li>
+<li>用于创建Pod的模板（template）</li>
+</ul>
+<p>RC特性说明：</p>
+<ol>
+<li>Pod的缩放可以通过以下命令实现：kubectl scale rc redis-slave --replicas=3</li>
+<li>删除RC并不会删除该RC创建的Pod，可以将副本数设置为0，即可删除对应Pod。或者通过kubectl stop /delete命令来一次性删除RC和其创建的Pod。</li>
+<li>改变RC中Pod模板的镜像版本可以实现滚动升级（Rolling Update）。具体操作见<a href="https://kubernetes.io/docs/tasks/run-application/rolling-update-replication-controller/">https://kubernetes.io/docs/tasks/run-application/rolling-update-replication-controller/</a></li>
+<li>Kubernetes1.2以上版本将RC升级为Replica Set，它与当前RC的唯一区别在于Replica Set支持基于集合的Label Selector(Set-based selector)，而旧版本RC只支持基于等式的Label Selector(equality-based selector)。</li>
+<li>Kubernetes1.2以上版本通过Deployment来维护Replica Set而不是单独使用Replica Set。即控制流为：Delpoyment→Replica Set→Pod。即新版本的Deployment+Replica Set替代了RC的作用。</li>
+</ol>
+<h1 id="6-deployment">6. Deployment</h1>
+<p>Deployment是kubernetes 1.2引入的概念，用来解决Pod的编排问题。Deployment可以理解为RC的升级版（RC+Reolicat Set）。特点在于可以随时知道Pod的部署进度，即对Pod的创建、调度、绑定节点、启动容器完整过程的进度展示。</p>
+<p><strong>使用场景</strong></p>
+<ol>
+<li>创建一个Deployment对象来生成对应的Replica Set并完成Pod副本的创建过程。</li>
+<li>检查Deployment的状态来确认部署动作是否完成（Pod副本的数量是否达到预期值）。</li>
+<li>更新Deployment以创建新的Pod(例如镜像升级的场景)。</li>
+<li>如果当前Deployment不稳定，回退到上一个Deployment版本。</li>
+<li>挂起或恢复一个Deployment。</li>
+</ol>
+<p>可以通过kubectl describe deployment来查看Deployment控制的Pod的水平拓展过程。</p>
+<h1 id="7-horizontal-pod-autoscaler-hpa">7. Horizontal Pod Autoscaler(HPA)</h1>
+<p>Horizontal Pod Autoscaler(HPA)即Pod横向自动扩容，与RC一样也属于k8s的资源对象。</p>
+<p>HPA原理：通过追踪分析RC控制的所有目标Pod的负载变化情况，来确定是否针对性调整Pod的副本数。</p>
+<p>Pod负载度量指标：</p>
+<ul>
+<li>CPUUtilizationPercentage：Pod所有副本自身的CPU利用率的平均值。即当前Pod的CPU使用量除以Pod Request的值。</li>
+<li>应用自定义的度量指标，比如服务每秒内响应的请求数（TPS/QPS）。</li>
+</ul>
+<h1 id="8-service-服务">8. Service(服务)</h1>
+<h2 id="8-1-service概述">8.1. Service概述</h2>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578930/article/kubernetes/concept/service.png" alt="service"></p>
+<p>Service定义了一个服务的访问入口地址，前端应用通过这个入口地址访问其背后的一组由Pod副本组成的集群实例，Service与其后端的Pod副本集群之间是通过Label Selector来实现“无缝对接”。RC保证Service的Pod副本实例数目保持预期水平。</p>
+<h2 id="8-2-kubernetes的服务发现机制">8.2. kubernetes的服务发现机制</h2>
+<p>主要通过kube-dns这个组件来进行DNS方式的服务发现。</p>
+<h2 id="8-3-外部系统访问service的问题">8.3. 外部系统访问Service的问题</h2>
+<table>
+<thead>
+<tr>
+<th>IP类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node IP</td>
+<td>Node节点的IP地址</td>
+</tr>
+<tr>
+<td>Pod IP</td>
+<td>Pod的IP地址</td>
+</tr>
+<tr>
+<td>Cluster IP</td>
+<td>Service的IP地址</td>
+</tr>
+</tbody>
+</table>
+<h2 id="8-3-1-node-ip">8.3.1. Node IP</h2>
+<p>NodeIP是集群中每个节点的物理网卡IP地址，是真实存在的物理网络，kubernetes集群之外的节点访问kubernetes内的某个节点或TCP/IP服务的时候，需要通过NodeIP进行通信。</p>
+<h2 id="8-3-2-pod-ip">8.3.2. Pod IP</h2>
+<p>Pod IP是每个Pod的IP地址，是Docker Engine根据docker0网桥的IP段地址进行分配的，是一个虚拟二层网络，集群中一个Pod的容器访问另一个Pod中的容器，是通过Pod IP进行通信的，而真实的TCP/IP流量是通过Node IP所在的网卡流出的。</p>
+<h2 id="8-3-3-cluster-ip">8.3.3. Cluster IP</h2>
+<ol>
+<li>Service的Cluster IP是一个虚拟IP，只作用于Service这个对象，由kubernetes管理和分配IP地址（来源于Cluster IP地址池）。</li>
+<li>Cluster IP无法被ping通，因为没有一个实体网络对象来响应。</li>
+<li>Cluster IP结合Service Port组成的具体通信端口才具备TCP/IP通信基础，属于kubernetes集群内，集群外访问该IP和端口需要额外处理。</li>
+<li>k8s集群内Node IP 、Pod IP、Cluster IP之间的通信采取k8s自己的特殊的路由规则，与传统IP路由不同。</li>
+</ol>
+<h2 id="8-3-4-外部访问kubernetes集群">8.3.4. 外部访问Kubernetes集群</h2>
+<p>通过宿主机与容器端口映射的方式进行访问，例如：Service定位文件如下：</p>
+<p>可以通过任意Node的IP 加端口访问该服务。也可以通过Nginx或HAProxy来设置负载均衡。</p>
+<h1 id="9-volume-存储卷">9. Volume(存储卷)</h1>
+<h2 id="9-1-volume的功能">9.1. Volume的功能</h2>
+<ol>
+<li>Volume是Pod中能够被多个容器访问的共享目录，可以让容器的数据写到宿主机上或者写文件到网络存储中</li>
+<li>可以实现容器配置文件集中化定义与管理，通过ConfigMap资源对象来实现。</li>
+</ol>
+<h2 id="9-2-volume的特点">9.2. Volume的特点</h2>
+<p>k8s中的Volume与Docker的Volume相似，但不完全相同。</p>
+<ol>
+<li>k8s上Volume定义在Pod上，然后被一个Pod中的多个容器挂载到具体的文件目录下。</li>
+<li>k8s的Volume与Pod生命周期相关而不是容器是生命周期，即容器挂掉，数据不会丢失但是Pod挂掉，数据则会丢失。</li>
+<li>k8s中的Volume支持多种类型的Volume：Ceph、GlusterFS等分布式系统。</li>
+</ol>
+<h2 id="9-3-volume的使用方式">9.3. Volume的使用方式</h2>
+<p>先在Pod上声明一个Volume，然后容器引用该Volume并Mount到容器的某个目录。</p>
+<h2 id="9-4-volume类型">9.4. Volume类型</h2>
+<h2 id="9-4-1-emptydir">9.4.1. emptyDir</h2>
+<p>emptyDir Volume是在Pod分配到Node时创建的，初始内容为空，无须指定宿主机上对应的目录文件，由K8S自动分配一个目录，当Pod被删除时，对应的emptyDir数据也会永久删除。</p>
+<p><strong>作用</strong>：</p>
+<ol>
+<li>临时空间，例如程序的临时文件，无须永久保留</li>
+<li>长时间任务的中间过程CheckPoint的临时保存目录</li>
+<li>一个容器需要从另一个容器中获取数据的目录（即多容器共享目录）</li>
+</ol>
+<p><strong>说明</strong>：</p>
+<p>目前用户无法设置emptyVolume的使用介质，如果kubelet的配置使用硬盘则emptyDir将创建在该硬盘上。</p>
+<h2 id="9-4-2-hostpath">9.4.2. hostPath</h2>
+<p>hostPath是在Pod上挂载宿主机上的文件或目录。</p>
+<p><strong>作用</strong>：</p>
+<ol>
+<li>容器应用日志需要持久化时，可以使用宿主机的高速文件系统进行存储</li>
+<li>需要访问宿主机上Docker引擎内部数据结构的容器应用时，可以通过定义hostPath为宿主机/var/lib/docker目录，使容器内部应用可以直接访问Docker的文件系统。</li>
+</ol>
+<p><strong>注意点：</strong></p>
+<ol>
+<li>在不同的Node上具有相同配置的Pod可能会因为宿主机上的目录或文件不同导致对Volume上目录或文件的访问结果不一致。</li>
+<li>如果使用了资源配额管理，则kubernetes无法将hostPath在宿主机上使用的资源纳入管理。</li>
+</ol>
+<h2 id="9-4-3-gcepersistentdisk">9.4.3. gcePersistentDisk</h2>
+<p>表示使用谷歌公有云提供的永久磁盘（Persistent Disk ,PD）存放Volume的数据，它与EmptyDir不同，PD上的内容会被永久保存。当Pod被删除时，PD只是被卸载时，但不会被删除。需要先创建一个永久磁盘，才能使用gcePersistentDisk。</p>
+<p>使用gcePersistentDisk的限制条件：</p>
+<ul>
+<li>Node(运行kubelet的节点)需要是GCE虚拟机。</li>
+<li>虚拟机需要与PD存在于相同的GCE项目中和Zone中。</li>
+</ul>
+<h1 id="10-persistent-volume">10. Persistent Volume</h1>
+<p>Volume定义在Pod上，属于“计算资源”的一部分，而Persistent Volume和Persistent Volume Claim是网络存储，简称PV和PVC，可以理解为k8s集群中某个网络存储中对应的一块存储。</p>
+<ul>
+<li>PV是网络存储，不属于任何Node，但可以在每个Node上访问。</li>
+<li>PV不是定义在Pod上，而是独立于Pod之外定义。</li>
+<li>PV常见类型：GCE Persistent Disks、NFS、RBD等。</li>
+</ul>
+<p>PV是有状态的对象，状态类型如下：</p>
+<ul>
+<li>Available:空闲状态</li>
+<li>Bound:已经绑定到某个PVC上</li>
+<li>Released:对应的PVC已经删除，但资源还没有回收</li>
+<li>Failed:PV自动回收失败</li>
+</ul>
+<h1 id="11-namespace">11. Namespace</h1>
+<p>Namespace即命名空间，主要用于多租户的资源隔离，通过将资源对象分配到不同的Namespace上，便于不同的分组在共享资源的同时可以被分别管理。</p>
+<p>k8s集群启动后会默认创建一个“default”的Namespace。可以通过kubectl get namespaecs查看。</p>
+<p>可以通过kubectl config use-context <code>namespace</code>配置当前k8s客户端的环境，通过kubectl get pods获取当前namespace的Pod。或者通过kubectl get pods --namespace=<code>NAMESPACE</code>来获取指定namespace的Pod。</p>
+<p><strong>Namespace yaml文件的定义</strong></p>
+<h1 id="12-annotation-注解">12. Annotation(注解)</h1>
+<p>Annotation与Label类似，也使用key/value的形式进行定义，Label定义元数据（Metadata）,Annotation定义“附加”信息。</p>
+<p>通常Annotation记录信息如下：</p>
+<ul>
+<li>build信息，release信息，Docker镜像信息等。</li>
+<li>日志库、监控库等。</li>
+</ul>
+<p>参考《Kubernetes权威指南》</p>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-96fe330e8ab07dd38ff1d1c60fbc950f">2.2 - 理解kubernetes对象</h1>
+    
+	<h1 id="1-kubernetes对象概述">1. kubernetes对象概述</h1>
+<p>kubernetes中的对象是一些持久化的实体，可以理解为是对<code>集群状态的描述或期望</code>。</p>
+<p>包括：</p>
+<ul>
+<li>集群中哪些node上运行了哪些容器化应用</li>
+<li>应用的资源是否满足使用</li>
+<li>应用的执行策略，例如重启策略、更新策略、容错策略等。</li>
+</ul>
+<p><strong>kubernetes的对象是一种意图（期望）的记录，kubernetes会始终保持预期创建的对象存在和集群运行在预期的状态下</strong>。</p>
+<p>操作kubernetes对象（增删改查）需要通过<a href="https://kubernetes.io/docs/reference/">kubernetes API</a>，一般有以下几种方式：</p>
+<ul>
+<li><code>kubectl</code>命令工具</li>
+<li><code>Client library</code>的方式，例如 <a href="https://github.com/kubernetes/client-go">client-go</a></li>
+</ul>
+<h1 id="2-spec-and-status">2. Spec and Status</h1>
+<p>每个kubernetes对象的结构描述都包含<code>spec</code>和<code>status</code>两个部分。</p>
+<ul>
+<li><code>spec</code>：该内容由用户提供，描述用户期望的对象特征及集群状态。</li>
+<li><code>status</code>：该内容由kubernetes集群提供和更新，描述kubernetes对象的实时状态。</li>
+</ul>
+<p>任何时候，kubernetes都会控制集群的实时状态<code>status</code>与用户的预期状态<code>spec</code>一致。</p>
+<p>例如：当你定义<code>Deployment</code>的描述文件，指定集群中运行3个实例，那么kubernetes会始终保持集群中运行3个实例，如果任何实例挂掉，kubernetes会自动重建新的实例来保持集群中始终运行用户预期的3个实例。</p>
+<h1 id="3-对象描述文件">3. 对象描述文件</h1>
+<p>当你要创建一个kubernetes对象的时候，需要提供该对象的描述信息<code>spec</code>，来描述你的对象在kubernetes中的预期状态。</p>
+<p>一般使用kubernetes API来创建kubernetes对象，其中<code>spec</code>信息可以以<code>JSON</code>的形式存放在<code>request body</code>中，也可以以<code>.yaml</code>文件的形式通过<code>kubectl</code>工具创建。</p>
+<p>例如，以下为<code>Deployment</code>对象对应的<code>yaml</code>文件：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">apps/v1beta2</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># for versions before 1.8.0 use apps/v1beta1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Deployment</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx-deployment</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">replicas</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">selector</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">matchLabels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">app</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">template</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">labels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">app</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx:1.7.9</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">ports</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span>- <span style="color:#204a87;font-weight:bold">containerPort</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">80</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>执行<code>kubectl create</code>的命令</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#create command</span>
+</span></span><span style="display:flex;"><span>kubectl create -f https://k8s.io/docs/user-guide/nginx-deployment.yaml --record
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#output</span>
+</span></span><span style="display:flex;"><span>deployment <span style="color:#4e9a06">&#34;nginx-deployment&#34;</span> created
+</span></span></code></pre></div><h1 id="4-必须字段">4. 必须字段</h1>
+<p>在对象描述文件<code>.yaml</code>中，必须包含以下字段。</p>
+<ul>
+<li>apiVersion：kubernetes API的版本</li>
+<li>kind：kubernetes对象的类型</li>
+<li>metadata：唯一标识该对象的元数据，包括<code>name</code>，UID，可选的<code>namespace</code></li>
+<li>spec：标识对象的详细信息，不同对象的<code>spec</code>的格式不同，可以嵌套其他对象的字段。</li>
+</ul>
+<p>文章参考：</p>
+<p><a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/">https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/</a></p>
+
+</div>
+
+
+
+    
+	
+  
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-8c4dce12f691e4d3b4ce5485de3575e0">3 - Pod对象</h1>
+    
+	
+</div>
+
+
+
+    
+      
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-ad3d37233d0ef73ff0433086563ab781">3.1 - Pod介绍</h1>
+    
+	<h1 id="1-pod是什么-what">1. Pod是什么（what）</h1>
+<h2 id="1-1-pod概念">1.1. Pod概念</h2>
+<ul>
+<li>Pod是kubernetes集群中最小的部署和管理的<code>基本单元</code>，协同寻址，协同调度。</li>
+<li>Pod是一个或多个容器的集合，是一个或一组服务（进程）的抽象集合。</li>
+<li>Pod中可以共享网络和存储（可以简单理解为一个逻辑上的虚拟机，但并不是虚拟机）。</li>
+<li>Pod被创建后用一个<code>UID</code>来唯一标识，当Pod生命周期结束，被一个等价Pod替代，UID将重新生成。</li>
+</ul>
+<h3 id="1-1-1-pod与docker">1.1.1. Pod与Docker</h3>
+<ul>
+<li>Docker是目前Pod最常用的容器环境，但仍支持其他容器环境。</li>
+<li>Pod是一组被模块化的拥有共享命名空间和共享存储卷的容器，但并没有共享PID 命名空间（即同个Pod的不同容器中进程的PID是独立的，互相看不到非自己容器的进程）。</li>
+</ul>
+<h3 id="1-1-2-pod中容器的运行方式">1.1.2. Pod中容器的运行方式</h3>
+<ol>
+<li><strong>只运行一个单独的容器</strong></li>
+</ol>
+<p>即<code>one-container-per-Pod</code>模式，是最常用的模式，可以把这样的Pod看成单独的一个容器去管理。</p>
+<ol start="2">
+<li><strong>运行多个强关联的容器</strong></li>
+</ol>
+<p>即<code>sidecar</code>模式，Pod 封装了一组紧耦合、共享资源、协同寻址的容器，将这组容器作为一个管理单元。</p>
+<h2 id="1-2-pod管理多个容器">1.2. Pod管理多个容器</h2>
+<p>Pod是一组紧耦合的容器的集合，Pod内的容器作为一个整体以Pod形式进行协同寻址，协同调度、协同管理。相同Pod内的容器共享网络和存储。</p>
+<img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1535286616/article/kubernetes/pod/pod.svg" width="50%" />
+<h3 id="1-2-1-网络">1.2.1. 网络</h3>
+<ul>
+<li>每个Pod被分配了唯一的IP地址，该Pod内的所有容器共享一个网络空间，包括IP和端口。</li>
+<li>同个Pod不同容器之间通过<code>localhos</code>t通信，Pod内端口不能冲突。</li>
+<li>不同Pod之间的通信则通过IP+端口的形式来访问到Pod内的具体服务（容器）。</li>
+</ul>
+<h3 id="1-2-2-存储">1.2.2. 存储</h3>
+<ul>
+<li>可以在Pod中创建共享<code>存储卷</code>的方式来实现不同容器之间数据共享。</li>
+</ul>
+<h1 id="2-为什么需要pod-why">2. 为什么需要Pod(why)</h1>
+<h2 id="2-1-管理需求">2.1. 管理需求</h2>
+<p>Pod 是一种模式的抽象：互相协作的多个进程（容器）共同形成一个完整的服务。以一个或多个容器的方式组合成一个整体，作为管理的基本单元，通过Pod可以方便部署、水平扩展，协同调度等。</p>
+<h2 id="2-2-资源共享和通信">2.2. 资源共享和通信</h2>
+<p>Pod作为多个紧耦合的容器的集合，通过共享网络和存储的方式来简化紧耦合容器之间的通信，从这个角度，可以将Pod简单理解为一个逻辑上的“虚拟机”。而不同的Pod之间的通信则通过Pod的IP和端口的方式。</p>
+<h2 id="2-3-pod设计的优势">2.3. Pod设计的优势</h2>
+<ul>
+<li>调度器和控制器的可拔插性。</li>
+<li>将Pod 的生存期从 controller 中剥离出来，从而减少相互影响。</li>
+<li>高可用--在终止和删除 Pod 前，需要提前生成替代 Pod。</li>
+<li>集群级别的功能和 Kubelet（Pod Controller） 级别的功能组合更加清晰。</li>
+</ul>
+<h1 id="3-pod的使用-how">3. Pod的使用(how)</h1>
+<p>Pod一般是通过各种不同类型的<code>Controller</code>对Pod进行管理和控制，包括自我恢复（例如Pod因异常退出，则会再起一个相同的Pod替代该Pod，而该Pod则会被清除）。也可以不通过Controller单独创建一个Pod，但一般很少这么操作，因为这个Pod是一个孤立的实体，并不会被Controller管理。</p>
+<h2 id="3-1-controller">3.1. Controller</h2>
+<p><code>Controller</code>是kubernetes中用于对Pod进行管理的控制器，通过该控制器让Pod始终维持在一个用户原本设定或期望的状态。如果节点宕机或者Pod因其他原因死亡，则会在其他节点起一个相同的Pod来替代该Pod。</p>
+<p>常用的Controller有：</p>
+<ul>
+<li><code>Deployment</code></li>
+<li><code>StatefulSet</code></li>
+<li><code>DaemonSet</code></li>
+</ul>
+<p><code>Controller</code>是通过用户提供的Pod模板来创建和控制Pod。</p>
+<h2 id="3-2-pod模板">3.2. Pod模板</h2>
+<p>Pod模板用来定义Pod的各种属性，Controller通过Pod模板来生成对应的Pod。</p>
+<p>Pod模板类似一个饼干模具，通过模具已经生成的饼干与原模具已经没有关系，即对原模具的修改不会影响已经生成的饼干，只会对通过修改后的模具生成的饼干有影响。这种方式可以更加方便地控制和管理Pod。</p>
+<h1 id="4-pod的终止">4. Pod的终止</h1>
+<p>用户发起一个删除Pod的请求，系统会先发送<code>TERM</code>信号给每个容器的主进程，如果在宽限期（默认30秒）主进程没有自主终止运行，则系统会发送<code>KILL</code>信号给该进程，接着Pod将被删除。</p>
+<h2 id="4-1-pod终止的流程">4.1. Pod终止的流程</h2>
+<ol>
+<li>用户发送一个删除 Pod 的命令， 并使用默认的宽限期（30s)。</li>
+<li>把 API server 上的 pod 的时间更新成 Pod 与宽限期一起被认为 “dead” 之外的时间点。</li>
+<li>使用客户端的命令，显示出的Pod的状态为 <code>terminating</code>。</li>
+<li>（与第3步同时发生）Kubelet 发现某一个 Pod 由于时间超过第2步的设置而被标志成 terminating 状态时， Kubelet 将启动一个停止进程。
+<ol>
+<li>如果 pod 已经被定义成一个 <code>preStop hook</code>，这会在 pod 内部进行调用。如果宽限期已经过期但 preStop 锚依然还在运行，将调用第2步并在原来的宽限期上加一个小的时间窗口（2 秒钟）。</li>
+<li>把 Pod 里的进程发送到 <code>TERM </code>信号。</li>
+</ol>
+</li>
+<li>（与第3步同时发生），Pod 被从终端的服务列表里移除，同时也不再被 replication controllers 看做时一组运行中的 pods。 在负载均衡（比如说 service proxy）会将它们从轮询中移除前， Pods 这种慢关闭的方式可以继续为流量提供服务。</li>
+<li>当宽期限过期时， 任何还在 Pod 里运行的进程都会被 <code>SIGKILL </code>杀掉。</li>
+<li>Kubelet 通过在 API server 把宽期限设置成0(立刻删除)的方式完成删除 Pod的过程。 这时 Pod 在 API 里消失，也不再能被用户看到。</li>
+</ol>
+<h2 id="4-2-强制删除pod">4.2. 强制删除Pod</h2>
+<p>强制删除Pod是指从k8s集群状态和Etcd中立刻删除对应的Pod数据，API Server不会等待kubelet的确认信息。被强制删除后，即可重新创建一个相同名字的Pod。</p>
+<p>删除默认的宽限期是30秒，通过将宽限期设置为0的方式可以强制删除Pod。</p>
+<p>通过<code>kubectl delete</code> 命令后加<code>--force</code>和<code>--grace-period=0</code>的参数强制删除Pod。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl delete pod &lt;pod_name&gt; --namespace<span style="color:#ce5c00;font-weight:bold">=</span>&lt;namespace&gt;  --force --grace-period<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">0</span>
+</span></span></code></pre></div><h2 id="4-3-pod特权模式">4.3. Pod特权模式</h2>
+<p>特权模式是指让Pod中的进程具有访问宿主机系统设备或使用网络栈操作等的能力，例如编写网络插件和卷插件。</p>
+<p>通过将<code>container spec</code>中的<code>SecurityContext</code>设置为<code>privileged</code>即将该容器赋予了特权模式。特权模式的使用要求k8s版本高于<code>v1.1</code>。</p>
+<p>参考文章：</p>
+<ul>
+<li><a href="https://kubernetes.io/docs/concepts/workloads/pods/pod-overview/">https://kubernetes.io/docs/concepts/workloads/pods/pod-overview/</a></li>
+<li><a href="https://kubernetes.io/docs/concepts/workloads/pods/pod/">https://kubernetes.io/docs/concepts/workloads/pods/pod/</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-dfe3dc8e698614b183a38620c6373d26">3.2 - Pod定义文件</h1>
+    
+	<h1 id="1-pod的基本用法">1. Pod的基本用法</h1>
+<h2 id="1-1-说明">1.1. 说明</h2>
+<ol>
+<li>Pod实际上是<strong>容器的集合</strong>，在k8s中对运行容器的要求为：容器的主程序需要一直在前台运行，而不是后台运行。应用可以改造成前台运行的方式，例如Go语言的程序，直接运行二进制文件；java语言则运行主类；tomcat程序可以写个运行脚本。或者通过supervisor的进程管理工具，即supervisor在前台运行，应用程序由supervisor管理在后台运行。具体可参考<a href="http://blog.csdn.net/huwh_/article/details/77108245">supervisord</a>。</li>
+<li>当多个应用之间是紧耦合的关系时，可以将多个应用一起放在一个Pod中，同个Pod中的多个容器之间互相访问可以通过localhost来通信（可以把Pod理解成一个虚拟机，共享网络和存储卷）。</li>
+</ol>
+<h2 id="1-2-pod相关命令">1.2. Pod相关命令</h2>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>命令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>创建</td>
+<td>kubectl create -f frontend-localredis-pod.yaml</td>
+<td></td>
+</tr>
+<tr>
+<td>查询Pod运行状态</td>
+<td>kubectl get pods --namespace=<code>&lt;NAMESPACE&gt;</code></td>
+<td></td>
+</tr>
+<tr>
+<td>查询Pod详情</td>
+<td>kebectl describe pod <code>&lt;POD_NAME&gt;</code> --namespace=<code>&lt;NAMESPACE&gt;</code></td>
+<td>该命令常用来排查问题，查看Event事件</td>
+</tr>
+<tr>
+<td>删除</td>
+<td>kubectl delete pod <code>&lt;POD_NAME&gt;</code> ;kubectl delete pod --all</td>
+<td></td>
+</tr>
+<tr>
+<td>更新</td>
+<td>kubectl replace pod.yaml</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h1 id="2-pod的定义文件">2. Pod的定义文件</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Pod</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">namaspace</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">labels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">annotations</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">images</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">imagePullPolice</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">Always | Never | IfNotPresent]</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">command</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">string]</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">args</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">string]</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">workingDir</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">volumeMounts</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">mountPath</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">readOnly</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">boolean</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">ports</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">containerPort</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">int</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">hostPort</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">int</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">protocol</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">env</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">value</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">limits</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">memory</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">requests</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">memory</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">livenessProbe</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">exec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">command</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">string]</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">httpGet</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">path</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">port</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">int</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">host</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">scheme</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">httpHeaders</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">value</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">tcpSocket</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">            </span><span style="color:#204a87;font-weight:bold">port</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">int</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">initialDelaySeconds</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">number</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">timeoutSeconds</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">number</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">periodSeconds</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">number</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">successThreshold</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">failureThreshold</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">securityContext</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">privileged</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#204a87;font-weight:bold">false</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">restartPolicy</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">Always | Never | OnFailure]   </span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">nodeSelector</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">object</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">imagePullSecrets</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">hostNetwork</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#204a87;font-weight:bold">false</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">volumes</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">emptyDir</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span>{}<span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">hostPath</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">path</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">secret</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">secretName</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">items</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">key</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">path</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">configMap</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">items</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">key</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">path</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">string</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h1 id="3-静态pod">3. 静态pod</h1>
+<p>静态Pod是由kubelet进行管理，仅存在于特定Node上的Pod。它们不能通过API Server进行管理，无法与ReplicationController、Deployment或DaemonSet进行关联，并且kubelet也无法对其健康检查。</p>
+<p>静态Pod总是由kubelet创建，并且总在kubelet所在的Node上运行。</p>
+<p>创建静态Pod的方式：</p>
+<h2 id="3-1-通过配置文件方式">3.1. 通过配置文件方式</h2>
+<p>需要设置kubelet的启动参数“–config”，指定kubelet需要监控的配置文件所在目录，kubelet会定期扫描该目录，并根据该目录的.yaml或.json文件进行创建操作。静态Pod无法通过API Server删除（若删除会变成pending状态），如需删除该Pod则将yaml或json文件从这个目录中删除。</p>
+<p>例如：</p>
+<p>配置目录为/etc/kubelet.d/，配置启动参数：--config=/etc/kubelet.d/，该目录下放入static-web.yaml。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Pod</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">static-web</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">labels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">static-web</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">static-web</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">ports</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">web</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">containerPort</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">80</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>参考文章</p>
+<ul>
+<li>《Kubernetes权威指南》</li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-2ce568b236047ef5eb3a0c713a4ef70d">3.3 - Pod生命周期</h1>
+    
+	<h1 id="1-pod-phase">1. Pod phase</h1>
+<p>Pod的<code>phase</code>是Pod生命周期中的简单宏观描述，定义在Pod的<code>PodStatus</code>对象的<code>phase</code> 字段中。</p>
+<p><code>phase</code>有以下几种值：</p>
+<table>
+<thead>
+<tr>
+<th>状态值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>挂起（Pending）</code></td>
+<td>Pod 已被 Kubernetes 系统接受，但有一个或者多个容器镜像尚未创建。等待时间包括调度 Pod 的时间和通过网络下载镜像的时间。</td>
+</tr>
+<tr>
+<td><code>运行中（Running）</code></td>
+<td>该 Pod 已经绑定到了一个节点上，Pod 中所有的容器都已被创建。至少有一个容器正在运行，或者正处于启动或重启状态。</td>
+</tr>
+<tr>
+<td><code>成功（Succeeded）</code></td>
+<td>Pod 中的所有容器都被成功终止，并且不会再重启。</td>
+</tr>
+<tr>
+<td><code>失败（Failed）</code></td>
+<td>Pod 中的所有容器都已终止了，并且至少有一个容器是因为失败终止。也就是说，容器以非0状态退出或者被系统终止。</td>
+</tr>
+<tr>
+<td><code>未知（Unknown）</code></td>
+<td>因为某些原因无法取得 Pod 的状态，通常是因为与 Pod 所在主机通信失败。</td>
+</tr>
+</tbody>
+</table>
+<h1 id="2-pod-状态">2. Pod 状态</h1>
+<p>Pod 有一个 <code>PodStatus</code> 对象，其中包含一个 <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#podcondition-v1-core">PodCondition</a> 数组。 <code>PodCondition</code>包含以下以下字段：</p>
+<ul>
+<li><code>lastProbeTime</code>：Pod condition最后一次被探测到的时间戳。</li>
+<li><code>lastTransitionTime</code>：Pod最后一次状态转变的时间戳。</li>
+<li><code>message</code>：状态转化的信息，一般为报错信息，例如：containers with unready status: [c-1]。</li>
+<li><code>reason</code>：最后一次状态形成的原因，一般为报错原因，例如：ContainersNotReady。</li>
+<li><code>status</code>：包含的值有 True、False 和 Unknown。</li>
+<li><code>type</code>：Pod状态的几种类型。</li>
+</ul>
+<p>其中type字段包含以下几个值：</p>
+<ul>
+<li><code>PodScheduled</code>：Pod已经被调度到运行节点。</li>
+<li><code>Ready</code>：Pod已经可以接收请求提供服务。</li>
+<li><code>Initialized</code>：所有的init container已经成功启动。</li>
+<li><code>Unschedulable</code>：无法调度该Pod，例如节点资源不够。</li>
+<li><code>ContainersReady</code>：Pod中的所有容器已准备就绪。</li>
+</ul>
+<h1 id="3-重启策略">3. 重启策略</h1>
+<p>Pod通过<code>restartPolicy</code>字段指定重启策略，重启策略类型为：Always、OnFailure 和 Never，默认为 Always。</p>
+<p><code>restartPolicy</code> 仅指通过同一节点上的 kubelet 重新启动容器。</p>
+<table>
+<thead>
+<tr>
+<th>重启策略</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Always</td>
+<td>当容器失效时，由kubelet自动重启该容器</td>
+</tr>
+<tr>
+<td>OnFailure</td>
+<td>当容器终止运行且退出码不为0时，由kubelet自动重启该容器</td>
+</tr>
+<tr>
+<td>Never</td>
+<td>不论容器运行状态如何，kubelet都不会重启该容器</td>
+</tr>
+</tbody>
+</table>
+<p><strong>说明</strong>：</p>
+<p>可以管理Pod的控制器有Replication Controller，Job，DaemonSet，及kubelet（静态Pod）。</p>
+<ol>
+<li>RC和DaemonSet：必须设置为Always，需要保证该容器持续运行。</li>
+<li>Job：OnFailure或Never，确保容器执行完后不再重启。</li>
+<li>kubelet：在Pod失效的时候重启它，不论RestartPolicy设置为什么值，并且不会对Pod进行健康检查。</li>
+</ol>
+<h1 id="4-pod的生命">4. Pod的生命</h1>
+<p>Pod的生命周期一般通过<code>Controler</code>	的方式管理，每种<code>Controller</code>都会包含<code>PodTemplate</code>来指明Pod的相关属性，Controller可以自动对pod的异常状态进行重新调度和恢复，除非通过Controller的方式删除其管理的Pod，不然kubernetes始终运行用户预期状态的Pod。</p>
+<p><strong>控制器的分类</strong></p>
+<ul>
+<li>使用 <code>Job</code>运行预期会终止的 Pod，例如批量计算。Job 仅适用于重启策略为 <code>OnFailure</code> 或 <code>Never</code> 的 Pod。</li>
+<li>对预期不会终止的 Pod 使用 <code>ReplicationController</code>、<code>ReplicaSet</code>和 <code>Deployment</code>，例如 Web 服务器。 ReplicationController 仅适用于具有 <code>restartPolicy</code> 为 Always 的 Pod。</li>
+<li>提供特定于机器的系统服务，使用 <code>DaemonSet</code>为每台机器运行一个 Pod 。</li>
+</ul>
+<p>如果节点死亡或与集群的其余部分断开连接，则 Kubernetes 将应用一个策略将丢失节点上的所有 Pod 的 <code>phase</code> 设置为 <code>Failed</code>。</p>
+<h1 id="5-pod状态转换">5. Pod状态转换</h1>
+<p><strong>常见的状态转换</strong></p>
+<table>
+<thead>
+<tr>
+<th>Pod的容器数</th>
+<th>Pod当前状态</th>
+<th>发生的事件</th>
+<th>Pod结果状态</th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td>RestartPolicy=Always</td>
+<td>RestartPolicy=OnFailure</td>
+<td>RestartPolicy=Never</td>
+</tr>
+<tr>
+<td>包含一个容器</td>
+<td>Running</td>
+<td>容器成功退出</td>
+<td>Running</td>
+<td>Succeeded</td>
+<td>Succeeded</td>
+</tr>
+<tr>
+<td>包含一个容器</td>
+<td>Running</td>
+<td>容器失败退出</td>
+<td>Running</td>
+<td>Running</td>
+<td>Failure</td>
+</tr>
+<tr>
+<td>包含两个容器</td>
+<td>Running</td>
+<td>1个容器失败退出</td>
+<td>Running</td>
+<td>Running</td>
+<td>Running</td>
+</tr>
+<tr>
+<td>包含两个容器</td>
+<td>Running</td>
+<td>容器被OOM杀掉</td>
+<td>Running</td>
+<td>Running</td>
+<td>Failure</td>
+</tr>
+</tbody>
+</table>
+<h2 id="5-1-容器运行时内存超出限制">5.1. 容器运行时内存超出限制</h2>
+<ul>
+<li>容器以失败状态终止。</li>
+<li>记录 OOM 事件。</li>
+<li>如果<code>restartPolicy</code>为：
+<ul>
+<li>Always：重启容器；Pod <code>phase</code> 仍为 Running。</li>
+<li>OnFailure：重启容器；Pod <code>phase</code> 仍为 Running。</li>
+<li>Never: 记录失败事件；Pod <code>phase</code> 仍为 Failed。</li>
+</ul>
+</li>
+</ul>
+<h2 id="5-2-磁盘故障">5.2. 磁盘故障</h2>
+<ul>
+<li>杀掉所有容器。</li>
+<li>记录适当事件。</li>
+<li>Pod <code>phase</code> 变成 Failed。</li>
+<li>如果使用控制器来运行，Pod 将在别处重建。</li>
+</ul>
+<h2 id="5-3-运行节点挂掉">5.3. 运行节点挂掉</h2>
+<ul>
+<li>节点控制器等待直到超时。</li>
+<li>节点控制器将 Pod <code>phase</code> 设置为 Failed。</li>
+<li>如果是用控制器来运行，Pod 将在别处重建。</li>
+</ul>
+<p>参考文章：</p>
+<ul>
+<li><a href="https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/">https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-f8cc746df04add11975d611fdc6db65f">3.4 - Pod健康检查</h1>
+    
+	<h1 id="pod健康检查">Pod健康检查</h1>
+<p>Pod的健康状态由两类探针来检查：<code>LivenessProbe</code>和<code>ReadinessProbe</code>。</p>
+<h2 id="1-探针类型">1. 探针类型</h2>
+<p><strong>1. livenessProbe(存活探针)</strong></p>
+<ul>
+<li>表明容器是否正在运行。</li>
+<li>如果存活探测失败，则 kubelet 会杀死容器，并且容器将受到其 <code>重启策略</code>的影响。</li>
+<li>如果容器不提供存活探针，则默认状态为 <code>Success</code>。</li>
+</ul>
+<p><strong>2. readinessProbe(就绪探针)</strong></p>
+<ul>
+<li>表明容器是否可以正常接受请求。</li>
+<li>如果就绪探测失败，端点控制器将从与 Pod 匹配的所有 Service 的端点中删除该 Pod 的 IP 地址。</li>
+<li>初始延迟之前的就绪状态默认为 <code>Failure</code>。</li>
+<li>如果容器不提供就绪探针，则默认状态为 <code>Success</code>。</li>
+</ul>
+<h2 id="2-handler">2. Handler</h2>
+<p><code>探针</code>是<code>kubelet</code>对容器执行定期的诊断，主要通过调用容器配置的三类<code>Handler</code>实现：</p>
+<p><strong>Handler的类型</strong>：</p>
+<ul>
+<li><code>ExecAction</code>：在容器内执行指定命令。如果命令退出时返回码为 0 则认为诊断成功。</li>
+<li><code>TCPSocketAction</code>：对指定端口上的容器的 IP 地址进行 TCP 检查。如果端口打开，则诊断被认为是成功的。</li>
+<li><code>HTTPGetAction</code>：对指定的端口和路径上的容器的 IP 地址执行 HTTP Get 请求。如果响应的状态码大于等于200 且小于 400，则诊断被认为是成功的。</li>
+</ul>
+<p><strong>探测结果</strong>为以下三种之一：</p>
+<ul>
+<li><code>成功</code>：容器通过了诊断。</li>
+<li><code>失败</code>：容器未通过诊断。</li>
+<li><code>未知</code>：诊断失败，因此不会采取任何行动。</li>
+</ul>
+<h2 id="3-探针使用方式">3. 探针使用方式</h2>
+<ul>
+<li>如果容器异常可以自动崩溃，则不一定要使用探针，可以由Pod的<code>restartPolicy</code>执行重启操作。</li>
+<li><code>存活探针</code>适用于希望容器探测失败后被杀死并重新启动，需要指定<code>restartPolicy</code> 为 Always 或 OnFailure。</li>
+<li><code>就绪探针</code>适用于希望Pod在不能正常接收流量的时候被剔除，并且在就绪探针探测成功后才接收流量。</li>
+</ul>
+<p>存活探针由 kubelet 来执行，因此所有的请求都在 kubelet 的网络命名空间中进行。</p>
+<h3 id="3-1-livenessprobe参数">3.1. LivenessProbe参数</h3>
+<ul>
+<li><strong>initialDelaySeconds</strong>：启动容器后首次进行健康检查的等待时间，单位为秒。</li>
+<li><strong>timeoutSeconds</strong>:健康检查发送请求后等待响应的时间，如果超时响应kubelet则认为容器非健康，重启该容器，单位为秒。</li>
+</ul>
+<h3 id="3-2-livenessprobe三种实现方式">3.2. LivenessProbe三种实现方式</h3>
+<p>1）ExecAction:在一个容器内部执行一个命令，如果该命令状态返回值为0，则表明容器健康。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Pod</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">liveness-exec</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">liveness</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">tomcagcr.io/google_containers/busybox</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">args</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">/bin/sh</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- -<span style="color:#000">c</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">echo ok &gt; /tmp/health;sleep 10;rm -fr /tmp/health;sleep 600</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">livenessProbe</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">exec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">command</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span>- <span style="color:#000">cat</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span>- <span style="color:#000">/tmp/health</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">initialDelaySeconds</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">15</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">timeoutSeconds</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>2）TCPSocketAction:通过容器IP地址和端口号执行TCP检查，如果能够建立TCP连接，则表明容器健康。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Pod</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">pod-with-healthcheck</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">ports</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#204a87;font-weight:bold">containnerPort</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">80</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">livenessProbe</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">tcpSocket</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">port</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">80</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">initialDelaySeconds</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">15</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">timeoutSeconds</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>3）HTTPGetAction:通过容器的IP地址、端口号及路径调用HTTP Get方法，如果响应的状态码大于等于200且小于等于400，则认为容器健康。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Pod</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">pod-with-healthcheck</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">ports</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#204a87;font-weight:bold">containnerPort</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">80</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">livenessProbe</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">httpGet</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">path</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/_status/healthz</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">port</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">80</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">initialDelaySeconds</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">15</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">timeoutSeconds</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>参考文章：</p>
+<ul>
+<li><a href="https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/">https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/</a></li>
+<li>《Kubernetes权威指南》</li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-e9050fa070dd1f1567bd49d2d8fb0629">3.5 - Pod存储卷</h1>
+    
+	<h1 id="pod-volume">Pod Volume</h1>
+<p>同一个Pod中的多个容器可以共享Pod级别的存储卷Volume,Volume可以定义为各种类型，多个容器各自进行挂载，将Pod的Volume挂载为容器内部需要的目录。</p>
+<p>例如：Pod级别的Volume:&quot;app-logs&quot;,用于tomcat向其中写日志文件，busybox读日志文件。</p>
+<p><img src="http://res.cloudinary.com/dqxtn0ick/image/upload/v1512804287/article/kubernetes/pod/pod_volume.png" alt="这里写图片描述"></p>
+<p><strong>pod-volumes-applogs.yaml</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Pod</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">volume-pod</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">tomcat</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">tomcat</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">ports</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#204a87;font-weight:bold">containerPort</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">8080</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">volumeMounts</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">app-logs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">mountPath</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/usr/local/tomcat/logs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">busybox</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">busybox</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">command</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#34;sh&#34;</span><span style="color:#000;font-weight:bold">,</span><span style="color:#4e9a06">&#34;-c&#34;</span><span style="color:#000;font-weight:bold">,</span><span style="color:#4e9a06">&#34;tailf /logs/catalina*.log&#34;</span><span style="color:#000;font-weight:bold">]</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">volumeMounts</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">app-logs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">mountPath</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/logs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">volumes</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">app-logs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">emptuDir</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span>{}<span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p><strong>查看日志</strong></p>
+<ol>
+<li>kubectl logs <code>&lt;pod_name&gt;</code> -c <code>&lt;container_name&gt;</code></li>
+<li>kubectl exec -it <code>&lt;pod_name&gt;</code> -c <code>&lt;container_name&gt;</code> – tail /usr/local/tomcat/logs/catalina.xx.log</li>
+</ol>
+<p>参考文章</p>
+<ul>
+<li>《Kubernetes权威指南》</li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-61971721a88dac7a1e8a7796dc21b6d3">3.6 - Pod调度</h1>
+    
+	<h1 id="pod调度">Pod调度</h1>
+<p>在kubernetes集群中，Pod（container）是应用的载体，一般通过RC、Deployment、DaemonSet、Job等对象来完成Pod的调度与自愈功能。</p>
+<h2 id="1-rc-deployment-全自动调度">1. RC、Deployment:全自动调度</h2>
+<p>RC的功能即保持集群中始终运行着指定个数的Pod。</p>
+<p>在调度策略上主要有：</p>
+<ul>
+<li>系统内置调度算法[最优Node]</li>
+<li>NodeSelector[定向调度]</li>
+<li>NodeAffinity[亲和性调度]</li>
+</ul>
+<h2 id="2-nodeselector-定向调度">2. NodeSelector[定向调度]</h2>
+<p>k8s中kube-scheduler负责实现Pod的调度，内部系统通过一系列算法最终计算出最佳的目标节点。如果需要将Pod调度到指定Node上，则可以通过Node的标签（Label）和Pod的nodeSelector属性相匹配来达到目的。</p>
+<p>1、kubectl label nodes {node-name} {label-key}={label-value}</p>
+<p>2、nodeSelector:
+{label-key}:{label-value}</p>
+<p>如果给多个Node打了相同的标签，则scheduler会根据调度算法从这组Node中选择一个可用的Node来调度。</p>
+<p>如果Pod的nodeSelector的标签在Node中没有对应的标签，则该Pod无法被调度成功。</p>
+<p><strong>Node标签的使用场景：</strong></p>
+<p>对集群中不同类型的Node打上不同的标签，可控制应用运行Node的范围。例如role=frontend;role=backend;role=database。</p>
+<h2 id="3-nodeaffinity-亲和性调度">3. NodeAffinity[亲和性调度]</h2>
+<p>NodeAffinity意为Node亲和性调度策略，NodeSelector为精确匹配，NodeAffinity为条件范围匹配，通过In（属于）、NotIn（不属于）、Exists（存在一个条件）、DoesNotExist（不存在）、Gt（大于）、Lt（小于）等操作符来选择Node，使调度更加灵活。</p>
+<ul>
+<li>RequiredDuringSchedulingRequiredDuringExecution：类似于NodeSelector，但在Node不满足条件时，系统将从该Node上移除之前调度上的Pod。</li>
+<li>RequiredDuringSchedulingIgnoredDuringExecution：与上一个类似，区别是在Node不满足条件时，系统不一定从该Node上移除之前调度上的Pod。</li>
+<li>PreferredDuringSchedulingIgnoredDuringExecution：指定在满足调度条件的Node中，哪些Node应更优先地进行调度。同时在Node不满足条件时，系统不一定从该Node上移除之前调度上的Pod。</li>
+</ul>
+<p>如果同时设置了NodeSelector和NodeAffinity，则系统将需要同时满足两者的设置才能进行调度。</p>
+<h2 id="4-daemonset-特定场景调度">4. DaemonSet：特定场景调度</h2>
+<p>DaemonSet是kubernetes1.2版本新增的一种资源对象，用于管理在集群中<strong>每个Node</strong>上<strong>仅运行一份Pod</strong>的副本实例。</p>
+<p><img src="http://res.cloudinary.com/dqxtn0ick/image/upload/v1512804287/article/kubernetes/pod/monitor_pod.png" alt="这里写图片描述"></p>
+<p>该用法适用的应用场景：</p>
+<ul>
+<li>在每个Node上运行一个GlusterFS存储或者Ceph存储的daemon进程。</li>
+<li>在每个Node上运行一个日志采集程序：fluentd或logstach。</li>
+<li>在每个Node上运行一个健康程序，采集该Node的运行性能数据，例如：Prometheus Node Exportor、collectd、New Relic agent或Ganglia gmond等。</li>
+</ul>
+<p>DaemonSet的Pod调度策略与RC类似，除了使用系统内置算法在每台Node上进行调度，也可以通过NodeSelector或NodeAffinity来指定满足条件的Node范围进行调度。</p>
+<h2 id="5-job-批处理调度">5. Job：批处理调度</h2>
+<p>kubernetes从1.2版本开始支持批处理类型的应用，可以通过kubernetes Job资源对象来定义并启动一个批处理任务。批处理任务通常并行（或串行）启动多个计算进程去处理一批工作项（work item），处理完后，整个批处理任务结束。</p>
+<h3 id="5-1-批处理的三种模式">5.1. 批处理的三种模式</h3>
+<p><img src="http://res.cloudinary.com/dqxtn0ick/image/upload/v1512804286/article/kubernetes/pod/k8s_job.png" alt="这里写图片描述"></p>
+<p>批处理按任务实现方式不同分为以下几种模式：</p>
+<ul>
+<li>
+<p><strong>Job Template Expansion模式</strong>
+一个Job对象对应一个待处理的Work item，有几个Work item就产生几个独立的Job，通过适用于Work item数量少，每个Work item要处理的数据量比较大的场景。例如有10个文件（Work item）,每个文件（Work item）为100G。</p>
+</li>
+<li>
+<p><strong>Queue with Pod Per Work Item</strong>
+采用一个任务队列存放Work item，一个Job对象作为消费者去完成这些Work item，其中Job会启动N个Pod，每个Pod对应一个Work item。</p>
+</li>
+<li>
+<p><strong>Queue with Variable Pod Count</strong>
+采用一个任务队列存放Work item，一个Job对象作为消费者去完成这些Work item，其中Job会启动N个Pod，每个Pod对应一个Work item。<strong>但Pod的数量是可变的</strong>。</p>
+</li>
+</ul>
+<h3 id="5-2-job的三种类型">5.2. Job的三种类型</h3>
+<p><strong>1）Non-parallel Jobs</strong></p>
+<p>通常一个Job只启动一个Pod,除非Pod异常才会重启该Pod,一旦此Pod正常结束，Job将结束。</p>
+<p><strong>2）Parallel Jobs with a fixed completion count</strong></p>
+<p>并行Job会启动多个Pod，此时需要设定Job的.spec.completions参数为一个正数，当正常结束的Pod数量达到该值则Job结束。</p>
+<p><strong>3）Parallel Jobs with a work queue</strong></p>
+<p>任务队列方式的并行Job需要一个独立的Queue，Work item都在一个Queue中存放，不能设置Job的.spec.completions参数。</p>
+<p>此时Job的特性：</p>
+<ul>
+<li>每个Pod能独立判断和决定是否还有任务项需要处理</li>
+<li>如果某个Pod正常结束，则Job不会再启动新的Pod</li>
+<li>如果一个Pod成功结束，则此时应该不存在其他Pod还在干活的情况，它们应该都处于即将结束、退出的状态</li>
+<li>如果所有的Pod都结束了，且至少一个Pod成功结束，则整个Job算是成功结束</li>
+</ul>
+<p>参考文章</p>
+<ul>
+<li>《Kubernetes权威指南》</li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-e8afcbe09f3cadc6988fab9470d287a9">3.7 - Pod伸缩与升级</h1>
+    
+	<h1 id="1-pod伸缩">1. Pod伸缩</h1>
+<p>k8s中RC的用来保持集群中始终运行指定数目的实例，通过RC的scale机制可以完成Pod的扩容和缩容（伸缩）。</p>
+<h2 id="1-1-手动伸缩-scale">1.1. 手动伸缩（scale）</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl scale rc redis-slave --replicas<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">3</span>
+</span></span></code></pre></div><h2 id="1-2-自动伸缩-hpa">1.2. 自动伸缩（HPA）</h2>
+<p>Horizontal Pod Autoscaler（HPA）控制器用于实现基于CPU使用率进行自动Pod伸缩的功能。HPA控制器基于Master的kube-controller-manager服务启动参数--horizontal-pod-autoscaler-sync-period定义是时长（默认30秒），周期性监控目标Pod的CPU使用率，并在满足条件时对ReplicationController或Deployment中的Pod副本数进行调整，以符合用户定义的平均Pod CPU使用率。Pod CPU使用率来源于heapster组件，因此需安装该组件。</p>
+<p>可以通过kubectl autoscale命令进行快速创建或者使用yaml配置文件进行创建。创建之前需已存在一个RC或Deployment对象，并且该RC或Deployment中的Pod必须定义resources.requests.cpu的资源请求值，以便heapster采集到该Pod的CPU。</p>
+<h3 id="1-2-1-通过kubectl-autoscale创建">1.2.1. 通过kubectl autoscale创建</h3>
+<p>例如：</p>
+<p>php-apache-rc.yaml</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">ReplicationController</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">php-apache</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">replicas</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">template</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">php-apache</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">labels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">app</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">php-apache</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">php-apache</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">gcr.io/google_containers/hpa-example</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">requests</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">            </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">200m</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">ports</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span>- <span style="color:#204a87;font-weight:bold">containerPort</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">80</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>创建php-apache的RC</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl create -f php-apache-rc.yaml
+</span></span></code></pre></div><p>php-apache-svc.yaml</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Service</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">php-apache</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">ports</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">port</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">80</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">selector</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">app</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">php-apache</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>创建php-apache的Service</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl create -f php-apache-svc.yaml
+</span></span></code></pre></div><p>创建HPA控制器</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl autoscale rc php-apache --min<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1</span> --max<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">10</span> --cpu-percent<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">50</span>
+</span></span></code></pre></div><h3 id="1-2-2-通过yaml配置文件创建">1.2.2. 通过yaml配置文件创建</h3>
+<p>hpa-php-apache.yaml</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">HorizontalPodAutoscaler</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">php-apache</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">scaleTargetRef</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">ReplicationController</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">php-apache</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">minReplicas</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">maxReplicas</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">10</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">targetCPUUtilizationPercentage</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">50</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>创建hpa</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl create -f hpa-php-apache.yaml
+</span></span></code></pre></div><p>查看hpa</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl get hpa
+</span></span></code></pre></div><h1 id="2-pod滚动升级">2. Pod滚动升级</h1>
+<p>k8s中的滚动升级通过执行kubectl rolling-update命令完成，该命令创建一个新的RC（与旧的RC在同一个命名空间中），然后自动控制旧的RC中的Pod副本数逐渐减少为0，同时新的RC中的Pod副本数从0逐渐增加到附加值，但滚动升级中Pod副本数（包括新Pod和旧Pod）保持原预期值。</p>
+<h2 id="2-1-通过配置文件实现">2.1. 通过配置文件实现</h2>
+<p>redis-master-controller-v2.yaml</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">ReplicationController</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">redis-master-v2</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">labels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">redis-master</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">version</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v2</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">replicas</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">selector</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">redis-master</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">version</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v2</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">template</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">labels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">redis-master</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">version</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v2</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">master</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">kubeguide/redis-master:2.0</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">ports</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span>- <span style="color:#204a87;font-weight:bold">containerPort</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">6371</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>注意事项：</p>
+<ol>
+<li>RC的名字（name）不能与旧RC的名字相同</li>
+<li>在selector中应至少有一个Label与旧的RC的Label不同，以标识其为新的RC。例如本例中新增了version的Label。</li>
+</ol>
+<p>运行kubectl rolling-update</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl rolling-update redis-master -f redis-master-controller-v2.yaml
+</span></span></code></pre></div><h2 id="2-2-通过kubectl-rolling-update命令实现">2.2. 通过kubectl rolling-update命令实现</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl rolling-update redis-master --image<span style="color:#ce5c00;font-weight:bold">=</span>redis-master:2.0
+</span></span></code></pre></div><p>与使用配置文件实现不同在于，该执行结果旧的RC被删除，新的RC仍使用旧的RC的名字。</p>
+<h2 id="2-3-升级回滚">2.3. 升级回滚</h2>
+<p>kubectl rolling-update加参数--rollback实现回滚操作</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl rolling-update redis-master --image<span style="color:#ce5c00;font-weight:bold">=</span>kubeguide/redis-master:2.0 --rollback
+</span></span></code></pre></div><p>参考文章</p>
+<ul>
+<li>《Kubernetes权威指南》</li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-0d04a1bda6875a57535ee9e5c3a27a52">4 - 配置</h1>
+    
+	
+</div>
+
+
+
+    
+      
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-8e56be8a3b34365d46ef8a4fcb36166e">4.1 - ConfigMap</h1>
+    
+	<h1 id="pod的配置管理">Pod的配置管理</h1>
+<p>Kubernetes v1.2的版本提供统一的集群配置管理方案–ConfigMap。</p>
+<h2 id="1-configmap-容器应用的配置管理">1. ConfigMap：容器应用的配置管理</h2>
+<p>使用场景：</p>
+<ol>
+<li>生成为容器内的环境变量。</li>
+<li>设置容器启动命令的启动参数（需设置为环境变量）。</li>
+<li>以Volume的形式挂载为容器内部的文件或目录。</li>
+</ol>
+<p>ConfigMap以一个或多个key:value的形式保存在kubernetes系统中供应用使用，既可以表示一个变量的值（例如：apploglevel=info），也可以表示完整配置文件的内容（例如：server.xml=&lt;?xml...&gt;...）。</p>
+<p>可以通过yaml配置文件或者使用kubectl create configmap命令的方式创建ConfigMap。</p>
+<h2 id="2-创建configmap">2. 创建ConfigMap</h2>
+<h3 id="2-1-通过yaml文件方式">2.1. 通过yaml文件方式</h3>
+<p>cm-appvars.yaml</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">ConfigMap</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">cm-appvars</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">data</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">apploglevel</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">info</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">appdatadir</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/var/data</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>常用命令</p>
+<p>kubectl create -f cm-appvars.yaml</p>
+<p>kubectl get configmap</p>
+<p>kubectl describe configmap cm-appvars</p>
+<p>kubectl get configmap cm-appvars -o yaml</p>
+<h3 id="2-2-通过kubectl命令行方式">2.2. 通过kubectl命令行方式</h3>
+<p>通过kubectl create configmap创建，使用参数--from-file或--from-literal指定内容，可以在一行中指定多个参数。</p>
+<p>1）通过--from-file参数从文件中进行创建，可以指定key的名称，也可以在一个命令行中创建包含多个key的ConfigMap。</p>
+<p>kubectl create configmap NAME --from-file=[key=]source --from-file=[key=]source</p>
+<p>2）通过--from-file参数从目录中进行创建，该目录下的每个配置文件名被设置为key，文件内容被设置为value。</p>
+<p>kubectl create configmap NAME --from-file=config-files-dir</p>
+<p>3）通过--from-literal从文本中进行创建，直接将指定的key=value创建为ConfigMap的内容。</p>
+<p>kubectl create configmap NAME --from-literal=key1=value1 --from-literal=key2=value2</p>
+<p>容器应用对ConfigMap的使用有两种方法：</p>
+<ol>
+<li>通过环境变量获取ConfigMap中的内容。</li>
+<li>通过Volume挂载的方式将ConfigMap中的内容挂载为容器内部的文件或目录。</li>
+</ol>
+<h3 id="2-3-通过环境变量的方式">2.3. 通过环境变量的方式</h3>
+<p>ConfigMap的yaml文件:cm-appvars.yaml</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">ConfigMap</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">cm-appvars</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">data</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">apploglevel</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">info</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">appdatadir</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/var/data</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>Pod的yaml文件：cm-test-pod.yaml</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Pod</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">cm-test-pod</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">cm-test</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">busybox</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">command</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#34;/bin/sh&#34;</span><span style="color:#000;font-weight:bold">,</span><span style="color:#4e9a06">&#34;-c&#34;</span><span style="color:#000;font-weight:bold">,</span><span style="color:#4e9a06">&#34;env|grep APP&#34;</span><span style="color:#000;font-weight:bold">]</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">env</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">APPLOGLEVEL</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">valueFrom</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">configMapKeyRef</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">cm-appvars</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">key</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">apploglevel</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">APPDATADIR</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">valueFrom</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">configMapKeyRef</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">cm-appvars</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">key</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">appdatadir</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>创建命令：</p>
+<p>kubectl create -f cm-test-pod.yaml</p>
+<p>kubectl get pods --show-all</p>
+<p>kubectl logs cm-test-pod</p>
+<h2 id="3-使用configmap的限制条件">3. 使用ConfigMap的限制条件</h2>
+<ul>
+<li>ConfigMap必须在Pod之前创建</li>
+<li>ConfigMap也可以定义为属于某个Namespace。只有处于相同Namespace中的Pod可以引用它。</li>
+<li>kubelet只支持可以被API Server管理的Pod使用ConfigMap。静态Pod无法引用。</li>
+<li>在Pod对ConfigMap进行挂载操作时，容器内只能挂载为“目录”，无法挂载为文件。</li>
+</ul>
+<p>参考文章</p>
+<ul>
+<li>《Kubernetes权威指南》</li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+
+    
+	
+  
+
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="User mailing list" aria-label="User mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="User mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Twitter" aria-label="Twitter">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/twitter" aria-label="Twitter">
+      <i class="fab fa-twitter"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Stack Overflow" aria-label="Stack Overflow">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/stack" aria-label="Stack Overflow">
+      <i class="fab fa-stack-overflow"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/k8s.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Slack" aria-label="Slack">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/slack" aria-label="Slack">
+      <i class="fab fa-slack"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Developer mailing list" aria-label="Developer mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="Developer mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2022 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,1268 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<link rel="alternate" type="text/html" href="https://k8s.huweihuang.com/docs/etcd/_print/">
+<link rel="alternate" type="application/rss&#43;xml" href="https://k8s.huweihuang.com/docs/etcd/index.xml">
+<meta name="robots" content="index, follow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>Etcd集群 | HUWEIHUAHG</title>
+<meta name="description" content="">
+<meta property="og:title" content="Etcd集群" />
+<meta property="og:description" content="Kubernetes学习笔记" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://k8s.huweihuang.com/docs/etcd/" /><meta property="og:site_name" content="HUWEIHUAHG" />
+
+<meta itemprop="name" content="Etcd集群">
+<meta itemprop="description" content="Kubernetes学习笔记"><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Etcd集群"/>
+<meta name="twitter:description" content="Kubernetes学习笔记"/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.cd6c2bbb05cdf98237b53882fed8c7a8b3fd7a7f7963d7cb305dd0d984782137.css" as="style">
+<link href="/scss/main.min.cd6c2bbb05cdf98237b53882fed8c7a8b3fd7a7f7963d7cb305dd0d984782137.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-00000000-0', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-section">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">HUWEIHUAHG</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/docs/" ><span class="active">Kubernetes学习笔记</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input type="search" class="form-control td-search-input" placeholder="&#xf002; 站内搜索…" aria-label="站内搜索…" autocomplete="off">
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <aside class="col-12 col-md-3 col-xl-2 td-sidebar d-print-none">
+            
+<div id="td-sidebar-menu" class="td-sidebar__inner">
+  <form class="td-sidebar__search d-flex align-items-center">
+    <input type="search" class="form-control td-search-input" placeholder="&#xf002; 站内搜索…" aria-label="站内搜索…" autocomplete="off">
+
+    <button class="btn btn-link td-sidebar__toggle d-md-none p-0 ml-3 fas fa-bars" type="button" data-toggle="collapse" data-target="#td-section-nav" aria-controls="td-docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    </button>
+  </form>
+  <nav class="collapse td-sidebar-nav foldable-nav" id="td-section-nav">
+    <ul class="td-sidebar-nav__section pr-md-3 ul-0">
+      <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-docs-li">
+  <a href="/docs/" class="align-left pl-0 td-sidebar-link td-sidebar-link__section tree-root" id="m-docs"><span class="">Kubernetes学习笔记</span></a>
+  <ul class="ul-1">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-paas-li">
+  <input type="checkbox" id="m-docs-paas-check"/>
+  <label for="m-docs-paas-check"><a href="/docs/paas/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-paas"><span class="">云原生体系</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-paas-k8s-li">
+  <input type="checkbox" id="m-docs-paas-k8s-check"/>
+  <label for="m-docs-paas-k8s-check"><a href="/docs/paas/k8s/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-paas-k8s"><span class="">k8s知识体系</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-paas-12-factor-li">
+  <input type="checkbox" id="m-docs-paas-12-factor-check"/>
+  <label for="m-docs-paas-12-factor-check"><a href="/docs/paas/12-factor/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-paas-12-factor"><span class="">12 Factor</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-setup-li">
+  <input type="checkbox" id="m-docs-setup-check"/>
+  <label for="m-docs-setup-check"><a href="/docs/setup/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-setup"><span class="">安装与配置</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-setup-installer-li">
+  <input type="checkbox" id="m-docs-setup-installer-check"/>
+  <label for="m-docs-setup-installer-check"><a href="/docs/setup/installer/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-setup-installer"><span class="">部署k8s集群</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-setup-installer-install-k8s-by-kubeadm-li">
+  <input type="checkbox" id="m-docs-setup-installer-install-k8s-by-kubeadm-check"/>
+  <label for="m-docs-setup-installer-install-k8s-by-kubeadm-check"><a href="/docs/setup/installer/install-k8s-by-kubeadm/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-setup-installer-install-k8s-by-kubeadm"><span class="">使用kubeadm安装生产环境kubernetes</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-setup-installer-install-k8s-by-kubespray-li">
+  <input type="checkbox" id="m-docs-setup-installer-install-k8s-by-kubespray-check"/>
+  <label for="m-docs-setup-installer-install-k8s-by-kubespray-check"><a href="/docs/setup/installer/install-k8s-by-kubespray/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-setup-installer-install-k8s-by-kubespray"><span class="">使用kubespray安装kubernetes</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-setup-installer-install-k8s-by-minikube-li">
+  <input type="checkbox" id="m-docs-setup-installer-install-k8s-by-minikube-check"/>
+  <label for="m-docs-setup-installer-install-k8s-by-minikube-check"><a href="/docs/setup/installer/install-k8s-by-minikube/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-setup-installer-install-k8s-by-minikube"><span class="">使用minikube安装kubernetes</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-setup-installer-install-k8s-by-kind-li">
+  <input type="checkbox" id="m-docs-setup-installer-install-k8s-by-kind-check"/>
+  <label for="m-docs-setup-installer-install-k8s-by-kind-check"><a href="/docs/setup/installer/install-k8s-by-kind/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-setup-installer-install-k8s-by-kind"><span class="">使用kind安装kubernetes</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-setup-k8s-cert-li">
+  <input type="checkbox" id="m-docs-setup-k8s-cert-check"/>
+  <label for="m-docs-setup-k8s-cert-check"><a href="/docs/setup/k8s-cert/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-setup-k8s-cert"><span class="">k8s证书及秘钥</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-setup-k8s-version-release-li">
+  <input type="checkbox" id="m-docs-setup-k8s-version-release-check"/>
+  <label for="m-docs-setup-k8s-version-release-check"><a href="/docs/setup/k8s-version-release/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-setup-k8s-version-release"><span class="">k8s版本说明</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-concepts-li">
+  <input type="checkbox" id="m-docs-concepts-check"/>
+  <label for="m-docs-concepts-check"><a href="/docs/concepts/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-concepts"><span class="">基本概念</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-concepts-architecture-li">
+  <input type="checkbox" id="m-docs-concepts-architecture-check"/>
+  <label for="m-docs-concepts-architecture-check"><a href="/docs/concepts/architecture/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-concepts-architecture"><span class="">kubernetes架构</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-concepts-architecture-kubernetes-architecture-li">
+  <input type="checkbox" id="m-docs-concepts-architecture-kubernetes-architecture-check"/>
+  <label for="m-docs-concepts-architecture-kubernetes-architecture-check"><a href="/docs/concepts/architecture/kubernetes-architecture/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-concepts-architecture-kubernetes-architecture"><span class="">Kubernetes总架构图</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-concepts-architecture-paas-based-on-docker-and-kubernetes-li">
+  <input type="checkbox" id="m-docs-concepts-architecture-paas-based-on-docker-and-kubernetes-check"/>
+  <label for="m-docs-concepts-architecture-paas-based-on-docker-and-kubernetes-check"><a href="/docs/concepts/architecture/paas-based-on-docker-and-kubernetes/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-concepts-architecture-paas-based-on-docker-and-kubernetes"><span class=""> 基于Docker及Kubernetes技术构建容器云（PaaS）平台</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-concepts-object-li">
+  <input type="checkbox" id="m-docs-concepts-object-check"/>
+  <label for="m-docs-concepts-object-check"><a href="/docs/concepts/object/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-concepts-object"><span class="">kubernetes对象</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-concepts-object-kubernetes-basic-concepts-li">
+  <input type="checkbox" id="m-docs-concepts-object-kubernetes-basic-concepts-check"/>
+  <label for="m-docs-concepts-object-kubernetes-basic-concepts-check"><a href="/docs/concepts/object/kubernetes-basic-concepts/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-concepts-object-kubernetes-basic-concepts"><span class="">Kubernetes基本概念</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-concepts-object-understanding-kubernetes-objects-li">
+  <input type="checkbox" id="m-docs-concepts-object-understanding-kubernetes-objects-check"/>
+  <label for="m-docs-concepts-object-understanding-kubernetes-objects-check"><a href="/docs/concepts/object/understanding-kubernetes-objects/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-concepts-object-understanding-kubernetes-objects"><span class="">理解kubernetes对象</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-concepts-pod-li">
+  <input type="checkbox" id="m-docs-concepts-pod-check"/>
+  <label for="m-docs-concepts-pod-check"><a href="/docs/concepts/pod/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-concepts-pod"><span class="">Pod对象</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-concepts-pod-pod-li">
+  <input type="checkbox" id="m-docs-concepts-pod-pod-check"/>
+  <label for="m-docs-concepts-pod-pod-check"><a href="/docs/concepts/pod/pod/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-concepts-pod-pod"><span class="">Pod介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-concepts-pod-pod-definition-li">
+  <input type="checkbox" id="m-docs-concepts-pod-pod-definition-check"/>
+  <label for="m-docs-concepts-pod-pod-definition-check"><a href="/docs/concepts/pod/pod-definition/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-concepts-pod-pod-definition"><span class="">Pod定义文件</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-concepts-pod-pod-lifecycle-li">
+  <input type="checkbox" id="m-docs-concepts-pod-pod-lifecycle-check"/>
+  <label for="m-docs-concepts-pod-pod-lifecycle-check"><a href="/docs/concepts/pod/pod-lifecycle/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-concepts-pod-pod-lifecycle"><span class="">Pod生命周期</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-concepts-pod-pod-probe-li">
+  <input type="checkbox" id="m-docs-concepts-pod-pod-probe-check"/>
+  <label for="m-docs-concepts-pod-pod-probe-check"><a href="/docs/concepts/pod/pod-probe/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-concepts-pod-pod-probe"><span class="">Pod健康检查</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-concepts-pod-pod-volume-li">
+  <input type="checkbox" id="m-docs-concepts-pod-pod-volume-check"/>
+  <label for="m-docs-concepts-pod-pod-volume-check"><a href="/docs/concepts/pod/pod-volume/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-concepts-pod-pod-volume"><span class="">Pod存储卷</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-concepts-pod-pod-scheduler-li">
+  <input type="checkbox" id="m-docs-concepts-pod-pod-scheduler-check"/>
+  <label for="m-docs-concepts-pod-pod-scheduler-check"><a href="/docs/concepts/pod/pod-scheduler/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-concepts-pod-pod-scheduler"><span class="">Pod调度</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-concepts-pod-pod-operation-li">
+  <input type="checkbox" id="m-docs-concepts-pod-pod-operation-check"/>
+  <label for="m-docs-concepts-pod-pod-operation-check"><a href="/docs/concepts/pod/pod-operation/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-concepts-pod-pod-operation"><span class="">Pod伸缩与升级</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-concepts-configmap-li">
+  <input type="checkbox" id="m-docs-concepts-configmap-check"/>
+  <label for="m-docs-concepts-configmap-check"><a href="/docs/concepts/configmap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-concepts-configmap"><span class="">配置</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-concepts-configmap-pod-configmap-li">
+  <input type="checkbox" id="m-docs-concepts-configmap-pod-configmap-check"/>
+  <label for="m-docs-concepts-configmap-pod-configmap-check"><a href="/docs/concepts/configmap/pod-configmap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-concepts-configmap-pod-configmap"><span class="">ConfigMap</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-principle-li">
+  <input type="checkbox" id="m-docs-principle-check"/>
+  <label for="m-docs-principle-check"><a href="/docs/principle/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-principle"><span class="">核心原理</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-principle-component-li">
+  <input type="checkbox" id="m-docs-principle-component-check"/>
+  <label for="m-docs-principle-component-check"><a href="/docs/principle/component/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-principle-component"><span class="">核心组件</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-principle-component-kubernetes-core-principle-api-server-li">
+  <input type="checkbox" id="m-docs-principle-component-kubernetes-core-principle-api-server-check"/>
+  <label for="m-docs-principle-component-kubernetes-core-principle-api-server-check"><a href="/docs/principle/component/kubernetes-core-principle-api-server/" title="Kubernetes核心原理（一）之API Server" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-principle-component-kubernetes-core-principle-api-server"><span class="">API Server</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-principle-component-kubernetes-core-principle-controller-manager-li">
+  <input type="checkbox" id="m-docs-principle-component-kubernetes-core-principle-controller-manager-check"/>
+  <label for="m-docs-principle-component-kubernetes-core-principle-controller-manager-check"><a href="/docs/principle/component/kubernetes-core-principle-controller-manager/" title="Kubernetes核心原理（二）之Controller Manager" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-principle-component-kubernetes-core-principle-controller-manager"><span class="">Controller Manager</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-principle-component-kubernetes-core-principle-scheduler-li">
+  <input type="checkbox" id="m-docs-principle-component-kubernetes-core-principle-scheduler-check"/>
+  <label for="m-docs-principle-component-kubernetes-core-principle-scheduler-check"><a href="/docs/principle/component/kubernetes-core-principle-scheduler/" title="Kubernetes核心原理（三）之Scheduler" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-principle-component-kubernetes-core-principle-scheduler"><span class="">Scheduler</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-principle-component-kubernetes-core-principle-kubelet-li">
+  <input type="checkbox" id="m-docs-principle-component-kubernetes-core-principle-kubelet-check"/>
+  <label for="m-docs-principle-component-kubernetes-core-principle-kubelet-check"><a href="/docs/principle/component/kubernetes-core-principle-kubelet/" title="Kubernetes核心原理（四）之kubelet" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-principle-component-kubernetes-core-principle-kubelet"><span class="">Kubelet</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-principle-flow-li">
+  <input type="checkbox" id="m-docs-principle-flow-check"/>
+  <label for="m-docs-principle-flow-check"><a href="/docs/principle/flow/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-principle-flow"><span class="">流程图</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-principle-flow-pod-flow-li">
+  <input type="checkbox" id="m-docs-principle-flow-pod-flow-check"/>
+  <label for="m-docs-principle-flow-pod-flow-check"><a href="/docs/principle/flow/pod-flow/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-principle-flow-pod-flow"><span class="">Pod创建流程</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-principle-flow-pvc-flow-li">
+  <input type="checkbox" id="m-docs-principle-flow-pvc-flow-check"/>
+  <label for="m-docs-principle-flow-pvc-flow-check"><a href="/docs/principle/flow/pvc-flow/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-principle-flow-pvc-flow"><span class="">PVC创建流程</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-network-li">
+  <input type="checkbox" id="m-docs-network-check"/>
+  <label for="m-docs-network-check"><a href="/docs/network/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-network"><span class="">容器网络</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-network-docker-network-li">
+  <input type="checkbox" id="m-docs-network-docker-network-check"/>
+  <label for="m-docs-network-docker-network-check"><a href="/docs/network/docker-network/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-network-docker-network"><span class="">Docker网络</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-network-kubernetes-network-li">
+  <input type="checkbox" id="m-docs-network-kubernetes-network-check"/>
+  <label for="m-docs-network-kubernetes-network-check"><a href="/docs/network/kubernetes-network/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-network-kubernetes-network"><span class="">K8S网络</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-network-cni-li">
+  <input type="checkbox" id="m-docs-network-cni-check"/>
+  <label for="m-docs-network-cni-check"><a href="/docs/network/cni/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-network-cni"><span class="">CNI</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-network-cni-cni-li">
+  <input type="checkbox" id="m-docs-network-cni-cni-check"/>
+  <label for="m-docs-network-cni-cni-check"><a href="/docs/network/cni/cni/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-network-cni-cni"><span class="">CNI接口介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-network-cni-macvlan-li">
+  <input type="checkbox" id="m-docs-network-cni-macvlan-check"/>
+  <label for="m-docs-network-cni-macvlan-check"><a href="/docs/network/cni/macvlan/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-network-cni-macvlan"><span class="">Macvlan介绍</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-network-flannel-li">
+  <input type="checkbox" id="m-docs-network-flannel-check"/>
+  <label for="m-docs-network-flannel-check"><a href="/docs/network/flannel/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-network-flannel"><span class="">网络插件</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-network-flannel-flannel-introduction-li">
+  <input type="checkbox" id="m-docs-network-flannel-flannel-introduction-check"/>
+  <label for="m-docs-network-flannel-flannel-introduction-check"><a href="/docs/network/flannel/flannel-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-network-flannel-flannel-introduction"><span class="">Flannel介绍</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-storage-li">
+  <input type="checkbox" id="m-docs-storage-check"/>
+  <label for="m-docs-storage-check"><a href="/docs/storage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-storage"><span class="">容器存储</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-storage-volume-li">
+  <input type="checkbox" id="m-docs-storage-volume-check"/>
+  <label for="m-docs-storage-volume-check"><a href="/docs/storage/volume/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-storage-volume"><span class="">存储卷概念</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-storage-volume-volume-li">
+  <input type="checkbox" id="m-docs-storage-volume-volume-check"/>
+  <label for="m-docs-storage-volume-volume-check"><a href="/docs/storage/volume/volume/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-storage-volume-volume"><span class="">Volume</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-storage-volume-persistent-volume-li">
+  <input type="checkbox" id="m-docs-storage-volume-persistent-volume-check"/>
+  <label for="m-docs-storage-volume-persistent-volume-check"><a href="/docs/storage/volume/persistent-volume/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-storage-volume-persistent-volume"><span class="">PersistentVolume</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-storage-volume-persistent-volume-claim-li">
+  <input type="checkbox" id="m-docs-storage-volume-persistent-volume-claim-check"/>
+  <label for="m-docs-storage-volume-persistent-volume-claim-check"><a href="/docs/storage/volume/persistent-volume-claim/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-storage-volume-persistent-volume-claim"><span class="">PersistentVolumeClaim</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-storage-volume-storage-class-li">
+  <input type="checkbox" id="m-docs-storage-volume-storage-class-check"/>
+  <label for="m-docs-storage-volume-storage-class-check"><a href="/docs/storage/volume/storage-class/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-storage-volume-storage-class"><span class="">StorageClass</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-storage-volume-dynamic-provisioning-li">
+  <input type="checkbox" id="m-docs-storage-volume-dynamic-provisioning-check"/>
+  <label for="m-docs-storage-volume-dynamic-provisioning-check"><a href="/docs/storage/volume/dynamic-provisioning/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-storage-volume-dynamic-provisioning"><span class="">Dynamic Volume Provisioning</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-storage-csi-li">
+  <input type="checkbox" id="m-docs-storage-csi-check"/>
+  <label for="m-docs-storage-csi-check"><a href="/docs/storage/csi/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-storage-csi"><span class="">CSI</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-storage-csi-ceph-csi-cephfs-plugin-li">
+  <input type="checkbox" id="m-docs-storage-csi-ceph-csi-cephfs-plugin-check"/>
+  <label for="m-docs-storage-csi-ceph-csi-cephfs-plugin-check"><a href="/docs/storage/csi/ceph/csi-cephfs-plugin/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-storage-csi-ceph-csi-cephfs-plugin"><span class="">csi-cephfs-plugin</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-storage-csi-ceph-deploy-csi-cephfs-li">
+  <input type="checkbox" id="m-docs-storage-csi-ceph-deploy-csi-cephfs-check"/>
+  <label for="m-docs-storage-csi-ceph-deploy-csi-cephfs-check"><a href="/docs/storage/csi/ceph/deploy-csi-cephfs/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-storage-csi-ceph-deploy-csi-cephfs"><span class="">部署csi-cephfs</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-storage-csi-provisioner-cephfs-provisioner-li">
+  <input type="checkbox" id="m-docs-storage-csi-provisioner-cephfs-provisioner-check"/>
+  <label for="m-docs-storage-csi-provisioner-cephfs-provisioner-check"><a href="/docs/storage/csi/provisioner/cephfs-provisioner/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-storage-csi-provisioner-cephfs-provisioner"><span class="">部署cephfs-provisioner</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-storage-csi-flexvolume-li">
+  <input type="checkbox" id="m-docs-storage-csi-flexvolume-check"/>
+  <label for="m-docs-storage-csi-flexvolume-check"><a href="/docs/storage/csi/flexvolume/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-storage-csi-flexvolume"><span class="">FlexVolume介绍</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-resource-li">
+  <input type="checkbox" id="m-docs-resource-check"/>
+  <label for="m-docs-resource-check"><a href="/docs/resource/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-resource"><span class="">资源隔离</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-resource-resource-quota-li">
+  <input type="checkbox" id="m-docs-resource-resource-quota-check"/>
+  <label for="m-docs-resource-resource-quota-check"><a href="/docs/resource/resource-quota/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-resource-resource-quota"><span class="">资源配额</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-resource-limit-range-li">
+  <input type="checkbox" id="m-docs-resource-limit-range-check"/>
+  <label for="m-docs-resource-limit-range-check"><a href="/docs/resource/limit-range/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-resource-limit-range"><span class="">Pod限额</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-resource-quality-of-service-li">
+  <input type="checkbox" id="m-docs-resource-quality-of-service-check"/>
+  <label for="m-docs-resource-quality-of-service-check"><a href="/docs/resource/quality-of-service/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-resource-quality-of-service"><span class="">资源服务质量</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-resource-lxcfs-lxcfs-li">
+  <input type="checkbox" id="m-docs-resource-lxcfs-lxcfs-check"/>
+  <label for="m-docs-resource-lxcfs-lxcfs-check"><a href="/docs/resource/lxcfs/lxcfs/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-resource-lxcfs-lxcfs"><span class="">Lxcfs资源视图隔离</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-operation-li">
+  <input type="checkbox" id="m-docs-operation-check"/>
+  <label for="m-docs-operation-check"><a href="/docs/operation/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-operation"><span class="">运维指南</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-operation-kubernetes-troubleshooting-li">
+  <input type="checkbox" id="m-docs-operation-kubernetes-troubleshooting-check"/>
+  <label for="m-docs-operation-kubernetes-troubleshooting-check"><a href="/docs/operation/kubernetes-troubleshooting/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-operation-kubernetes-troubleshooting"><span class="">Kubernetes集群问题排查</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-operation-kubectl-li">
+  <input type="checkbox" id="m-docs-operation-kubectl-check"/>
+  <label for="m-docs-operation-kubectl-check"><a href="/docs/operation/kubectl/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-operation-kubectl"><span class="">kubectl工具</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-operation-kubectl-install-kubectl-li">
+  <input type="checkbox" id="m-docs-operation-kubectl-install-kubectl-check"/>
+  <label for="m-docs-operation-kubectl-install-kubectl-check"><a href="/docs/operation/kubectl/install-kubectl/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-operation-kubectl-install-kubectl"><span class="">kubectl安装与配置</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-operation-kubectl-kubectl-commands-li">
+  <input type="checkbox" id="m-docs-operation-kubectl-kubectl-commands-check"/>
+  <label for="m-docs-operation-kubectl-kubectl-commands-check"><a href="/docs/operation/kubectl/kubectl-commands/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-operation-kubectl-kubectl-commands"><span class="">kubectl命令说明</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-operation-kubectl-kubectl-alias-li">
+  <input type="checkbox" id="m-docs-operation-kubectl-kubectl-alias-check"/>
+  <label for="m-docs-operation-kubectl-kubectl-alias-check"><a href="/docs/operation/kubectl/kubectl-alias/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-operation-kubectl-kubectl-alias"><span class="">kubectl命令别名</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-operation-node-li">
+  <input type="checkbox" id="m-docs-operation-node-check"/>
+  <label for="m-docs-operation-node-check"><a href="/docs/operation/node/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-operation-node"><span class="">节点调度</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-operation-node-nodeselector-and-taint-li">
+  <input type="checkbox" id="m-docs-operation-node-nodeselector-and-taint-check"/>
+  <label for="m-docs-operation-node-nodeselector-and-taint-check"><a href="/docs/operation/node/nodeselector-and-taint/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-operation-node-nodeselector-and-taint"><span class="">指定节点调度与隔离</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-operation-node-safely-drain-node-li">
+  <input type="checkbox" id="m-docs-operation-node-safely-drain-node-check"/>
+  <label for="m-docs-operation-node-safely-drain-node-check"><a href="/docs/operation/node/safely-drain-node/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-operation-node-safely-drain-node"><span class="">安全迁移节点</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-operation-registry-li">
+  <input type="checkbox" id="m-docs-operation-registry-check"/>
+  <label for="m-docs-operation-registry-check"><a href="/docs/operation/registry/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-operation-registry"><span class="">镜像仓库</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-operation-registry-config-private-registry-li">
+  <input type="checkbox" id="m-docs-operation-registry-config-private-registry-check"/>
+  <label for="m-docs-operation-registry-config-private-registry-check"><a href="/docs/operation/registry/config-private-registry/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-operation-registry-config-private-registry"><span class="">配置私有镜像仓库</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-operation-registry-imagepullsecrets-li">
+  <input type="checkbox" id="m-docs-operation-registry-imagepullsecrets-check"/>
+  <label for="m-docs-operation-registry-imagepullsecrets-check"><a href="/docs/operation/registry/imagepullsecrets/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-operation-registry-imagepullsecrets"><span class="">拉取私有镜像</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-develop-li">
+  <input type="checkbox" id="m-docs-develop-check"/>
+  <label for="m-docs-develop-check"><a href="/docs/develop/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-develop"><span class="">开发指南</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-develop-client-go-li">
+  <input type="checkbox" id="m-docs-develop-client-go-check"/>
+  <label for="m-docs-develop-client-go-check"><a href="/docs/develop/client-go/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-develop-client-go"><span class="">client-go的使用及源码分析</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-develop-operator-li">
+  <input type="checkbox" id="m-docs-develop-operator-check"/>
+  <label for="m-docs-develop-operator-check"><a href="/docs/develop/operator/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-develop-operator"><span class="">operator开发</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-develop-operator-kubebuilder-li">
+  <input type="checkbox" id="m-docs-develop-operator-kubebuilder-check"/>
+  <label for="m-docs-develop-operator-kubebuilder-check"><a href="/docs/develop/operator/kubebuilder/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-develop-operator-kubebuilder"><span class="">kubebuilder的使用</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-develop-csi-li">
+  <input type="checkbox" id="m-docs-develop-csi-check"/>
+  <label for="m-docs-develop-csi-check"><a href="/docs/develop/csi/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-develop-csi"><span class="">CSI插件开发</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-develop-csi-csi-provisioner-li">
+  <input type="checkbox" id="m-docs-develop-csi-csi-provisioner-check"/>
+  <label for="m-docs-develop-csi-csi-provisioner-check"><a href="/docs/develop/csi/csi-provisioner/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-develop-csi-csi-provisioner"><span class="">csi-provisioner源码分析</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-develop-csi-nfs-client-provisioner-li">
+  <input type="checkbox" id="m-docs-develop-csi-nfs-client-provisioner-check"/>
+  <label for="m-docs-develop-csi-nfs-client-provisioner-check"><a href="/docs/develop/csi/nfs-client-provisioner/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-develop-csi-nfs-client-provisioner"><span class="">nfs-client-provisioner源码分析</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-trouble-shooting-li">
+  <input type="checkbox" id="m-docs-trouble-shooting-check"/>
+  <label for="m-docs-trouble-shooting-check"><a href="/docs/trouble-shooting/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-trouble-shooting"><span class="">问题排查</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-trouble-shooting-node-li">
+  <input type="checkbox" id="m-docs-trouble-shooting-node-check"/>
+  <label for="m-docs-trouble-shooting-node-check"><a href="/docs/trouble-shooting/node/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-trouble-shooting-node"><span class="">节点问题</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-trouble-shooting-node-keycreate-permission-denied-li">
+  <input type="checkbox" id="m-docs-trouble-shooting-node-keycreate-permission-denied-check"/>
+  <label for="m-docs-trouble-shooting-node-keycreate-permission-denied-check"><a href="/docs/trouble-shooting/node/keycreate-permission-denied/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-trouble-shooting-node-keycreate-permission-denied"><span class="">keycreate permission denied</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-trouble-shooting-node-cgroup-pid-error-li">
+  <input type="checkbox" id="m-docs-trouble-shooting-node-cgroup-pid-error-check"/>
+  <label for="m-docs-trouble-shooting-node-cgroup-pid-error-check"><a href="/docs/trouble-shooting/node/cgroup-pid-error/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-trouble-shooting-node-cgroup-pid-error"><span class="">Cgroup不支持pid资源</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-trouble-shooting-node-cgroup-subsystem-not-mount-li">
+  <input type="checkbox" id="m-docs-trouble-shooting-node-cgroup-subsystem-not-mount-check"/>
+  <label for="m-docs-trouble-shooting-node-cgroup-subsystem-not-mount-check"><a href="/docs/trouble-shooting/node/cgroup-subsystem-not-mount/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-trouble-shooting-node-cgroup-subsystem-not-mount"><span class="">Cgroup子系统无法挂载</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-trouble-shooting-pod-evicted-li">
+  <input type="checkbox" id="m-docs-trouble-shooting-pod-evicted-check"/>
+  <label for="m-docs-trouble-shooting-pod-evicted-check"><a href="/docs/trouble-shooting/pod-evicted/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-trouble-shooting-pod-evicted"><span class="">Pod驱逐</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-trouble-shooting-pod-image-error-li">
+  <input type="checkbox" id="m-docs-trouble-shooting-pod-image-error-check"/>
+  <label for="m-docs-trouble-shooting-pod-image-error-check"><a href="/docs/trouble-shooting/pod-image-error/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-trouble-shooting-pod-image-error"><span class="">镜像拉取失败问题</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-trouble-shooting-pvc-terminating-li">
+  <input type="checkbox" id="m-docs-trouble-shooting-pvc-terminating-check"/>
+  <label for="m-docs-trouble-shooting-pvc-terminating-check"><a href="/docs/trouble-shooting/pvc-terminating/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-trouble-shooting-pvc-terminating"><span class="">PVC Terminating</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-code-analysis-li">
+  <input type="checkbox" id="m-docs-code-analysis-check"/>
+  <label for="m-docs-code-analysis-check"><a href="/docs/code-analysis/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-code-analysis"><span class="">源码分析</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-code-analysis-code-analysis-notes-li">
+  <input type="checkbox" id="m-docs-code-analysis-code-analysis-notes-check"/>
+  <label for="m-docs-code-analysis-code-analysis-notes-check"><a href="/docs/code-analysis/code-analysis-notes/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-code-analysis-code-analysis-notes"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-code-analysis-kube-apiserver-li">
+  <input type="checkbox" id="m-docs-code-analysis-kube-apiserver-check"/>
+  <label for="m-docs-code-analysis-kube-apiserver-check"><a href="/docs/code-analysis/kube-apiserver/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-code-analysis-kube-apiserver"><span class=""></span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-code-analysis-kube-apiserver-newapiservercommand-li">
+  <input type="checkbox" id="m-docs-code-analysis-kube-apiserver-newapiservercommand-check"/>
+  <label for="m-docs-code-analysis-kube-apiserver-newapiservercommand-check"><a href="/docs/code-analysis/kube-apiserver/newapiservercommand/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-code-analysis-kube-apiserver-newapiservercommand"><span class=""></span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-code-analysis-kube-controller-manager-li">
+  <input type="checkbox" id="m-docs-code-analysis-kube-controller-manager-check"/>
+  <label for="m-docs-code-analysis-kube-controller-manager-check"><a href="/docs/code-analysis/kube-controller-manager/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-code-analysis-kube-controller-manager"><span class=""></span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-code-analysis-kube-controller-manager-deployment-controller-li">
+  <input type="checkbox" id="m-docs-code-analysis-kube-controller-manager-deployment-controller-check"/>
+  <label for="m-docs-code-analysis-kube-controller-manager-deployment-controller-check"><a href="/docs/code-analysis/kube-controller-manager/deployment-controller/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-code-analysis-kube-controller-manager-deployment-controller"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-code-analysis-kube-controller-manager-newcontrollermanagercommand-li">
+  <input type="checkbox" id="m-docs-code-analysis-kube-controller-manager-newcontrollermanagercommand-check"/>
+  <label for="m-docs-code-analysis-kube-controller-manager-newcontrollermanagercommand-check"><a href="/docs/code-analysis/kube-controller-manager/newcontrollermanagercommand/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-code-analysis-kube-controller-manager-newcontrollermanagercommand"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-code-analysis-kube-controller-manager-sharedindexinformer-li">
+  <input type="checkbox" id="m-docs-code-analysis-kube-controller-manager-sharedindexinformer-check"/>
+  <label for="m-docs-code-analysis-kube-controller-manager-sharedindexinformer-check"><a href="/docs/code-analysis/kube-controller-manager/sharedindexinformer/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-code-analysis-kube-controller-manager-sharedindexinformer"><span class=""></span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-code-analysis-kube-scheduler-li">
+  <input type="checkbox" id="m-docs-code-analysis-kube-scheduler-check"/>
+  <label for="m-docs-code-analysis-kube-scheduler-check"><a href="/docs/code-analysis/kube-scheduler/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-code-analysis-kube-scheduler"><span class=""></span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-code-analysis-kube-scheduler-findnodesthatfit-li">
+  <input type="checkbox" id="m-docs-code-analysis-kube-scheduler-findnodesthatfit-check"/>
+  <label for="m-docs-code-analysis-kube-scheduler-findnodesthatfit-check"><a href="/docs/code-analysis/kube-scheduler/findnodesthatfit/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-code-analysis-kube-scheduler-findnodesthatfit"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-code-analysis-kube-scheduler-newschedulercommand-li">
+  <input type="checkbox" id="m-docs-code-analysis-kube-scheduler-newschedulercommand-check"/>
+  <label for="m-docs-code-analysis-kube-scheduler-newschedulercommand-check"><a href="/docs/code-analysis/kube-scheduler/newschedulercommand/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-code-analysis-kube-scheduler-newschedulercommand"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-code-analysis-kube-scheduler-preempt-li">
+  <input type="checkbox" id="m-docs-code-analysis-kube-scheduler-preempt-check"/>
+  <label for="m-docs-code-analysis-kube-scheduler-preempt-check"><a href="/docs/code-analysis/kube-scheduler/preempt/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-code-analysis-kube-scheduler-preempt"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-code-analysis-kube-scheduler-prioritizenodes-li">
+  <input type="checkbox" id="m-docs-code-analysis-kube-scheduler-prioritizenodes-check"/>
+  <label for="m-docs-code-analysis-kube-scheduler-prioritizenodes-check"><a href="/docs/code-analysis/kube-scheduler/prioritizenodes/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-code-analysis-kube-scheduler-prioritizenodes"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-code-analysis-kube-scheduler-registeralgorithmprovider-li">
+  <input type="checkbox" id="m-docs-code-analysis-kube-scheduler-registeralgorithmprovider-check"/>
+  <label for="m-docs-code-analysis-kube-scheduler-registeralgorithmprovider-check"><a href="/docs/code-analysis/kube-scheduler/registeralgorithmprovider/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-code-analysis-kube-scheduler-registeralgorithmprovider"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-code-analysis-kube-scheduler-scheduleone-li">
+  <input type="checkbox" id="m-docs-code-analysis-kube-scheduler-scheduleone-check"/>
+  <label for="m-docs-code-analysis-kube-scheduler-scheduleone-check"><a href="/docs/code-analysis/kube-scheduler/scheduleone/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-code-analysis-kube-scheduler-scheduleone"><span class=""></span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-code-analysis-kubelet-li">
+  <input type="checkbox" id="m-docs-code-analysis-kubelet-check"/>
+  <label for="m-docs-code-analysis-kubelet-check"><a href="/docs/code-analysis/kubelet/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-code-analysis-kubelet"><span class=""></span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-code-analysis-kubelet-newkubeletcommand-li">
+  <input type="checkbox" id="m-docs-code-analysis-kubelet-newkubeletcommand-check"/>
+  <label for="m-docs-code-analysis-kubelet-newkubeletcommand-check"><a href="/docs/code-analysis/kubelet/newkubeletcommand/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-code-analysis-kubelet-newkubeletcommand"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-code-analysis-kubelet-newmainkubelet-li">
+  <input type="checkbox" id="m-docs-code-analysis-kubelet-newmainkubelet-check"/>
+  <label for="m-docs-code-analysis-kubelet-newmainkubelet-check"><a href="/docs/code-analysis/kubelet/newmainkubelet/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-code-analysis-kubelet-newmainkubelet"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-code-analysis-kubelet-startkubelet-li">
+  <input type="checkbox" id="m-docs-code-analysis-kubelet-startkubelet-check"/>
+  <label for="m-docs-code-analysis-kubelet-startkubelet-check"><a href="/docs/code-analysis/kubelet/startkubelet/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-code-analysis-kubelet-startkubelet"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-code-analysis-kubelet-syncloopiteration-li">
+  <input type="checkbox" id="m-docs-code-analysis-kubelet-syncloopiteration-check"/>
+  <label for="m-docs-code-analysis-kubelet-syncloopiteration-check"><a href="/docs/code-analysis/kubelet/syncloopiteration/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-code-analysis-kubelet-syncloopiteration"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-code-analysis-kubelet-syncpod-li">
+  <input type="checkbox" id="m-docs-code-analysis-kubelet-syncpod-check"/>
+  <label for="m-docs-code-analysis-kubelet-syncpod-check"><a href="/docs/code-analysis/kubelet/syncpod/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-code-analysis-kubelet-syncpod"><span class=""></span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-runtime-li">
+  <input type="checkbox" id="m-docs-runtime-check"/>
+  <label for="m-docs-runtime-check"><a href="/docs/runtime/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-runtime"><span class="">Runtime</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-runtime-runtime-li">
+  <input type="checkbox" id="m-docs-runtime-runtime-check"/>
+  <label for="m-docs-runtime-runtime-check"><a href="/docs/runtime/runtime/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-runtime-runtime"><span class="">Runc和Containerd概述</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-runtime-containerd-li">
+  <input type="checkbox" id="m-docs-runtime-containerd-check"/>
+  <label for="m-docs-runtime-containerd-check"><a href="/docs/runtime/containerd/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-runtime-containerd"><span class="">Containerd</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-runtime-containerd-install-containerd-li">
+  <input type="checkbox" id="m-docs-runtime-containerd-install-containerd-check"/>
+  <label for="m-docs-runtime-containerd-install-containerd-check"><a href="/docs/runtime/containerd/install-containerd/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-runtime-containerd-install-containerd"><span class="">安装Containerd</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-runtime-containerd-containerd-ctl-li">
+  <input type="checkbox" id="m-docs-runtime-containerd-containerd-ctl-check"/>
+  <label for="m-docs-runtime-containerd-containerd-ctl-check"><a href="/docs/runtime/containerd/containerd-ctl/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-runtime-containerd-containerd-ctl"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-runtime-containerd-remove-dockershim-li">
+  <input type="checkbox" id="m-docs-runtime-containerd-remove-dockershim-check"/>
+  <label for="m-docs-runtime-containerd-remove-dockershim-check"><a href="/docs/runtime/containerd/remove-dockershim/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-runtime-containerd-remove-dockershim"><span class=""></span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-runtime-docker-li">
+  <input type="checkbox" id="m-docs-runtime-docker-check"/>
+  <label for="m-docs-runtime-docker-check"><a href="/docs/runtime/docker/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-runtime-docker"><span class="">Docker</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-runtime-docker-docker-notes-li">
+  <input type="checkbox" id="m-docs-runtime-docker-docker-notes-check"/>
+  <label for="m-docs-runtime-docker-docker-notes-check"><a href="/docs/runtime/docker/docker-notes/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-runtime-docker-docker-notes"><span class="">Docker学习笔记</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-runtime-docker-code-analysis-code-analysis-of-docker-client-li">
+  <input type="checkbox" id="m-docs-runtime-docker-code-analysis-code-analysis-of-docker-client-check"/>
+  <label for="m-docs-runtime-docker-code-analysis-code-analysis-of-docker-client-check"><a href="/docs/runtime/docker/code-analysis/code-analysis-of-docker-client/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-runtime-docker-code-analysis-code-analysis-of-docker-client"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-runtime-docker-code-analysis-code-analysis-of-docker-daemon-li">
+  <input type="checkbox" id="m-docs-runtime-docker-code-analysis-code-analysis-of-docker-daemon-check"/>
+  <label for="m-docs-runtime-docker-code-analysis-code-analysis-of-docker-daemon-check"><a href="/docs/runtime/docker/code-analysis/code-analysis-of-docker-daemon/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-runtime-docker-code-analysis-code-analysis-of-docker-daemon"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-runtime-docker-code-analysis-code-analysis-of-docker-server-li">
+  <input type="checkbox" id="m-docs-runtime-docker-code-analysis-code-analysis-of-docker-server-check"/>
+  <label for="m-docs-runtime-docker-code-analysis-code-analysis-of-docker-server-check"><a href="/docs/runtime/docker/code-analysis/code-analysis-of-docker-server/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-runtime-docker-code-analysis-code-analysis-of-docker-server"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-runtime-docker-docker-architecture-li">
+  <input type="checkbox" id="m-docs-runtime-docker-docker-architecture-check"/>
+  <label for="m-docs-runtime-docker-docker-architecture-check"><a href="/docs/runtime/docker/docker-architecture/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-runtime-docker-docker-architecture"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-runtime-docker-docker-commands-principle-li">
+  <input type="checkbox" id="m-docs-runtime-docker-docker-commands-principle-check"/>
+  <label for="m-docs-runtime-docker-docker-commands-principle-check"><a href="/docs/runtime/docker/docker-commands-principle/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-runtime-docker-docker-commands-principle"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-runtime-docker-dockerfile-usage-li">
+  <input type="checkbox" id="m-docs-runtime-docker-dockerfile-usage-check"/>
+  <label for="m-docs-runtime-docker-dockerfile-usage-check"><a href="/docs/runtime/docker/dockerfile-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-runtime-docker-dockerfile-usage"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-runtime-docker-install-docker-li">
+  <input type="checkbox" id="m-docs-runtime-docker-install-docker-check"/>
+  <label for="m-docs-runtime-docker-install-docker-check"><a href="/docs/runtime/docker/install-docker/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-runtime-docker-install-docker"><span class=""></span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-runtime-kata-li">
+  <input type="checkbox" id="m-docs-runtime-kata-check"/>
+  <label for="m-docs-runtime-kata-check"><a href="/docs/runtime/kata/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-runtime-kata"><span class="">Kata Container</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-runtime-kata-kata-container-li">
+  <input type="checkbox" id="m-docs-runtime-kata-kata-container-check"/>
+  <label for="m-docs-runtime-kata-kata-container-check"><a href="/docs/runtime/kata/kata-container/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-runtime-kata-kata-container"><span class="">kata容器简介</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-runtime-kata-kata-container-conf-li">
+  <input type="checkbox" id="m-docs-runtime-kata-kata-container-conf-check"/>
+  <label for="m-docs-runtime-kata-kata-container-conf-check"><a href="/docs/runtime/kata/kata-container-conf/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-runtime-kata-kata-container-conf"><span class="">kata配置</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-runtime-gpu-li">
+  <input type="checkbox" id="m-docs-runtime-gpu-check"/>
+  <label for="m-docs-runtime-gpu-check"><a href="/docs/runtime/gpu/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-runtime-gpu"><span class="">GPU</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-runtime-gpu-nvidia-device-plugin-li">
+  <input type="checkbox" id="m-docs-runtime-gpu-nvidia-device-plugin-check"/>
+  <label for="m-docs-runtime-gpu-nvidia-device-plugin-check"><a href="/docs/runtime/gpu/nvidia-device-plugin/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-runtime-gpu-nvidia-device-plugin"><span class="">nvidia-device-plugin介绍</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-etcd-li">
+  <input type="checkbox" id="m-docs-etcd-check"/>
+  <label for="m-docs-etcd-check"><a href="/docs/etcd/" class="align-left pl-0  active td-sidebar-link td-sidebar-link__section" id="m-docs-etcd"><span class="td-sidebar-nav-active-item">Etcd集群</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-etcd-etcd-introduction-li">
+  <input type="checkbox" id="m-docs-etcd-etcd-introduction-check"/>
+  <label for="m-docs-etcd-etcd-introduction-check"><a href="/docs/etcd/etcd-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-etcd-etcd-introduction"><span class="">Etcd介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-etcd-raft-li">
+  <input type="checkbox" id="m-docs-etcd-raft-check"/>
+  <label for="m-docs-etcd-raft-check"><a href="/docs/etcd/raft/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-etcd-raft"><span class="">Raft算法</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-etcd-etcdctl-li">
+  <input type="checkbox" id="m-docs-etcd-etcdctl-check"/>
+  <label for="m-docs-etcd-etcdctl-check"><a href="/docs/etcd/etcdctl/" title="etcdctl命令工具" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-etcd-etcdctl"><span class="">Etetcdctl命令工具</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-etcd-etcdctl-etcdctl-v3-li">
+  <input type="checkbox" id="m-docs-etcd-etcdctl-etcdctl-v3-check"/>
+  <label for="m-docs-etcd-etcdctl-etcdctl-v3-check"><a href="/docs/etcd/etcdctl/etcdctl-v3/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-etcd-etcdctl-etcdctl-v3"><span class="">etcdctl-V3</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-etcd-etcdctl-etcdctl-v2-li">
+  <input type="checkbox" id="m-docs-etcd-etcdctl-etcdctl-v2-check"/>
+  <label for="m-docs-etcd-etcdctl-etcdctl-v2-check"><a href="/docs/etcd/etcdctl/etcdctl-v2/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-etcd-etcdctl-etcdctl-v2"><span class="">etcdctl-V2</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-etcd-etcd-auth-and-security-li">
+  <input type="checkbox" id="m-docs-etcd-etcd-auth-and-security-check"/>
+  <label for="m-docs-etcd-etcd-auth-and-security-check"><a href="/docs/etcd/etcd-auth-and-security/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-etcd-etcd-auth-and-security"><span class="">Etcd访问控制</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-etcd-etcd-setup-flags-li">
+  <input type="checkbox" id="m-docs-etcd-etcd-setup-flags-check"/>
+  <label for="m-docs-etcd-etcd-setup-flags-check"><a href="/docs/etcd/etcd-setup-flags/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-etcd-etcd-setup-flags"><span class="">Etcd启动配置参数</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-etcd-k8s-etcd-data-li">
+  <input type="checkbox" id="m-docs-etcd-k8s-etcd-data-check"/>
+  <label for="m-docs-etcd-k8s-etcd-data-check"><a href="/docs/etcd/k8s-etcd-data/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-etcd-k8s-etcd-data"><span class="">Etcd中的k8s数据</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-etcd-etcd-operator-usage-li">
+  <input type="checkbox" id="m-docs-etcd-etcd-operator-usage-check"/>
+  <label for="m-docs-etcd-etcd-operator-usage-check"><a href="/docs/etcd/etcd-operator-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-etcd-etcd-operator-usage"><span class="">etcd-operator的使用</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-multi-cluster-li">
+  <input type="checkbox" id="m-docs-multi-cluster-check"/>
+  <label for="m-docs-multi-cluster-check"><a href="/docs/multi-cluster/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-multi-cluster"><span class="">多集群管理</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-multi-cluster-k8s-multi-cluster-thinking-li">
+  <input type="checkbox" id="m-docs-multi-cluster-k8s-multi-cluster-thinking-check"/>
+  <label for="m-docs-multi-cluster-k8s-multi-cluster-thinking-check"><a href="/docs/multi-cluster/k8s-multi-cluster-thinking/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-multi-cluster-k8s-multi-cluster-thinking"><span class="">k8s多集群管理的思考</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-multi-cluster-virtual-kubelet-li">
+  <input type="checkbox" id="m-docs-multi-cluster-virtual-kubelet-check"/>
+  <label for="m-docs-multi-cluster-virtual-kubelet-check"><a href="/docs/multi-cluster/virtual-kubelet/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-multi-cluster-virtual-kubelet"><span class="">Virtual Kubelet</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-multi-cluster-virtual-kubelet-virtual-kubelet-li">
+  <input type="checkbox" id="m-docs-multi-cluster-virtual-kubelet-virtual-kubelet-check"/>
+  <label for="m-docs-multi-cluster-virtual-kubelet-virtual-kubelet-check"><a href="/docs/multi-cluster/virtual-kubelet/virtual-kubelet/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-multi-cluster-virtual-kubelet-virtual-kubelet"><span class="">Virtual Kubelet介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-multi-cluster-virtual-kubelet-virtual-kubelet-cmd-li">
+  <input type="checkbox" id="m-docs-multi-cluster-virtual-kubelet-virtual-kubelet-cmd-check"/>
+  <label for="m-docs-multi-cluster-virtual-kubelet-virtual-kubelet-cmd-check"><a href="/docs/multi-cluster/virtual-kubelet/virtual-kubelet-cmd/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-multi-cluster-virtual-kubelet-virtual-kubelet-cmd"><span class="">Virtual Kubelet命令</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-multi-cluster-karmada-li">
+  <input type="checkbox" id="m-docs-multi-cluster-karmada-check"/>
+  <label for="m-docs-multi-cluster-karmada-check"><a href="/docs/multi-cluster/karmada/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-multi-cluster-karmada"><span class="">Karmada</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-multi-cluster-karmada-karmada-introduction-li">
+  <input type="checkbox" id="m-docs-multi-cluster-karmada-karmada-introduction-check"/>
+  <label for="m-docs-multi-cluster-karmada-karmada-introduction-check"><a href="/docs/multi-cluster/karmada/karmada-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-multi-cluster-karmada-karmada-introduction"><span class="">Karmada介绍</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-edge-li">
+  <input type="checkbox" id="m-docs-edge-check"/>
+  <label for="m-docs-edge-check"><a href="/docs/edge/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-edge"><span class="">边缘容器</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-edge-kubeedge-li">
+  <input type="checkbox" id="m-docs-edge-kubeedge-check"/>
+  <label for="m-docs-edge-kubeedge-check"><a href="/docs/edge/kubeedge/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-edge-kubeedge"><span class="">KubeEdge</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-edge-kubeedge-kubeedge-arch-li">
+  <input type="checkbox" id="m-docs-edge-kubeedge-kubeedge-arch-check"/>
+  <label for="m-docs-edge-kubeedge-kubeedge-arch-check"><a href="/docs/edge/kubeedge/kubeedge-arch/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-edge-kubeedge-kubeedge-arch"><span class="">KubeEdge介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-edge-kubeedge-code-analysis-li">
+  <input type="checkbox" id="m-docs-edge-kubeedge-code-analysis-check"/>
+  <label for="m-docs-edge-kubeedge-code-analysis-check"><a href="/docs/edge/kubeedge/code-analysis/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-edge-kubeedge-code-analysis"><span class="">KubeEdge源码分析</span></a></label>
+  
+  <ul class="ul-4 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-edge-kubeedge-code-analysis-cloudcore-li">
+  <input type="checkbox" id="m-docs-edge-kubeedge-code-analysis-cloudcore-check"/>
+  <label for="m-docs-edge-kubeedge-code-analysis-cloudcore-check"><a href="/docs/edge/kubeedge/code-analysis/cloudcore/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-edge-kubeedge-code-analysis-cloudcore"><span class="">cloudcore</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-edge-kubeedge-code-analysis-edgecore-li">
+  <input type="checkbox" id="m-docs-edge-kubeedge-code-analysis-edgecore-check"/>
+  <label for="m-docs-edge-kubeedge-code-analysis-edgecore-check"><a href="/docs/edge/kubeedge/code-analysis/edgecore/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-edge-kubeedge-code-analysis-edgecore"><span class="">edgecore</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-edge-openyurt-li">
+  <input type="checkbox" id="m-docs-edge-openyurt-check"/>
+  <label for="m-docs-edge-openyurt-check"><a href="/docs/edge/openyurt/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-edge-openyurt"><span class="">OpenYurt</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-edge-openyurt-install-openyurt-li">
+  <input type="checkbox" id="m-docs-edge-openyurt-install-openyurt-check"/>
+  <label for="m-docs-edge-openyurt-install-openyurt-check"><a href="/docs/edge/openyurt/install-openyurt/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-edge-openyurt-install-openyurt"><span class="">OpenYurt部署</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-kvm-li">
+  <input type="checkbox" id="m-docs-kvm-check"/>
+  <label for="m-docs-kvm-check"><a href="/docs/kvm/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-kvm"><span class="">虚拟化</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-kvm-vm-concept-li">
+  <input type="checkbox" id="m-docs-kvm-vm-concept-check"/>
+  <label for="m-docs-kvm-vm-concept-check"><a href="/docs/kvm/vm-concept/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-kvm-vm-concept"><span class="">虚拟化相关概念</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-kvm-kubevirt-li">
+  <input type="checkbox" id="m-docs-kvm-kubevirt-check"/>
+  <label for="m-docs-kvm-kubevirt-check"><a href="/docs/kvm/kubevirt/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-kvm-kubevirt"><span class="">KubeVirt</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-kvm-kubevirt-kubevirt-introduction-li">
+  <input type="checkbox" id="m-docs-kvm-kubevirt-kubevirt-introduction-check"/>
+  <label for="m-docs-kvm-kubevirt-kubevirt-introduction-check"><a href="/docs/kvm/kubevirt/kubevirt-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-kvm-kubevirt-kubevirt-introduction"><span class="">KubeVirt的介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-kvm-kubevirt-kubevirt-installation-li">
+  <input type="checkbox" id="m-docs-kvm-kubevirt-kubevirt-installation-check"/>
+  <label for="m-docs-kvm-kubevirt-kubevirt-installation-check"><a href="/docs/kvm/kubevirt/kubevirt-installation/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-kvm-kubevirt-kubevirt-installation"><span class="">KubeVirt的使用</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-docs-monitor-li">
+  <input type="checkbox" id="m-docs-monitor-check"/>
+  <label for="m-docs-monitor-check"><a href="/docs/monitor/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-docs-monitor"><span class="">监控体系</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-monitor-kubernetes-cluster-monitoring-li">
+  <input type="checkbox" id="m-docs-monitor-kubernetes-cluster-monitoring-check"/>
+  <label for="m-docs-monitor-kubernetes-cluster-monitoring-check"><a href="/docs/monitor/kubernetes-cluster-monitoring/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-monitor-kubernetes-cluster-monitoring"><span class="">Kubernetes集群监控</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-monitor-cadvisor-introduction-li">
+  <input type="checkbox" id="m-docs-monitor-cadvisor-introduction-check"/>
+  <label for="m-docs-monitor-cadvisor-introduction-check"><a href="/docs/monitor/cadvisor-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-monitor-cadvisor-introduction"><span class="">cAdvisor介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-monitor-heapster-introduction-li">
+  <input type="checkbox" id="m-docs-monitor-heapster-introduction-check"/>
+  <label for="m-docs-monitor-heapster-introduction-check"><a href="/docs/monitor/heapster-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-monitor-heapster-introduction"><span class="">Heapster介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-docs-monitor-influxdb-introduction-li">
+  <input type="checkbox" id="m-docs-monitor-influxdb-introduction-check"/>
+  <label for="m-docs-monitor-influxdb-introduction-check"><a href="/docs/monitor/influxdb-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-docs-monitor-influxdb-introduction"><span class="">Influxdb介绍</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li>
+    </ul>
+  </nav>
+</div>
+
+          </aside>
+          <aside class="d-none d-xl-block col-xl-2 td-sidebar-toc d-print-none">
+            
+<div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
+<a href="https://github.com/huweihuang/k8s.huweihuang.com/tree/master/content/zh-cn/docs/etcd/_index.md" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa fa-file-alt fa-fw"></i> 查看页面源码</a>
+  <a href="https://github.com/huweihuang/k8s.huweihuang.com/edit/master/content/zh-cn/docs/etcd/_index.md" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 编辑此页</a>
+  <a href="https://github.com/huweihuang/k8s.huweihuang.com/new/master/content/zh-cn/docs/etcd/_index.md?filename=change-me.md&amp;value=---%0Atitle%3A&#43;%22Long&#43;Page&#43;Title%22%0AlinkTitle%3A&#43;%22Short&#43;Nav&#43;Title%22%0Aweight%3A&#43;100%0Adescription%3A&#43;%3E-%0A&#43;&#43;&#43;&#43;&#43;Page&#43;description&#43;for&#43;heading&#43;and&#43;indexes.%0A---%0A%0A%23%23&#43;Heading%0A%0AEdit&#43;this&#43;template&#43;to&#43;create&#43;your&#43;new&#43;page.%0A%0A%2A&#43;Give&#43;it&#43;a&#43;good&#43;name%2C&#43;ending&#43;in&#43;%60.md%60&#43;-&#43;e.g.&#43;%60getting-started.md%60%0A%2A&#43;Edit&#43;the&#43;%22front&#43;matter%22&#43;section&#43;at&#43;the&#43;top&#43;of&#43;the&#43;page&#43;%28weight&#43;controls&#43;how&#43;its&#43;ordered&#43;amongst&#43;other&#43;pages&#43;in&#43;the&#43;same&#43;directory%3B&#43;lowest&#43;number&#43;first%29.%0A%2A&#43;Add&#43;a&#43;good&#43;commit&#43;message&#43;at&#43;the&#43;bottom&#43;of&#43;the&#43;page&#43;%28%3C80&#43;characters%3B&#43;use&#43;the&#43;extended&#43;description&#43;field&#43;for&#43;more&#43;detail%29.%0A%2A&#43;Create&#43;a&#43;new&#43;branch&#43;so&#43;you&#43;can&#43;preview&#43;your&#43;new&#43;file&#43;and&#43;request&#43;a&#43;review&#43;via&#43;Pull&#43;Request.%0A" class="td-page-meta--child" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 添加子页面</a>
+  <a href="https://github.com/huweihuang/k8s.huweihuang.com/issues/new?title=Etcd%e9%9b%86%e7%be%a4" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
+  <a href="https://github.com/huweihuang/k8s.huweihuang.com/issues/new" class="td-page-meta--project-issue" target="_blank" rel="noopener"><i class="fas fa-tasks fa-fw"></i> 提交项目问题</a>
+  <a id="print" href="https://k8s.huweihuang.com/docs/etcd/_print/"><i class="fa fa-print fa-fw"></i> 整节打印</a>
+
+</div>
+
+            
+
+
+
+
+            
+
+	
+		
+			
+				
+			
+			
+
+
+
+  
+  
+
+		
+			
+				
+			
+			
+
+
+
+  
+  
+
+		
+	
+
+          </aside>
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+  
+
+            <nav aria-label="breadcrumb" class="td-breadcrumbs">
+  <ol class="breadcrumb">
+  <li class="breadcrumb-item">
+    <a href="https://k8s.huweihuang.com/docs/">Kubernetes学习笔记</a>
+  </li>
+  <li class="breadcrumb-item active" aria-current="page">
+    <a href="https://k8s.huweihuang.com/docs/etcd/">Etcd集群</a>
+  </li>
+  </ol>
+</nav>
+            
+<div class="td-content">
+	<h1>Etcd集群</h1>
+  
+	<header class="article-meta">
+		
+
+  
+    
+      
+
+
+    
+      
+
+
+    
+  
+
+		
+	</header>
+	
+        <div class="section-index">
+    
+    
+    
+    
+    
+    
+    
+    
+    <hr class="panel-line">
+        
+            
+            <div class="entry">
+                <h5>
+                    <a href="/docs/etcd/etcd-introduction/">Etcd介绍</a>
+                </h5>
+                <p></p>
+            </div>
+        
+            
+            <div class="entry">
+                <h5>
+                    <a href="/docs/etcd/raft/">Raft算法</a>
+                </h5>
+                <p></p>
+            </div>
+        
+            
+            <div class="entry">
+                <h5>
+                    <a href="/docs/etcd/etcdctl/">etcdctl命令工具</a>
+                </h5>
+                <p></p>
+            </div>
+        
+            
+            <div class="entry">
+                <h5>
+                    <a href="/docs/etcd/etcd-auth-and-security/">Etcd访问控制</a>
+                </h5>
+                <p></p>
+            </div>
+        
+            
+            <div class="entry">
+                <h5>
+                    <a href="/docs/etcd/etcd-setup-flags/">Etcd启动配置参数</a>
+                </h5>
+                <p></p>
+            </div>
+        
+            
+            <div class="entry">
+                <h5>
+                    <a href="/docs/etcd/k8s-etcd-data/">Etcd中的k8s数据</a>
+                </h5>
+                <p></p>
+            </div>
+        
+            
+            <div class="entry">
+                <h5>
+                    <a href="/docs/etcd/etcd-operator-usage/">etcd-operator的使用</a>
+                </h5>
+                <p></p>
+            </div>
+        
+    
+</div>
+
+	
+		<style>
+  .feedback--answer {
+    display: inline-block;
+  }
+  .feedback--answer-no {
+    margin-left: 1em;
+  }
+  .feedback--response {
+    display: none;
+    margin-top: 1em;
+  }
+  .feedback--response__visible {
+    display: block;
+  }
+</style>
+<div class="d-print-none">
+<h2 class="feedback--title">Feedback</h2>
+<p class="feedback--question">Was this page helpful?</p>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-yes">Yes</button>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-no">No</button>
+<p class="feedback--response feedback--response-yes">
+  Glad to hear it! Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+<p class="feedback--response feedback--response-no">
+  Sorry to hear that. Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+</div>
+<script>
+  const yesButton = document.querySelector('.feedback--answer-yes');
+  const noButton = document.querySelector('.feedback--answer-no');
+  const yesResponse = document.querySelector('.feedback--response-yes');
+  const noResponse = document.querySelector('.feedback--response-no');
+  const disableButtons = () => {
+    yesButton.disabled = true;
+    noButton.disabled = true;
+  };
+  const sendFeedback = (value) => {
+    if (typeof ga !== 'function') return;
+    const args = {
+      command: 'send',
+      hitType: 'event',
+      category: 'Helpful',
+      action: 'click',
+      label: window.location.pathname,
+      value: value
+    };
+    ga(args.command, args.hitType, args.category, args.action, args.label, args.value);
+  };
+  yesButton.addEventListener('click', () => {
+    yesResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(1);
+  });
+  noButton.addEventListener('click', () => {
+    noResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(0);
+  });
+</script>
+
+		<br />
+	
+	
+	<div class="text-muted mt-5 pt-3 border-top">
+  最后修改 July 15, 2022: <a href="https://github.com/huweihuang/k8s.huweihuang.com/commit/9bca284c645e5fe9e103feb6528349dad73b712f">language rename to zh-cn (9bca284)</a>
+</div>
+
+</div>
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="User mailing list" aria-label="User mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="User mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Twitter" aria-label="Twitter">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/twitter" aria-label="Twitter">
+      <i class="fab fa-twitter"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Stack Overflow" aria-label="Stack Overflow">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/stack" aria-label="Stack Overflow">
+      <i class="fab fa-stack-overflow"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/k8s.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Slack" aria-label="Slack">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/slack" aria-label="Slack">
+      <i class="fab fa-slack"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Developer mailing list" aria-label="Developer mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="Developer mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2022 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+
+
+
+  </body>
+</html>

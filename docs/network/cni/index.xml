@@ -1,0 +1,380 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>HUWEIHUAHG – CNI</title>
+    <link>https://k8s.huweihuang.com/docs/network/cni/</link>
+    <description>Recent content in CNI on HUWEIHUAHG</description>
+    <generator>Hugo -- gohugo.io</generator>
+    
+	  <atom:link href="https://k8s.huweihuang.com/docs/network/cni/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+      
+        
+      
+    
+    
+    <item>
+      <title>Docs: CNI接口介绍</title>
+      <link>https://k8s.huweihuang.com/docs/network/cni/cni/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://k8s.huweihuang.com/docs/network/cni/cni/</guid>
+      <description>
+        
+        
+        &lt;h1 id=&#34;1-cni-container-network-interface&#34;&gt;1. CNI（Container Network Interface）&lt;/h1&gt;
+&lt;p&gt;CNI（Container Network Interface）即容器网络接口，通过约定统一的容器网络接口，从而kubelet可以通过这个标准的API来调用不同的网络插件实现不同的网络功能。&lt;/p&gt;
+&lt;p&gt;kubelet启动参数--network-plugin=cni来指定CNI插件，kubelet从&lt;code&gt;--cni-conf-dir&lt;/code&gt; （默认是 &lt;code&gt;/etc/cni/net.d&lt;/code&gt;） 读取文件并使用 该文件中的 CNI 配置来设置各个 Pod 的网络。 CNI 配置文件必须与 &lt;a href=&#34;https://github.com/containernetworking/cni/blob/master/SPEC.md#network-configuration&#34;&gt;CNI 规约&lt;/a&gt; 匹配，并且配置所引用的所有所需的 CNI 插件都应存在于 &lt;code&gt;--cni-bin-dir&lt;/code&gt;（默认是 &lt;code&gt;/opt/cni/bin&lt;/code&gt;）下。如果有多个CNI配置文件，kubelet 将会使用按文件名的字典顺序排列 的第一个作为配置文件。&lt;/p&gt;
+&lt;p&gt;CNI规范定义：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;网络配置文件的格式&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;容器runtime与CNI插件的通信协议&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;基于提供的配置执行网络插件的步骤&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;网络插件调用其他功能插件的步骤&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;插件返回给runtime结果的数据格式&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;2-cni配置文件格式&#34;&gt;2. CNI配置文件格式&lt;/h1&gt;
+&lt;p&gt;CNI配置文件的格式为JSON格式，配置文件的默认路径：/etc/cni/net.d。插件二进制默认的路径为：/opt/cni/bin。&lt;/p&gt;
+&lt;h2 id=&#34;2-1-主配置的字段&#34;&gt;2.1. 主配置的字段&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;cniVersion&lt;/code&gt; (string)：CNI规范使用的版本，例如版本为0.4.0。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;name&lt;/code&gt; (string)：目标网络的名称。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;disableCheck&lt;/code&gt; (boolean)：关闭CHECK操作。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;plugins&lt;/code&gt; (list)：CNI插件列表及插件配置。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;2-2-插件配置字段&#34;&gt;2.2. 插件配置字段&lt;/h2&gt;
+&lt;p&gt;根据不同的插件，插件配置所需的字段不同。&lt;/p&gt;
+&lt;p&gt;必选字段：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;type&lt;/code&gt; (string)：节点上插件二进制的名称，比如bridge，sriov，macvlan等。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;可选字段：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;capabilities&lt;/code&gt; (dictionary)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;ipMasq&lt;/code&gt; (boolean)：为目标网络配上Outbound Masquerade(地址伪装)，即：由容器内部通过网关向外发送数据包时，对数据包的源IP地址进行修改。&lt;/p&gt;
+&lt;p&gt;当我们的容器以宿主机作为网关时，这个参数是必须要设置的。否则，从容器内部发出的数据包就没有办法通过网关路由到其他网段。因为容器内部的IP地址无法被目标网段识别，所以这些数据包最终会被丢弃掉。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;ipam&lt;/code&gt; (dictionary)：IPAM(IP Adderss Management)即IP地址管理，提供了一系列方法用于对IP和路由进行管理。它对应的是由CNI提供的一组标准IPAM插件，比如像host-local，dhcp，static等。比如文中用到的bridge插件，会调用我们所指定的IPAM插件，实现对网络设备IP地址的分配和管理。**如果是自己开发的ipam插件，则相关的入参可以自己定义和实现。&lt;/p&gt;
+&lt;p&gt;以下以host-local为例说明。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;type：指定所用IPAM插件的名称，在我们的例子里，用的是host-local。&lt;/li&gt;
+&lt;li&gt;subnet：为目标网络分配网段，包括网络ID和子网掩码，以CIDR形式标记。在我们的例子里为&lt;code&gt;10.15.10.0/24&lt;/code&gt;，也就是目标网段为&lt;code&gt;10.15.10.0&lt;/code&gt;，子网掩码为&lt;code&gt;255.255.255.0&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;routes：用于指定路由规则，插件会为我们在容器的路由表里生成相应的规则。其中，dst表示希望到达的目标网段，以CIDR形式标记。gw对应网关的IP地址，也就是要到达目标网段所要经过的“next hop(下一跳)”。如果省略gw的话，那么插件会自动帮我们选择默认网关。在我们的例子里，gw选择的是默认网关，而dst为&lt;code&gt;0.0.0.0/0&lt;/code&gt;则代表“任何网络”，表示数据包将通过默认网关发往任何网络。实际上，这对应的是一条默认路由规则，即：当所有其他路由规则都不匹配时，将选择该路由。&lt;/li&gt;
+&lt;li&gt;rangeStart：允许分配的IP地址范围的起始值&lt;/li&gt;
+&lt;li&gt;rangeEnd：允许分配的IP地址范围的结束值&lt;/li&gt;
+&lt;li&gt;gateway：为网关（也就是我们将要在宿主机上创建的bridge）指定的IP地址。如果省略的话，那么插件会自动从允许分配的IP地址范围内选择起始值作为网关的IP地址。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;dns&lt;/code&gt; (dictionary, optional)：dns配置&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;nameservers&lt;/code&gt; (list of strings, optional)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;domain&lt;/code&gt; (string, optional)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;search&lt;/code&gt; (list of strings, optional)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;options&lt;/code&gt; (list of strings, optional)&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;2-3-配置文件示例&#34;&gt;2.3. 配置文件示例&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-json&#34; data-lang=&#34;json&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a40000&#34;&gt;$&lt;/span&gt; &lt;span style=&#34;color:#a40000&#34;&gt;mkdir&lt;/span&gt; &lt;span style=&#34;color:#a40000&#34;&gt;-p&lt;/span&gt; &lt;span style=&#34;color:#a40000&#34;&gt;/etc/cni/net.d&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a40000&#34;&gt;$&lt;/span&gt; &lt;span style=&#34;color:#a40000&#34;&gt;cat&lt;/span&gt; &lt;span style=&#34;color:#a40000&#34;&gt;&amp;gt;/etc/cni/net.d/&lt;/span&gt;&lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;10&lt;/span&gt;&lt;span style=&#34;color:#a40000&#34;&gt;-mynet.conf&lt;/span&gt; &lt;span style=&#34;color:#a40000&#34;&gt;&amp;lt;&amp;lt;EOF&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;cniVersion&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;1.0.0&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;name&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;dbnet&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;plugins&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;[&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;type&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;bridge&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;// plugin specific parameters
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;&lt;/span&gt;      &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;bridge&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;cni0&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;keyA&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;[&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;some more&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;plugin specific&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;configuration&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;],&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;ipam&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;type&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;host-local&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;// ipam specific
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;&lt;/span&gt;        &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;subnet&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;10.1.0.0/16&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;gateway&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;10.1.0.1&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;routes&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;[&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;            &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;{&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;dst&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;0.0.0.0/0&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;},&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;dns&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;nameservers&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;[&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;10.1.0.1&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;},&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;type&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;tuning&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;capabilities&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;mac&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;true&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;},&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;sysctl&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;net.core.somaxconn&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;500&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;},&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;type&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;portmap&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;capabilities&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;{&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;portMappings&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;true&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;3-cni插件&#34;&gt;3. CNI插件&lt;/h1&gt;
+&lt;h2 id=&#34;3-1-安装插件&#34;&gt;3.1. 安装插件&lt;/h2&gt;
+&lt;p&gt;安装CNI二进制插件，插件下载地：https://github.com/containernetworking/plugins/releases&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 下载二进制&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;wget https://github.com/containernetworking/plugins/releases/download/v1.1.0/cni-plugins-linux-amd64-v1.1.0.tgz
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 解压文件&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tar -zvxf cni-plugins-linux-amd64-v1.1.0.tgz -C /opt/cni/bin/
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 查看解压文件&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# ll -h&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;总用量 63M
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-rwxr-xr-x &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; root root 3.7M 2月  &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;24&lt;/span&gt; 01:01 bandwidth
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-rwxr-xr-x &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; root root 4.1M 2月  &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;24&lt;/span&gt; 01:01 bridge
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-rwxr-xr-x &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; root root 9.3M 2月  &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;24&lt;/span&gt; 01:01 dhcp
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-rwxr-xr-x &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; root root 4.2M 2月  &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;24&lt;/span&gt; 01:01 firewall
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-rwxr-xr-x &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; root root 3.7M 2月  &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;24&lt;/span&gt; 01:01 host-device
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-rwxr-xr-x &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; root root 3.1M 2月  &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;24&lt;/span&gt; 01:01 host-local
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-rwxr-xr-x &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; root root 3.8M 2月  &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;24&lt;/span&gt; 01:01 ipvlan
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-rwxr-xr-x &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; root root 3.2M 2月  &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;24&lt;/span&gt; 01:01 loopback
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-rwxr-xr-x &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; root root 3.8M 2月  &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;24&lt;/span&gt; 01:01 macvlan
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-rwxr-xr-x &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; root root 3.6M 2月  &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;24&lt;/span&gt; 01:01 portmap
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-rwxr-xr-x &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; root root 4.0M 2月  &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;24&lt;/span&gt; 01:01 ptp
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-rwxr-xr-x &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; root root 3.4M 2月  &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;24&lt;/span&gt; 01:01 sbr
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-rwxr-xr-x &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; root root 2.7M 2月  &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;24&lt;/span&gt; 01:01 static
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-rwxr-xr-x &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; root root 3.3M 2月  &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;24&lt;/span&gt; 01:01 tuning
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-rwxr-xr-x &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; root root 3.8M 2月  &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;24&lt;/span&gt; 01:01 vlan
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-rwxr-xr-x &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; root root 3.4M 2月  &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;24&lt;/span&gt; 01:01 vrf
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;3-2-插件分类&#34;&gt;3.2. 插件分类&lt;/h2&gt;
+&lt;p&gt;参考：https://www.cni.dev/plugins/current/&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;分类&lt;/th&gt;
+&lt;th&gt;插件&lt;/th&gt;
+&lt;th&gt;说明&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;main&lt;/td&gt;
+&lt;td&gt;bridge&lt;/td&gt;
+&lt;td&gt;Creates a bridge, adds the host and the container to it&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;ipvlan&lt;/td&gt;
+&lt;td&gt;Adds an ipvlan interface in the container&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;macvlan&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Creates a new MAC address, forwards all traffic to that to the container&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;ptp&lt;/td&gt;
+&lt;td&gt;Creates a veth pair&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;&lt;a href=&#34;https://www.cni.dev/plugins/current/main/host-device/&#34;&gt;host-device&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Moves an already-existing device into a container&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;vlan&lt;/td&gt;
+&lt;td&gt;Creates a vlan interface off a master&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;IPAM&lt;/td&gt;
+&lt;td&gt;dhcp&lt;/td&gt;
+&lt;td&gt;Runs a daemon on the host to make DHCP requests on behalf of a container&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;host-local&lt;/td&gt;
+&lt;td&gt;Maintains a local database of allocated IPs&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;static&lt;/td&gt;
+&lt;td&gt;Allocates static IPv4/IPv6 addresses to containers&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;meta&lt;/td&gt;
+&lt;td&gt;tuning&lt;/td&gt;
+&lt;td&gt;Changes sysctl parameters of an existing interface&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;portmap&lt;/td&gt;
+&lt;td&gt;An iptables-based portmapping plugin. Maps ports from the host’s address space to the container&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;bandwidth&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Allows bandwidth-limiting through use of traffic control tbf (ingress/egress)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;sbr&lt;/td&gt;
+&lt;td&gt;A plugin that configures source based routing for an interface (from which it is chained)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;firewall&lt;/td&gt;
+&lt;td&gt;A firewall plugin which uses iptables or firewalld to add rules to allow traffic to/from the container&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h1 id=&#34;4-cni插件接口&#34;&gt;4. CNI插件接口&lt;/h1&gt;
+&lt;p&gt;具体可参考：https://github.com/containernetworking/cni/blob/master/SPEC.md#cni-operations&lt;/p&gt;
+&lt;p&gt;CNI定义的接口操作有：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;ADD&lt;/code&gt;：添加容器网络，在容器启动时调用。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;DEL&lt;/code&gt;：删除容器网络，在容器删除时调用。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CHECK&lt;/code&gt;：检查容器网络是否正常。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;VERSION&lt;/code&gt;：显示插件版本。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这些操作通过&lt;code&gt;CNI_COMMAND&lt;/code&gt;环境变量来传递给CNI插件二进制。&lt;/p&gt;
+&lt;p&gt;其中环境变量包括：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;CNI_COMMAND&lt;/code&gt;：命令操作，包括 &lt;code&gt;ADD&lt;/code&gt;, &lt;code&gt;DEL&lt;/code&gt;, &lt;code&gt;CHECK&lt;/code&gt;, or &lt;code&gt;VERSION&lt;/code&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;CNI_CONTAINERID&lt;/code&gt;:容器的ID，有runtime分配，不为空。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;CNI_NETNS&lt;/code&gt;:容器的网络命名空间，命名空间路径，例如：/run/netns/[nsname]&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;CNI_IFNAME&lt;/code&gt;:容器内的网卡名称。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;CNI_ARGS&lt;/code&gt;:其他参数。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;CNI_PATH&lt;/code&gt;:CNI插件二进制的路径。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;4-1-add接口-添加容器网络&#34;&gt;4.1. ADD接口：添加容器网络&lt;/h2&gt;
+&lt;p&gt;在容器的网络命名空间&lt;code&gt;CNI_NETNS&lt;/code&gt;中创建&lt;code&gt;CNI_IFNAME&lt;/code&gt;网卡设备，或者调整网卡配置。&lt;/p&gt;
+&lt;p&gt;必选参数：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;CNI_COMMAND&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CNI_CONTAINERID&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CNI_NETNS&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CNI_IFNAME&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;可选参数：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;CNI_ARGS&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CNI_PATH&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;4-2-del接口-删除容器网络&#34;&gt;4.2. DEL接口：删除容器网络&lt;/h2&gt;
+&lt;p&gt;删除容器网络命名空间&lt;code&gt;CNI_NETNS&lt;/code&gt;中的容器网卡&lt;code&gt;CNI_IFNAME&lt;/code&gt;，或者撤销ADD修改操作。&lt;/p&gt;
+&lt;p&gt;必选参数：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;CNI_COMMAND&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CNI_CONTAINERID&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CNI_IFNAME&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;可选参数：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;CNI_NETNS&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CNI_ARGS&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CNI_PATH&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;4-3-check接口-检查容器网络&#34;&gt;4.3. CHECK接口：检查容器网络&lt;/h2&gt;
+&lt;h2 id=&#34;4-4-version接口-输出cni的版本&#34;&gt;4.4. VERSION接口：输出CNI的版本&lt;/h2&gt;
+&lt;p&gt;参考：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.cni.dev/docs/spec/&#34;&gt;https://www.cni.dev/docs/spec/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/containernetworking/cni&#34;&gt;https://github.com/containernetworking/cni&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/containernetworking/cni/blob/spec-v0.4.0/SPEC.md&#34;&gt;https://github.com/containernetworking/cni/blob/spec-v0.4.0/SPEC.md&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://kubernetes.io/zh/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/&#34;&gt;https://kubernetes.io/zh/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/containernetworking/plugins/tree/master/plugins&#34;&gt;https://github.com/containernetworking/plugins/tree/master/plugins&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.cni.dev/plugins/current/&#34;&gt;https://www.cni.dev/plugins/current/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://cloud.tencent.com/developer/news/600713&#34;&gt;https://cloud.tencent.com/developer/news/600713&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://morningspace.github.io/tech/k8s-net-cni/#%E9%85%8D%E7%BD%AEcni%E6%8F%92%E4%BB%B6&#34;&gt;配置CNI插件&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+      </description>
+    </item>
+    
+    <item>
+      <title>Docs: Macvlan介绍</title>
+      <link>https://k8s.huweihuang.com/docs/network/cni/macvlan/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://k8s.huweihuang.com/docs/network/cni/macvlan/</guid>
+      <description>
+        
+        
+        &lt;h1 id=&#34;1-简介&#34;&gt;1. 简介&lt;/h1&gt;
+&lt;p&gt;macvlan可以看做是物理接口eth（父接口）的子接口，每个macvlan都拥有独立的mac地址，可以被绑定IP作为正常的网卡接口使用。通过这个特性，可以实现在一个物理网络设备绑定多个IP，每个IP拥有独立的mac地址。该特性经常被应用在容器虚拟化中（容器可以配置macvlan的网络，将macvlan interface移动到容器的namespace中）。&lt;/p&gt;
+&lt;p&gt;示意图：&lt;/p&gt;
+&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1595764512/article/kubernetes/macvlan/macvlan.jpg&#34;&gt;
+&lt;h1 id=&#34;2-四种工作模式&#34;&gt;2. 四种工作模式&lt;/h1&gt;
+&lt;h2 id=&#34;2-1-vepa-virtual-ethernet-port-aggregator&#34;&gt;2.1. VEPA (Virtual Ethernet Port Aggregator)&lt;/h2&gt;
+&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1595764512/article/kubernetes/macvlan/macvlan_vepa.jpg&#34;&gt;
+&lt;p&gt;VEPA为默认的工作模式，该模式下，所有macvlan发出的流量都会经过父接口，不管目的地是否与该macvlan共用一个父接口。&lt;/p&gt;
+&lt;h2 id=&#34;2-2-bridge-mode&#34;&gt;2.2. Bridge mode&lt;/h2&gt;
+&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1595764512/article/kubernetes/macvlan/macvlan_bridge.jpg&#34;&gt;
+&lt;p&gt;该bridge模式类似于传统的网桥模式，拥有相同父接口的macvlan可以直接进行通信，不需要将数据发给父接口转发。该模式下不需要交换机支持hairpin模式，性能比VEPA模式好。另外相对于传统的网桥模式，该模式不需要学习mac地址，不需要STP，使得其性能比传统的网桥性能好得多。但是如果父接口down掉，则所有子接口也会down，同时无法通信。&lt;/p&gt;
+&lt;h2 id=&#34;2-3-private-mode&#34;&gt;2.3. Private mode&lt;/h2&gt;
+&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1595764512/article/kubernetes/macvlan/macvlan_private.jpg&#34;&gt;
+&lt;p&gt;该模式是VEPA模式的增强版，&lt;/p&gt;
+&lt;h2 id=&#34;2-4-passthru-mode&#34;&gt;2.4. Passthru mode&lt;/h2&gt;
+&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1595764512/article/kubernetes/macvlan/macvlan_passthru.jpg&#34;&gt;
+&lt;p&gt;. &lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;待完善&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;参考：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://backreference.org/2014/03/20/some-notes-on-macvlanmacvtap/&#34;&gt;https://backreference.org/2014/03/20/some-notes-on-macvlanmacvtap/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/containernetworking/plugins/tree/master/plugins/main/macvlan&#34;&gt;https://github.com/containernetworking/plugins/tree/master/plugins/main/macvlan&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/containernetworking/plugins/blob/master/plugins/main/macvlan/macvlan.go&#34;&gt;https://github.com/containernetworking/plugins/blob/master/plugins/main/macvlan/macvlan.go&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://wikibon.org/wiki/v/Edge_Virtual_Bridging&#34;&gt;http://wikibon.org/wiki/v/Edge_Virtual_Bridging&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://juejin.im/post/5ca183ad6fb9a05e5343a7e8&#34;&gt;Linux 虚拟网卡技术：Macvlan&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://hicu.be/bridge-vs-macvlan&#34;&gt;http://hicu.be/bridge-vs-macvlan&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://hicu.be/docker-networking-macvlan-bridge-mode-configuration&#34;&gt;http://hicu.be/docker-networking-macvlan-bridge-mode-configuration&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+      </description>
+    </item>
+    
+  </channel>
+</rss>

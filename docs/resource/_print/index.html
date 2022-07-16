@@ -1,0 +1,1340 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<link rel="canonical" type="text/html" href="https://k8s.huweihuang.com/docs/resource/">
+<link rel="alternate" type="application/rss&#43;xml" href="https://k8s.huweihuang.com/docs/resource/index.xml">
+<meta name="robots" content="noindex, nofollow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>资源隔离 | HUWEIHUAHG</title>
+<meta name="description" content="">
+<meta property="og:title" content="资源隔离" />
+<meta property="og:description" content="Kubernetes学习笔记" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://k8s.huweihuang.com/docs/resource/" /><meta property="og:site_name" content="HUWEIHUAHG" />
+
+<meta itemprop="name" content="资源隔离">
+<meta itemprop="description" content="Kubernetes学习笔记"><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="资源隔离"/>
+<meta name="twitter:description" content="Kubernetes学习笔记"/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.cd6c2bbb05cdf98237b53882fed8c7a8b3fd7a7f7963d7cb305dd0d984782137.css" as="style">
+<link href="/scss/main.min.cd6c2bbb05cdf98237b53882fed8c7a8b3fd7a7f7963d7cb305dd0d984782137.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-00000000-0', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-section">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">HUWEIHUAHG</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/docs/" ><span class="active">Kubernetes学习笔记</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input type="search" class="form-control td-search-input" placeholder="&#xf002; 站内搜索…" aria-label="站内搜索…" autocomplete="off">
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+
+
+
+
+<div class="td-content">
+<div class="pageinfo pageinfo-primary d-print-none">
+<p>
+这是本节的多页打印视图。
+<a href="#" onclick="print();return false;">点击此处打印</a>.
+</p><p>
+<a href="/docs/resource/">返回本页常规视图</a>.
+</p>
+</div>
+
+
+
+<h1 class="title">资源隔离</h1>
+
+
+
+
+
+    <ul>
+    
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>1: <a href="#pg-21f935d742bc944269435f58a100fe3e"></a></li>
+
+
+    
+  
+    
+    
+	
+<li>2: <a href="#pg-d542cc3c2037a84b6e2f6942b0222d5a"></a></li>
+
+
+    
+  
+    
+    
+	
+<li>3: <a href="#pg-daf54f0749a3f8d191ca4474953632d4"></a></li>
+
+
+    
+  
+    
+    
+	
+<li>4: <a href="#pg-1acc74c258aa6f41271b665b5303791f">Lxcfs资源视图隔离</a></li>
+
+
+    
+  
+
+    </ul>
+
+
+<div class="content">
+      
+</div>
+</div>
+
+
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-21f935d742bc944269435f58a100fe3e">1 - </h1>
+    
+	<h1 id="资源配额-resourcequota">资源配额（ResourceQuota）</h1>
+<p><code>ResourceQuota</code>对象用来定义某个命名空间下所有资源的使用限额，其实包括：</p>
+<ul>
+<li>计算资源的配额</li>
+<li>存储资源的配额</li>
+<li>对象数量的配额</li>
+</ul>
+<p>如果集群的总容量小于命名空间的配额总额，可能会产生资源竞争。这时会按照先到先得来处理。
+资源竞争和配额的更新都不会影响已经创建好的资源。</p>
+<h2 id="1-启动资源配额">1. 启动资源配额</h2>
+<p>Kubernetes 的众多发行版本默认开启了资源配额的支持。当在apiserver的<code>--admission-control</code>配置中添加<code>ResourceQuota</code>参数后，便启用了。 当一个命名空间中含有<code>ResourceQuota</code>对象时，资源配额将强制执行。</p>
+<h2 id="2-计算资源配额">2. 计算资源配额</h2>
+<p>可以在给定的命名空间中限制可以请求的计算资源（<a href="https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/">compute resources</a>）的总量。</p>
+<table>
+<thead>
+<tr>
+<th>资源名称</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cpu</td>
+<td>非终止态的所有pod, cpu请求总量不能超出此值。</td>
+</tr>
+<tr>
+<td>limits.cpu</td>
+<td>非终止态的所有pod， cpu限制总量不能超出此值。</td>
+</tr>
+<tr>
+<td>limits.memory</td>
+<td>非终止态的所有pod, 内存限制总量不能超出此值。</td>
+</tr>
+<tr>
+<td>memory</td>
+<td>非终止态的所有pod, 内存请求总量不能超出此值。</td>
+</tr>
+<tr>
+<td>requests.cpu</td>
+<td>非终止态的所有pod, cpu请求总量不能超出此值。</td>
+</tr>
+<tr>
+<td>requests.memory</td>
+<td>非终止态的所有pod, 内存请求总量不能超出此值。</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-存储资源配额">3. 存储资源配额</h2>
+<p>可以在给定的命名空间中限制可以请求的存储资源（<a href="https://kubernetes.io/docs/concepts/storage/persistent-volumes/">storage resources</a>）的总量。</p>
+<table>
+<thead>
+<tr>
+<th>资源名称</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>requests.storage</td>
+<td>所有PVC, 存储请求总量不能超出此值。</td>
+</tr>
+<tr>
+<td>persistentvolumeclaims</td>
+<td>命名空间中可以存在的PVC（<a href="https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims">persistent volume claims</a>）总数。</td>
+</tr>
+<tr>
+<td>.storageclass.storage.k8s.io/requests.storage</td>
+<td>和该存储类关联的所有PVC, 存储请求总和不能超出此值。</td>
+</tr>
+<tr>
+<td>.storageclass.storage.k8s.io/persistentvolumeclaims</td>
+<td>和该存储类关联的所有PVC，命名空间中可以存在的PVC（<a href="https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims">persistent volume claims</a>）总数。</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4-对象数量的配额">4. 对象数量的配额</h2>
+<table>
+<thead>
+<tr>
+<th>资源名称</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>congfigmaps</td>
+<td>命名空间中可以存在的配置映射的总数。</td>
+</tr>
+<tr>
+<td>persistentvolumeclaims</td>
+<td>命名空间中可以存在的PVC总数。</td>
+</tr>
+<tr>
+<td>pods</td>
+<td>命名空间中可以存在的非终止态的pod总数。如果一个pod的<code>status.phase</code> 是 <code>Failed, Succeeded</code>, 则该pod处于终止态。</td>
+</tr>
+<tr>
+<td>replicationcontrollers</td>
+<td>命名空间中可以存在的<code>rc</code>总数。</td>
+</tr>
+<tr>
+<td>resourcequotas</td>
+<td>命名空间中可以存在的资源配额（<a href="https://kubernetes.io/docs/admin/admission-controllers/#resourcequota">resource quotas</a>）总数。</td>
+</tr>
+<tr>
+<td>services</td>
+<td>命名空间中可以存在的服务总数量。</td>
+</tr>
+<tr>
+<td>services.loadbalancers</td>
+<td>命名空间中可以存在的服务的负载均衡的总数量。</td>
+</tr>
+<tr>
+<td>services.nodeports</td>
+<td>命名空间中可以存在的服务的主机接口的总数量。</td>
+</tr>
+<tr>
+<td>secrets</td>
+<td>命名空间中可以存在的<code>secrets</code>的总数量。</td>
+</tr>
+</tbody>
+</table>
+<p>例如：可以定义pod的限额来避免某用户消耗过多的Pod IPs。</p>
+<h2 id="5-限额的作用域">5. 限额的作用域</h2>
+<table>
+<thead>
+<tr>
+<th>作用域</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Terminating</td>
+<td>匹配 <code>spec.activeDeadlineSeconds &gt;= 0</code> 的pod</td>
+</tr>
+<tr>
+<td>NotTerminating</td>
+<td>匹配 <code>spec.activeDeadlineSeconds is nil</code> 的pod</td>
+</tr>
+<tr>
+<td>BestEffort</td>
+<td>匹配具有最佳服务质量的pod</td>
+</tr>
+<tr>
+<td>NotBestEffort</td>
+<td>匹配具有非最佳服务质量的pod</td>
+</tr>
+</tbody>
+</table>
+<h2 id="6-request和limit">6. request和limit</h2>
+<p>当分配计算资源时，每个容器可以为cpu或者内存指定一个请求值和一个限度值。可以配置限额值来限制它们中的任何一个值。
+如果指定了<code>requests.cpu</code> 或者 <code>requests.memory</code>的限额值，那么就要求传入的每一个容器显式的指定这些资源的请求。如果指定了<code>limits.cpu</code>或者<code>limits.memory</code>，那么就要求传入的每一个容器显式的指定这些资源的限度。</p>
+<h2 id="7-查看和设置配额">7. 查看和设置配额</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建namespace</span>
+</span></span><span style="display:flex;"><span>$ kubectl create namespace myspace
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建resourcequota</span>
+</span></span><span style="display:flex;"><span>$ cat <span style="color:#4e9a06">&lt;&lt;EOF &gt; compute-resources.yaml
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">apiVersion: v1
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">kind: ResourceQuota
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">metadata:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  name: compute-resources
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">spec:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  hard:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    pods: &#34;4&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    requests.cpu: &#34;1&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    requests.memory: 1Gi
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    limits.cpu: &#34;2&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    limits.memory: 2Gi
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">EOF</span>
+</span></span><span style="display:flex;"><span>$ kubectl create -f ./compute-resources.yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>myspace
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查询resourcequota</span>
+</span></span><span style="display:flex;"><span>$ kubectl get quota --namespace<span style="color:#ce5c00;font-weight:bold">=</span>myspace
+</span></span><span style="display:flex;"><span>NAME                    AGE
+</span></span><span style="display:flex;"><span>compute-resources       30s
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查询resourcequota的详细信息</span>
+</span></span><span style="display:flex;"><span>$ kubectl describe quota compute-resources --namespace<span style="color:#ce5c00;font-weight:bold">=</span>myspace
+</span></span><span style="display:flex;"><span>Name:                  compute-resources
+</span></span><span style="display:flex;"><span>Namespace:             myspace
+</span></span><span style="display:flex;"><span>Resource               Used Hard
+</span></span><span style="display:flex;"><span>--------               ---- ----
+</span></span><span style="display:flex;"><span>limits.cpu             <span style="color:#0000cf;font-weight:bold">0</span>    <span style="color:#0000cf;font-weight:bold">2</span>
+</span></span><span style="display:flex;"><span>limits.memory          <span style="color:#0000cf;font-weight:bold">0</span>    2Gi
+</span></span><span style="display:flex;"><span>pods                   <span style="color:#0000cf;font-weight:bold">0</span>    <span style="color:#0000cf;font-weight:bold">4</span>
+</span></span><span style="display:flex;"><span>requests.cpu           <span style="color:#0000cf;font-weight:bold">0</span>    <span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span>requests.memory        <span style="color:#0000cf;font-weight:bold">0</span>    1Gi
+</span></span></code></pre></div><h2 id="8-配额和集群容量">8. 配额和集群容量</h2>
+<p>资源配额对象与集群容量无关，它们以绝对单位表示。即增加节点的资源并不会增加已经配置的namespace的资源。</p>
+<p>参考文章：</p>
+<ul>
+<li><a href="https://kubernetes.io/docs/concepts/policy/resource-quotas/">https://kubernetes.io/docs/concepts/policy/resource-quotas/</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-d542cc3c2037a84b6e2f6942b0222d5a">2 - </h1>
+    
+	<h1 id="pod限额-limitrange">Pod限额（LimitRange）</h1>
+<blockquote>
+<p><code>ResourceQuota</code>对象是限制某个namespace下<code>所有Pod(容器)</code>的资源限额</p>
+<p><code>LimitRange</code>对象是限制某个namespace<code>单个Pod(容器</code>)的资源限额</p>
+</blockquote>
+<p><code>LimitRange</code>对象用来定义某个<code>命名空间</code>下某种<code>资源对象</code>的使用限额，其中资源对象包括：<code>Pod</code>、<code>Container</code>、<code>PersistentVolumeClaim</code>。</p>
+<h2 id="1-为namespace配置cpu和内存的默认值">1. 为namespace配置CPU和内存的默认值</h2>
+<p>如果在一个拥有默认内存或CPU限额的命名空间中创建一个容器，并且这个容器未指定它自己的内存或CPU的<code>limit</code>， 它会被分配这个默认的内存或CPU的<code>limit</code>。既没有设置pod的<code>limit</code>和<code>request</code>才会分配默认的内存或CPU的<code>request</code>。</p>
+<h3 id="1-1-namespace的内存默认值">1.1. namespace的内存默认值</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建namespace</span>
+</span></span><span style="display:flex;"><span>$ kubectl create namespace default-mem-example
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建LimitRange</span>
+</span></span><span style="display:flex;"><span>$ cat memory-defaults.yaml
+</span></span><span style="display:flex;"><span>apiVersion: v1
+</span></span><span style="display:flex;"><span>kind: LimitRange
+</span></span><span style="display:flex;"><span>metadata:
+</span></span><span style="display:flex;"><span>  name: mem-limit-range
+</span></span><span style="display:flex;"><span>spec:
+</span></span><span style="display:flex;"><span>  limits:
+</span></span><span style="display:flex;"><span>  - default:
+</span></span><span style="display:flex;"><span>      memory: 512Mi
+</span></span><span style="display:flex;"><span>    defaultRequest:
+</span></span><span style="display:flex;"><span>      memory: 256Mi
+</span></span><span style="display:flex;"><span>    type: Container
+</span></span><span style="display:flex;"><span>  
+</span></span><span style="display:flex;"><span>$ kubectl create -f https://k8s.io/docs/tasks/administer-cluster/memory-defaults.yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>default-mem-example
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建Pod,未指定内存的limit和request</span>
+</span></span><span style="display:flex;"><span>$ cat memory-defaults-pod.yaml
+</span></span><span style="display:flex;"><span>apiVersion: v1
+</span></span><span style="display:flex;"><span>kind: Pod
+</span></span><span style="display:flex;"><span>metadata:
+</span></span><span style="display:flex;"><span>  name: default-mem-demo
+</span></span><span style="display:flex;"><span>spec:
+</span></span><span style="display:flex;"><span>  containers:
+</span></span><span style="display:flex;"><span>  - name: default-mem-demo-ctr
+</span></span><span style="display:flex;"><span>    image: nginx
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>$ kubectl create -f https://k8s.io/docs/tasks/administer-cluster/memory-defaults-pod.yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>default-mem-example
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看Pod</span>
+</span></span><span style="display:flex;"><span>$ kubectl get pod default-mem-demo --output<span style="color:#ce5c00;font-weight:bold">=</span>yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>default-mem-example
+</span></span><span style="display:flex;"><span>containers:
+</span></span><span style="display:flex;"><span>- image: nginx
+</span></span><span style="display:flex;"><span>  imagePullPolicy: Always
+</span></span><span style="display:flex;"><span>  name: default-mem-demo-ctr
+</span></span><span style="display:flex;"><span>  resources:
+</span></span><span style="display:flex;"><span>    limits:
+</span></span><span style="display:flex;"><span>      memory: 512Mi
+</span></span><span style="display:flex;"><span>    requests:
+</span></span><span style="display:flex;"><span>      memory: 256Mi
+</span></span></code></pre></div><h3 id="1-2-namespace的cpu默认值">1.2. namespace的CPU默认值</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建namespace</span>
+</span></span><span style="display:flex;"><span>$ kubectl create namespace default-cpu-example
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建LimitRange</span>
+</span></span><span style="display:flex;"><span>$ cat cpu-defaults.yaml 
+</span></span><span style="display:flex;"><span>apiVersion: v1
+</span></span><span style="display:flex;"><span>kind: LimitRange
+</span></span><span style="display:flex;"><span>metadata:
+</span></span><span style="display:flex;"><span>  name: cpu-limit-range
+</span></span><span style="display:flex;"><span>spec:
+</span></span><span style="display:flex;"><span>  limits:
+</span></span><span style="display:flex;"><span>  - default:
+</span></span><span style="display:flex;"><span>      cpu: <span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span>    defaultRequest:
+</span></span><span style="display:flex;"><span>      cpu: 0.5
+</span></span><span style="display:flex;"><span>    type: Container
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>$ kubectl create -f https://k8s.io/docs/tasks/administer-cluster/cpu-defaults.yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>default-cpu-example    
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建Pod，未指定CPU的limit和request</span>
+</span></span><span style="display:flex;"><span>$ cat cpu-defaults-pod.yaml
+</span></span><span style="display:flex;"><span>apiVersion: v1
+</span></span><span style="display:flex;"><span>kind: Pod
+</span></span><span style="display:flex;"><span>metadata:
+</span></span><span style="display:flex;"><span>  name: default-cpu-demo
+</span></span><span style="display:flex;"><span>spec:
+</span></span><span style="display:flex;"><span>  containers:
+</span></span><span style="display:flex;"><span>  - name: default-cpu-demo-ctr
+</span></span><span style="display:flex;"><span>    image: nginx
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ kubectl create -f https://k8s.io/docs/tasks/administer-cluster/cpu-defaults-pod.yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>default-cpu-example
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看Pod</span>
+</span></span><span style="display:flex;"><span>$ kubectl get pod default-cpu-demo --output<span style="color:#ce5c00;font-weight:bold">=</span>yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>default-cpu-example
+</span></span><span style="display:flex;"><span>containers:
+</span></span><span style="display:flex;"><span>- image: nginx
+</span></span><span style="display:flex;"><span>  imagePullPolicy: Always
+</span></span><span style="display:flex;"><span>  name: default-cpu-demo-ctr
+</span></span><span style="display:flex;"><span>  resources:
+</span></span><span style="display:flex;"><span>    limits:
+</span></span><span style="display:flex;"><span>      cpu: <span style="color:#4e9a06">&#34;1&#34;</span>
+</span></span><span style="display:flex;"><span>    requests:
+</span></span><span style="display:flex;"><span>      cpu: 500m
+</span></span></code></pre></div><h3 id="1-3-说明">1.3 说明</h3>
+<ol>
+<li>如果没有指定pod的<code>request</code>和<code>limit</code>，则创建的pod会使用<code>LimitRange</code>对象定义的默认值（request和limit）</li>
+<li>如果指定pod的<code>limit</code>但未指定<code>request</code>，则创建的pod的<code>request</code>值会取<code>limit</code>的值，而不会取LimitRange对象定义的request默认值。</li>
+<li>如果指定pod的<code>request</code>但未指定<code>limit</code>，则创建的pod的<code>limit</code>值会取<code>LimitRange</code>对象定义的<code>limit</code>默认值。</li>
+</ol>
+<p><strong>默认Limit和request的动机</strong></p>
+<p>如果命名空间具有<code>资源配额（ResourceQuota）</code>, 它为内存限额（CPU限额）设置默认值是有意义的。 以下是资源配额对命名空间施加的两个限制：</p>
+<ul>
+<li>在命名空间运行的每一个容器必须有它自己的内存限额（CPU限额）。</li>
+<li>在命名空间中所有的容器使用的内存总量（CPU总量）不能超出指定的限额。</li>
+</ul>
+<p>如果一个容器没有指定它自己的内存限额（CPU限额），它将被赋予默认的限额值，然后它才可以在被配额限制的命名空间中运行。</p>
+<h2 id="2-为namespace配置cpu和内存的最大最小值">2. 为namespace配置CPU和内存的最大最小值</h2>
+<h3 id="2-1-内存的最大最小值">2.1. 内存的最大最小值</h3>
+<p><strong>创建LimitRange</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建namespace</span>
+</span></span><span style="display:flex;"><span>$ kubectl create namespace constraints-mem-example
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建LimitRange</span>
+</span></span><span style="display:flex;"><span>$ cat memory-constraints.yaml
+</span></span><span style="display:flex;"><span>apiVersion: v1
+</span></span><span style="display:flex;"><span>kind: LimitRange
+</span></span><span style="display:flex;"><span>metadata:
+</span></span><span style="display:flex;"><span>  name: mem-min-max-demo-lr
+</span></span><span style="display:flex;"><span>spec:
+</span></span><span style="display:flex;"><span>  limits:
+</span></span><span style="display:flex;"><span>  - max:
+</span></span><span style="display:flex;"><span>      memory: 1Gi
+</span></span><span style="display:flex;"><span>    min:
+</span></span><span style="display:flex;"><span>      memory: 500Mi
+</span></span><span style="display:flex;"><span>    type: Container
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>$ kubectl create -f https://k8s.io/docs/tasks/administer-cluster/memory-constraints.yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>constraints-mem-example
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看LimitRange</span>
+</span></span><span style="display:flex;"><span>$ kubectl get limitrange cpu-min-max-demo --namespace<span style="color:#ce5c00;font-weight:bold">=</span>constraints-mem-example --output<span style="color:#ce5c00;font-weight:bold">=</span>yaml
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>  limits:
+</span></span><span style="display:flex;"><span>  - default:
+</span></span><span style="display:flex;"><span>      memory: 1Gi
+</span></span><span style="display:flex;"><span>    defaultRequest:
+</span></span><span style="display:flex;"><span>      memory: 1Gi
+</span></span><span style="display:flex;"><span>    max:
+</span></span><span style="display:flex;"><span>      memory: 1Gi
+</span></span><span style="display:flex;"><span>    min:
+</span></span><span style="display:flex;"><span>      memory: 500Mi
+</span></span><span style="display:flex;"><span>    type: Container
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># LimitRange设置了最大最小值，但没有设置默认值，也会被自动设置默认值。</span>
+</span></span></code></pre></div><p><strong>创建符合要求的Pod</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建符合要求的Pod</span>
+</span></span><span style="display:flex;"><span>$ cat memory-constraints-pod.yaml
+</span></span><span style="display:flex;"><span>apiVersion: v1
+</span></span><span style="display:flex;"><span>kind: Pod
+</span></span><span style="display:flex;"><span>metadata:
+</span></span><span style="display:flex;"><span>  name: constraints-mem-demo
+</span></span><span style="display:flex;"><span>spec:
+</span></span><span style="display:flex;"><span>  containers:
+</span></span><span style="display:flex;"><span>  - name: constraints-mem-demo-ctr
+</span></span><span style="display:flex;"><span>    image: nginx
+</span></span><span style="display:flex;"><span>    resources:
+</span></span><span style="display:flex;"><span>      limits:
+</span></span><span style="display:flex;"><span>        memory: <span style="color:#4e9a06">&#34;800Mi&#34;</span>
+</span></span><span style="display:flex;"><span>      requests:
+</span></span><span style="display:flex;"><span>        memory: <span style="color:#4e9a06">&#34;600Mi&#34;</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>$ kubectl create -f https://k8s.io/docs/tasks/administer-cluster/memory-constraints-pod.yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>constraints-mem-example
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看Pod</span>
+</span></span><span style="display:flex;"><span>$ kubectl get pod constraints-mem-demo --output<span style="color:#ce5c00;font-weight:bold">=</span>yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>constraints-mem-example
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>resources:
+</span></span><span style="display:flex;"><span>  limits:
+</span></span><span style="display:flex;"><span>     memory: 800Mi
+</span></span><span style="display:flex;"><span>  requests:
+</span></span><span style="display:flex;"><span>    memory: 600Mi
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p><strong>创建超过最大内存limit的pod</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>$ cat memory-constraints-pod-2.yaml
+</span></span><span style="display:flex;"><span>apiVersion: v1
+</span></span><span style="display:flex;"><span>kind: Pod
+</span></span><span style="display:flex;"><span>metadata:
+</span></span><span style="display:flex;"><span>  name: constraints-mem-demo-2
+</span></span><span style="display:flex;"><span>spec:
+</span></span><span style="display:flex;"><span>  containers:
+</span></span><span style="display:flex;"><span>  - name: constraints-mem-demo-2-ctr
+</span></span><span style="display:flex;"><span>    image: nginx
+</span></span><span style="display:flex;"><span>    resources:
+</span></span><span style="display:flex;"><span>      limits:
+</span></span><span style="display:flex;"><span>        memory: <span style="color:#4e9a06">&#34;1.5Gi&#34;</span>  <span style="color:#8f5902;font-style:italic"># 超过最大值 1Gi</span>
+</span></span><span style="display:flex;"><span>      requests:
+</span></span><span style="display:flex;"><span>        memory: <span style="color:#4e9a06">&#34;800Mi&#34;</span>
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>$ kubectl create -f https://k8s.io/docs/tasks/administer-cluster/memory-constraints-pod-2.yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>constraints-mem-example
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Pod创建失败，因为容器指定的limit过大</span>
+</span></span><span style="display:flex;"><span>Error from server <span style="color:#ce5c00;font-weight:bold">(</span>Forbidden<span style="color:#ce5c00;font-weight:bold">)</span>: error when creating <span style="color:#4e9a06">&#34;docs/tasks/administer-cluster/memory-constraints-pod-2.yaml&#34;</span>:
+</span></span><span style="display:flex;"><span>pods <span style="color:#4e9a06">&#34;constraints-mem-demo-2&#34;</span> is forbidden: maximum memory usage per Container is 1Gi, but limit is 1536Mi.
+</span></span></code></pre></div><p><strong>创建小于最小内存request的Pod</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>$ cat memory-constraints-pod-3.yaml
+</span></span><span style="display:flex;"><span>apiVersion: v1
+</span></span><span style="display:flex;"><span>kind: Pod
+</span></span><span style="display:flex;"><span>metadata:
+</span></span><span style="display:flex;"><span>  name: constraints-mem-demo-3
+</span></span><span style="display:flex;"><span>spec:
+</span></span><span style="display:flex;"><span>  containers:
+</span></span><span style="display:flex;"><span>  - name: constraints-mem-demo-3-ctr
+</span></span><span style="display:flex;"><span>    image: nginx
+</span></span><span style="display:flex;"><span>    resources:
+</span></span><span style="display:flex;"><span>      limits:
+</span></span><span style="display:flex;"><span>        memory: <span style="color:#4e9a06">&#34;800Mi&#34;</span>
+</span></span><span style="display:flex;"><span>      requests:
+</span></span><span style="display:flex;"><span>        memory: <span style="color:#4e9a06">&#34;100Mi&#34;</span>   <span style="color:#8f5902;font-style:italic"># 小于最小值500Mi</span>
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>$ kubectl create -f https://k8s.io/docs/tasks/administer-cluster/memory-constraints-pod-3.yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>constraints-mem-example         
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Pod创建失败，因为容器指定的内存request过小</span>
+</span></span><span style="display:flex;"><span>Error from server <span style="color:#ce5c00;font-weight:bold">(</span>Forbidden<span style="color:#ce5c00;font-weight:bold">)</span>: error when creating <span style="color:#4e9a06">&#34;docs/tasks/administer-cluster/memory-constraints-pod-3.yaml&#34;</span>:
+</span></span><span style="display:flex;"><span>pods <span style="color:#4e9a06">&#34;constraints-mem-demo-3&#34;</span> is forbidden: minimum memory usage per Container is 500Mi, but request is 100Mi.
+</span></span></code></pre></div><p><strong>创建没有指定任何内存limit和request的pod</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>$ cat memory-constraints-pod-4.yaml
+</span></span><span style="display:flex;"><span>apiVersion: v1
+</span></span><span style="display:flex;"><span>kind: Pod
+</span></span><span style="display:flex;"><span>metadata:
+</span></span><span style="display:flex;"><span>  name: constraints-mem-demo-4
+</span></span><span style="display:flex;"><span>spec:
+</span></span><span style="display:flex;"><span>  containers:
+</span></span><span style="display:flex;"><span>  - name: constraints-mem-demo-4-ctr
+</span></span><span style="display:flex;"><span>    image: nginx
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ kubectl create -f https://k8s.io/docs/tasks/administer-cluster/memory-constraints-pod-4.yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>constraints-mem-example
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看Pod</span>
+</span></span><span style="display:flex;"><span>$ kubectl get pod constraints-mem-demo-4 --namespace<span style="color:#ce5c00;font-weight:bold">=</span>constraints-mem-example --output<span style="color:#ce5c00;font-weight:bold">=</span>yaml
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>resources:
+</span></span><span style="display:flex;"><span>  limits:
+</span></span><span style="display:flex;"><span>    memory: 1Gi
+</span></span><span style="display:flex;"><span>  requests:
+</span></span><span style="display:flex;"><span>    memory: 1Gi
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p>容器没有指定自己的 CPU 请求和限制，所以它将从 LimitRange 获取默认的 CPU 请求和限制值。</p>
+<h3 id="2-2-cpu的最大最小值">2.2. CPU的最大最小值</h3>
+<p><strong>创建LimitRange</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建namespace</span>
+</span></span><span style="display:flex;"><span>$ kubectl create namespace constraints-cpu-example
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建LimitRange</span>
+</span></span><span style="display:flex;"><span>$ cat cpu-constraints.yaml
+</span></span><span style="display:flex;"><span>apiVersion: v1
+</span></span><span style="display:flex;"><span>kind: LimitRange
+</span></span><span style="display:flex;"><span>metadata:
+</span></span><span style="display:flex;"><span>  name: cpu-min-max-demo-lr
+</span></span><span style="display:flex;"><span>spec:
+</span></span><span style="display:flex;"><span>  limits:
+</span></span><span style="display:flex;"><span>  - max:
+</span></span><span style="display:flex;"><span>      cpu: <span style="color:#4e9a06">&#34;800m&#34;</span>
+</span></span><span style="display:flex;"><span>    min:
+</span></span><span style="display:flex;"><span>      cpu: <span style="color:#4e9a06">&#34;200m&#34;</span>
+</span></span><span style="display:flex;"><span>    type: Container
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>$ kubectl create -f https://k8s.io/docs/tasks/administer-cluster/cpu-constraints.yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>constraints-cpu-example
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看LimitRange</span>
+</span></span><span style="display:flex;"><span>$ kubectl get limitrange cpu-min-max-demo-lr --output<span style="color:#ce5c00;font-weight:bold">=</span>yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>constraints-cpu-example
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>limits:
+</span></span><span style="display:flex;"><span>- default:
+</span></span><span style="display:flex;"><span>    cpu: 800m
+</span></span><span style="display:flex;"><span>  defaultRequest:
+</span></span><span style="display:flex;"><span>    cpu: 800m
+</span></span><span style="display:flex;"><span>  max:
+</span></span><span style="display:flex;"><span>    cpu: 800m
+</span></span><span style="display:flex;"><span>  min:
+</span></span><span style="display:flex;"><span>    cpu: 200m
+</span></span><span style="display:flex;"><span>  type: Container
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p><strong>创建符合要求的Pod</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>$ cat cpu-constraints-pod.yaml
+</span></span><span style="display:flex;"><span>apiVersion: v1
+</span></span><span style="display:flex;"><span>kind: Pod
+</span></span><span style="display:flex;"><span>metadata:
+</span></span><span style="display:flex;"><span>  name: constraints-cpu-demo
+</span></span><span style="display:flex;"><span>spec:
+</span></span><span style="display:flex;"><span>  containers:
+</span></span><span style="display:flex;"><span>  - name: constraints-cpu-demo-ctr
+</span></span><span style="display:flex;"><span>    image: nginx
+</span></span><span style="display:flex;"><span>    resources:
+</span></span><span style="display:flex;"><span>      limits:
+</span></span><span style="display:flex;"><span>        cpu: <span style="color:#4e9a06">&#34;800m&#34;</span>
+</span></span><span style="display:flex;"><span>      requests:
+</span></span><span style="display:flex;"><span>        cpu: <span style="color:#4e9a06">&#34;500m&#34;</span>
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>$ kubectl create -f https://k8s.io/docs/tasks/administer-cluster/cpu-constraints-pod.yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>constraints-cpu-example
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看Pod</span>
+</span></span><span style="display:flex;"><span>$ kubectl get pod constraints-cpu-demo --output<span style="color:#ce5c00;font-weight:bold">=</span>yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>constraints-cpu-example
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>resources:
+</span></span><span style="display:flex;"><span>  limits:
+</span></span><span style="display:flex;"><span>    cpu: 800m
+</span></span><span style="display:flex;"><span>  requests:
+</span></span><span style="display:flex;"><span>    cpu: 500m
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p><strong>创建超过最大CPU limit的Pod</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>$ cat cpu-constraints-pod-2.yaml
+</span></span><span style="display:flex;"><span>apiVersion: v1
+</span></span><span style="display:flex;"><span>kind: Pod
+</span></span><span style="display:flex;"><span>metadata:
+</span></span><span style="display:flex;"><span>  name: constraints-cpu-demo-2
+</span></span><span style="display:flex;"><span>spec:
+</span></span><span style="display:flex;"><span>  containers:
+</span></span><span style="display:flex;"><span>  - name: constraints-cpu-demo-2-ctr
+</span></span><span style="display:flex;"><span>    image: nginx
+</span></span><span style="display:flex;"><span>    resources:
+</span></span><span style="display:flex;"><span>      limits:
+</span></span><span style="display:flex;"><span>        cpu: <span style="color:#4e9a06">&#34;1.5&#34;</span>
+</span></span><span style="display:flex;"><span>      requests:
+</span></span><span style="display:flex;"><span>        cpu: <span style="color:#4e9a06">&#34;500m&#34;</span>
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>$ kubectl create -f https://k8s.io/docs/tasks/administer-cluster/cpu-constraints-pod-2.yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>constraints-cpu-example
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Pod创建失败，因为容器指定的CPU limit过大</span>
+</span></span><span style="display:flex;"><span>Error from server <span style="color:#ce5c00;font-weight:bold">(</span>Forbidden<span style="color:#ce5c00;font-weight:bold">)</span>: error when creating <span style="color:#4e9a06">&#34;docs/tasks/administer-cluster/cpu-constraints-pod-2.yaml&#34;</span>:
+</span></span><span style="display:flex;"><span>pods <span style="color:#4e9a06">&#34;constraints-cpu-demo-2&#34;</span> is forbidden: maximum cpu usage per Container is 800m, but limit is 1500m.
+</span></span></code></pre></div><p><strong>创建小于最小CPU request的Pod</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>$ cat cpu-constraints-pod-3.yaml
+</span></span><span style="display:flex;"><span>apiVersion: v1
+</span></span><span style="display:flex;"><span>kind: Pod
+</span></span><span style="display:flex;"><span>metadata:
+</span></span><span style="display:flex;"><span>  name: constraints-cpu-demo-4
+</span></span><span style="display:flex;"><span>spec:
+</span></span><span style="display:flex;"><span>  containers:
+</span></span><span style="display:flex;"><span>  - name: constraints-cpu-demo-4-ctr
+</span></span><span style="display:flex;"><span>    image: nginx
+</span></span><span style="display:flex;"><span>    resources:
+</span></span><span style="display:flex;"><span>      limits:
+</span></span><span style="display:flex;"><span>        cpu: <span style="color:#4e9a06">&#34;800m&#34;</span>
+</span></span><span style="display:flex;"><span>      requests:
+</span></span><span style="display:flex;"><span>        cpu: <span style="color:#4e9a06">&#34;100m&#34;</span>
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>$ kubectl create -f https://k8s.io/docs/tasks/administer-cluster/cpu-constraints-pod-3.yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>constraints-cpu-example
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Pod创建失败，因为容器指定的CPU request过小</span>
+</span></span><span style="display:flex;"><span>Error from server <span style="color:#ce5c00;font-weight:bold">(</span>Forbidden<span style="color:#ce5c00;font-weight:bold">)</span>: error when creating <span style="color:#4e9a06">&#34;docs/tasks/administer-cluster/cpu-constraints-pod-3.yaml&#34;</span>:
+</span></span><span style="display:flex;"><span>pods <span style="color:#4e9a06">&#34;constraints-cpu-demo-4&#34;</span> is forbidden: minimum cpu usage per Container is 200m, but request is 100m.
+</span></span></code></pre></div><p><strong>创建没有指定任何CPU limit和request的pod</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>$ cat cpu-constraints-pod-4.yaml
+</span></span><span style="display:flex;"><span>apiVersion: v1
+</span></span><span style="display:flex;"><span>kind: Pod
+</span></span><span style="display:flex;"><span>metadata:
+</span></span><span style="display:flex;"><span>  name: constraints-cpu-demo-4
+</span></span><span style="display:flex;"><span>spec:
+</span></span><span style="display:flex;"><span>  containers:
+</span></span><span style="display:flex;"><span>  - name: constraints-cpu-demo-4-ctr
+</span></span><span style="display:flex;"><span>    image: vish/stress
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>$ kubectl create -f https://k8s.io/docs/tasks/administer-cluster/cpu-constraints-pod-4.yaml --namespace<span style="color:#ce5c00;font-weight:bold">=</span>constraints-cpu-example    
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看Pod</span>
+</span></span><span style="display:flex;"><span>kubectl get pod constraints-cpu-demo-4 --namespace<span style="color:#ce5c00;font-weight:bold">=</span>constraints-cpu-example --output<span style="color:#ce5c00;font-weight:bold">=</span>yaml
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>resources:
+</span></span><span style="display:flex;"><span>  limits:
+</span></span><span style="display:flex;"><span>    cpu: 800m
+</span></span><span style="display:flex;"><span>  requests:
+</span></span><span style="display:flex;"><span>    cpu: 800m
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p>容器没有指定自己的 CPU 请求和限制，所以它将从 LimitRange 获取默认的 CPU 请求和限制值。</p>
+<h3 id="2-3-说明">2.3. 说明</h3>
+<p>LimitRange 在 namespace 中施加的最小和最大内存（CPU）限制只有在创建和更新 Pod 时才会被应用。改变 LimitRange 不会对之前创建的 Pod 造成影响。</p>
+<p>Kubernetes 都会执行下列步骤：</p>
+<ul>
+<li>如果容器没有指定自己的内存（CPU）请求（request）和限制（limit），系统将会为其分配默认值。</li>
+<li>验证容器的内存（CPU）请求大于等于最小值。</li>
+<li>验证容器的内存（CPU）限制小于等于最大值。</li>
+</ul>
+<p>参考文章：</p>
+<ul>
+<li>
+<p><a href="https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-default-namespace/">https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-default-namespace/</a></p>
+</li>
+<li>
+<p><a href="https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/cpu-default-namespace/">https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/cpu-default-namespace/</a></p>
+</li>
+<li>
+<p><a href="https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-constraint-namespace/">https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-constraint-namespace/</a></p>
+</li>
+<li>
+<p><a href="https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/cpu-constraint-namespace/">https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/cpu-constraint-namespace/</a></p>
+</li>
+<li>
+<p><a href="https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/quota-memory-cpu-namespace/">https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/quota-memory-cpu-namespace/</a></p>
+</li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-daf54f0749a3f8d191ca4474953632d4">3 - </h1>
+    
+	<h1 id="resource-quality-of-service">Resource Quality of Service</h1>
+<h2 id="1-资源qos简介">1. 资源QoS简介</h2>
+<p><code>request</code>值表示容器保证可被分配到资源。<code>limit</code>表示容器可允许使用的最大资源。Pod级别的<code>request</code>和<code>limit</code>是其所有容器的request和limit之和。</p>
+<h2 id="2-requests-and-limits">2. Requests and Limits</h2>
+<p>Pod可以指定<code>request</code>和<code>limit</code>资源。其中<code>0 &lt;= request &lt;=</code><a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node/node-allocatable.md"><code>Node Allocatable</code></a> &amp; <code>request &lt;= limit &lt;= Infinity</code>。调度是基于<code>request</code>而不是<code>limit</code>，即如果Pod被成功调度，那么可以保证Pod分配到指定的 <code>request</code>的资源。Pod使用的资源能否超过指定的<code>limit</code>值取决于该资源是否可被压缩。</p>
+<h3 id="2-1-可压缩的资源">2.1. 可压缩的资源</h3>
+<ul>
+<li>目前只支持CPU</li>
+<li>pod可以保证获得它们请求的CPU数量，它们可能会也可能不会获得额外的CPU时间(取决于正在运行的其他作业)。因为目前CPU隔离是在容器级别而不是pod级别。</li>
+</ul>
+<h3 id="2-2-不可压缩的资源">2.2. 不可压缩的资源</h3>
+<ul>
+<li>目前只支持内存</li>
+<li>pod将获得它们请求的内存数量，如果超过了它们的内存请求，它们可能会被杀死(如果其他一些pod需要内存)，但如果pod消耗的内存小于请求的内存，那么它们将不会被杀死(除非在系统任务或守护进程需要更多内存的情况下)。</li>
+</ul>
+<h2 id="3-qos-级别">3. QoS 级别</h2>
+<p>在机器资源超卖的情况下（limit的总量大于机器的资源容量），即CPU或内存耗尽，将不得不杀死部分不重要的容器。因此对容器分成了3个<code>QoS</code>的级别：<code>Guaranteed</code>,<code> Burstable</code>,  <code>Best-Effort</code>，三个级别的优先级依次递减。</p>
+<p>当CPU资源无法满足，pod不会被杀死可能被短暂控制。</p>
+<p>内存是不可压缩的资源，当内存耗尽的情况下，会依次杀死优先级低的容器。Guaranteed的级别最高，不会被杀死，除非容器使用量超过limit限值或者资源耗尽，已经没有更低级别的容器可驱逐。</p>
+<h3 id="3-1-guaranteed">3.1. Guaranteed</h3>
+<p>所有的容器的<code>limit</code>值和<code>request</code>值被配置且两者相等（如果只配置limit没有request，则request取值于limit）。</p>
+<p>例如：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 示例1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">foo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">limits</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">10m</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">memory</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">1Gi</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">bar</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">limits</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">100m</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">memory</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">100Mi</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#8f5902;font-style:italic"># 示例2</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">foo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">limits</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">10m</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">memory</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">1Gi</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">requests</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">10m</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">memory</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">1Gi</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">bar</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">limits</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">100m</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">memory</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">100Mi</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">requests</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">100m</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">memory</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">100Mi</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h3 id="3-2-burstable">3.2. Burstable</h3>
+<p>如果一个或多个容器的limit和request值被配置且两者不相等。</p>
+<p>例如：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 示例1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">foo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">limits</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">10m</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">memory</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">1Gi</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">requests</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">10m</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">memory</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">1Gi</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">bar</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#8f5902;font-style:italic"># 示例2</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">foo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">limits</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">memory</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">1Gi</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">bar</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">limits</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">100m</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#8f5902;font-style:italic"># 示例3</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">foo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">requests</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">10m</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">memory</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">1Gi</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">bar</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h3 id="3-3-best-effort">3.3. Best-Effort</h3>
+<p>所有的容器的<code>limit</code>和<code>request</code>值都没有配置。</p>
+<p>例如：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">foo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">bar</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>参考文章：</p>
+<ul>
+<li><a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node/resource-qos.md">https://github.com/kubernetes/community/blob/master/contributors/design-proposals/node/resource-qos.md</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-1acc74c258aa6f41271b665b5303791f">4 - Lxcfs资源视图隔离</h1>
+    
+	<h1 id="1-资源视图隔离">1. 资源视图隔离</h1>
+<p>容器中的执行<code>top</code>、<code>free</code>等命令展示出来的CPU，内存等信息是从<code>/proc</code>目录中的相关文件里读取出来的。而容器并没有对<code>/proc</code>，<code>/sys</code>等文件系统做隔离，因此容器中读取出来的CPU和内存的信息是宿主机的信息，与容器实际分配和限制的资源量不同。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>/proc/cpuinfo
+</span></span><span style="display:flex;"><span>/proc/diskstats
+</span></span><span style="display:flex;"><span>/proc/meminfo
+</span></span><span style="display:flex;"><span>/proc/stat
+</span></span><span style="display:flex;"><span>/proc/swaps
+</span></span><span style="display:flex;"><span>/proc/uptime
+</span></span></code></pre></div><p>为了实现让容器内部的资源视图更像虚拟机，使得应用程序可以拿到真实的CPU和内存信息，就需要通过文件挂载的方式将cgroup的真实的容器资源信息挂载到容器内<code>/proc</code>下的文件，使得容器内执行top、free等命令时可以拿到真实的CPU和内存信息。</p>
+<h1 id="2-lxcfs简介">2. Lxcfs简介</h1>
+<p>lxcfs是一个FUSE文件系统，使得Linux容器的文件系统更像虚拟机。lxcfs是一个常驻进程运行在宿主机上，从而来自动维护宿主机cgroup中容器的真实资源信息与容器内<code>/proc</code>下文件的映射关系。</p>
+<p>lxcfs的命令信息如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#/usr/local/bin/lxcfs -h</span>
+</span></span><span style="display:flex;"><span>Usage:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>lxcfs <span style="color:#ce5c00;font-weight:bold">[</span>-f<span style="color:#000;font-weight:bold">|</span>-d<span style="color:#ce5c00;font-weight:bold">]</span> -u -l -n <span style="color:#ce5c00;font-weight:bold">[</span>-p pidfile<span style="color:#ce5c00;font-weight:bold">]</span> mountpoint
+</span></span><span style="display:flex;"><span>  -f running foreground by default<span style="color:#000;font-weight:bold">;</span> -d <span style="color:#204a87">enable</span> debug output
+</span></span><span style="display:flex;"><span>  -l use loadavg
+</span></span><span style="display:flex;"><span>  -u no swap
+</span></span><span style="display:flex;"><span>  Default pidfile is /run/lxcfs.pid
+</span></span><span style="display:flex;"><span>lxcfs -h
+</span></span></code></pre></div><p>lxcfs的源码：https://github.com/lxc/lxcfs</p>
+<h1 id="3-lxcfs原理">3. Lxcfs原理</h1>
+<p>lxcfs实现的基本原理是通过文件挂载的方式，把cgroup中容器相关的信息读取出来，存储到lxcfs相关的目录下，并将相关目录映射到容器内的/proc目录下，从而使得容器内执行top,free等命令时拿到的/proc下的数据是真实的cgroup分配给容器的CPU和内存数据。</p>
+<p><strong>原理图</strong></p>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1626002975/article/kubernetes/resource/lxcfs/lxcfs.webp" alt="lxcfs"></p>
+<p><strong>映射目录</strong></p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>容器内目录</th>
+<th>宿主机lxcfs目录</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cpu</td>
+<td>/proc/cpuinfo</td>
+<td>/var/lib/lxcfs/{container_id}/proc/cpuinfo</td>
+</tr>
+<tr>
+<td>内存</td>
+<td>/proc/meminfo</td>
+<td>/var/lib/lxcfs/{container_id}/proc/meminfo</td>
+</tr>
+<tr>
+<td></td>
+<td>/proc/diskstats</td>
+<td>/var/lib/lxcfs/{container_id}/proc/diskstats</td>
+</tr>
+<tr>
+<td></td>
+<td>/proc/stat</td>
+<td>/var/lib/lxcfs/{container_id}/proc/stat</td>
+</tr>
+<tr>
+<td></td>
+<td>/proc/swaps</td>
+<td>/var/lib/lxcfs/{container_id}/proc/swaps</td>
+</tr>
+<tr>
+<td></td>
+<td>/proc/uptime</td>
+<td>/var/lib/lxcfs/{container_id}/proc/uptime</td>
+</tr>
+<tr>
+<td></td>
+<td>/proc/loadavg</td>
+<td>/var/lib/lxcfs/{container_id}/proc/loadavg</td>
+</tr>
+<tr>
+<td></td>
+<td>/sys/devices/system/cpu/online</td>
+<td>/var/lib/lxcfs/{container_id}/sys/devices/system/cpu/online</td>
+</tr>
+</tbody>
+</table>
+<h1 id="4-使用方式">4. 使用方式</h1>
+<h2 id="4-1-安装lxcfs">4.1. 安装lxcfs</h2>
+<p>环境准备</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>yum install -y fuse fuse-lib fuse-devel
+</span></span></code></pre></div><p>源码编译安装</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>git clone git://github.com/lxc/lxcfs
+</span></span><span style="display:flex;"><span><span style="color:#204a87">cd</span> lxcfs
+</span></span><span style="display:flex;"><span>./bootstrap.sh
+</span></span><span style="display:flex;"><span>./configure
+</span></span><span style="display:flex;"><span>make
+</span></span><span style="display:flex;"><span>make install
+</span></span></code></pre></div><p>或者通过rpm包安装</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>wget https://copr-be.cloud.fedoraproject.org/results/ganto/lxc3/epel-7-x86_64/01041891-lxcfs/lxcfs-3.1.2-0.2.el7.x86_64.rpm<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>rpm -ivh lxcfs-3.1.2-0.2.el7.x86_64.rpm --force --nodeps
+</span></span></code></pre></div><p>查看是否安装成功</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>lxcfs -h
+</span></span></code></pre></div><h2 id="4-2-运行lxcfs">4.2. 运行lxcfs</h2>
+<p>运行lxcfs主要执行两条命令。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo mkdir -p /var/lib/lxcfs
+</span></span><span style="display:flex;"><span>sudo lxcfs /var/lib/lxcfs
+</span></span></code></pre></div><p>可以通过systemd运行。</p>
+<p>lxcfs.service文件：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>cat &gt; /usr/lib/systemd/system/lxcfs.service <span style="color:#4e9a06">&lt;&lt;EOF
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">[Unit]
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">Description=lxcfs
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">[Service]
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">ExecStart=/usr/bin/lxcfs -f /var/lib/lxcfs
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">Restart=on-failure
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">#ExecReload=/bin/kill -s SIGHUP $MAINPID
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">[Install]
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">WantedBy=multi-user.target
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">EOF</span>
+</span></span></code></pre></div><p>运行命令</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl daemon-reload <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> systemctl <span style="color:#204a87">enable</span> lxcfs <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> systemctl start lxcfs <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> systemctl status lxcfs 
+</span></span></code></pre></div><h2 id="4-3-挂载容器内-proc-下的文件目录">4.3. 挂载容器内<code>/proc</code>下的文件目录</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>docker run -it --rm -m 256m  --cpus <span style="color:#0000cf;font-weight:bold">2</span>  <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>      -v /var/lib/lxcfs/proc/cpuinfo:/proc/cpuinfo:rw <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>      -v /var/lib/lxcfs/proc/diskstats:/proc/diskstats:rw <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>      -v /var/lib/lxcfs/proc/meminfo:/proc/meminfo:rw <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>      -v /var/lib/lxcfs/proc/stat:/proc/stat:rw <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>      -v /var/lib/lxcfs/proc/swaps:/proc/swaps:rw <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>      -v /var/lib/lxcfs/proc/uptime:/proc/uptime:rw <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>      nginx:latest /bin/sh
+</span></span></code></pre></div><h2 id="4-4-验证容器内cpu和内存">4.4. 验证容器内CPU和内存</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># cpu</span>
+</span></span><span style="display:flex;"><span>grep -c processor /proc/cpuinfo
+</span></span><span style="display:flex;"><span>cat /proc/cpuinfo
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># memory</span>
+</span></span><span style="display:flex;"><span>free -g
+</span></span><span style="display:flex;"><span>cat /proc/meminfo
+</span></span></code></pre></div><h1 id="5-使用k8s集群部署">5. 使用k8s集群部署</h1>
+<p>使用k8s集群部署与systemd部署方式同理，需要解决2个问题：</p>
+<ol>
+<li>在每个node节点上部署lxcfs常驻进程，lxcfs需要通过镜像来运行，可以通过daemonset来部署。</li>
+<li>实现将lxcfs维护的目录自动挂载到pod内的<code>/proc</code>目录。</li>
+</ol>
+<p>具体可参考：https://github.com/denverdino/lxcfs-admission-webhook</p>
+<h2 id="5-1-lxcfs-image">5.1. lxcfs-image</h2>
+<p><a href="https://github.com/denverdino/lxcfs-admission-webhook/blob/master/lxcfs-image/Dockerfile">Dockerfile</a></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>FROM centos:7 as build
+</span></span><span style="display:flex;"><span>RUN yum -y update
+</span></span><span style="display:flex;"><span>RUN yum -y install fuse-devel pam-devel wget install gcc automake autoconf libtool make
+</span></span><span style="display:flex;"><span>ENV LXCFS_VERSION 3.1.2
+</span></span><span style="display:flex;"><span>RUN wget https://linuxcontainers.org/downloads/lxcfs/lxcfs-<span style="color:#000">$LXCFS_VERSION</span>.tar.gz <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>	mkdir /lxcfs <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> tar xzvf lxcfs-<span style="color:#000">$LXCFS_VERSION</span>.tar.gz -C /lxcfs  --strip-components<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1</span> <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>	<span style="color:#204a87">cd</span> /lxcfs <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> ./configure <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> make
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>FROM centos:7
+</span></span><span style="display:flex;"><span>STOPSIGNAL SIGINT
+</span></span><span style="display:flex;"><span>COPY --from<span style="color:#ce5c00;font-weight:bold">=</span>build /lxcfs/lxcfs /usr/local/bin/lxcfs
+</span></span><span style="display:flex;"><span>COPY --from<span style="color:#ce5c00;font-weight:bold">=</span>build /lxcfs/.libs/liblxcfs.so /usr/local/lib/lxcfs/liblxcfs.so
+</span></span><span style="display:flex;"><span>COPY --from<span style="color:#ce5c00;font-weight:bold">=</span>build /lxcfs/lxcfs /lxcfs/lxcfs
+</span></span><span style="display:flex;"><span>COPY --from<span style="color:#ce5c00;font-weight:bold">=</span>build /lxcfs/.libs/liblxcfs.so /lxcfs/liblxcfs.so
+</span></span><span style="display:flex;"><span>COPY --from<span style="color:#ce5c00;font-weight:bold">=</span>build /usr/lib64/libfuse.so.2.9.2 /usr/lib64/libfuse.so.2.9.2
+</span></span><span style="display:flex;"><span>COPY --from<span style="color:#ce5c00;font-weight:bold">=</span>build /usr/lib64/libulockmgr.so.1.0.1 /usr/lib64/libulockmgr.so.1.0.1
+</span></span><span style="display:flex;"><span>RUN ln -s /usr/lib64/libfuse.so.2.9.2 /usr/lib64/libfuse.so.2 <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>    ln -s /usr/lib64/libulockmgr.so.1.0.1 /usr/lib64/libulockmgr.so.1
+</span></span><span style="display:flex;"><span>COPY start.sh /
+</span></span><span style="display:flex;"><span>CMD <span style="color:#ce5c00;font-weight:bold">[</span><span style="color:#4e9a06">&#34;/start.sh&#34;</span><span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span></code></pre></div><p>star.sh</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#!/bin/bash
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Cleanup</span>
+</span></span><span style="display:flex;"><span>nsenter -m/proc/1/ns/mnt fusermount -u /var/lib/lxcfs 2&gt; /dev/null <span style="color:#ce5c00;font-weight:bold">||</span> <span style="color:#204a87">true</span>
+</span></span><span style="display:flex;"><span>nsenter -m/proc/1/ns/mnt <span style="color:#ce5c00;font-weight:bold">[</span> -L /etc/mtab <span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">||</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>        sed -i <span style="color:#4e9a06">&#34;/^lxcfs \/var\/lib\/lxcfs fuse.lxcfs/d&#34;</span> /etc/mtab
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Prepare</span>
+</span></span><span style="display:flex;"><span>mkdir -p /usr/local/lib/lxcfs /var/lib/lxcfs
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Update lxcfs</span>
+</span></span><span style="display:flex;"><span>cp -f /lxcfs/lxcfs /usr/local/bin/lxcfs
+</span></span><span style="display:flex;"><span>cp -f /lxcfs/liblxcfs.so /usr/local/lib/lxcfs/liblxcfs.so
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Mount</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">exec</span> nsenter -m/proc/1/ns/mnt /usr/local/bin/lxcfs /var/lib/lxcfs/
+</span></span></code></pre></div><h2 id="5-2-daemonset">5.2. daemonset</h2>
+<p><a href="https://github.com/denverdino/lxcfs-admission-webhook/blob/master/deployment/lxcfs-daemonset.yaml">lxcfs-daemonset.yaml</a></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">apps/v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">DaemonSet</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">lxcfs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">labels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">app</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">lxcfs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">selector</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">matchLabels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">app</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">lxcfs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">template</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">labels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">app</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">lxcfs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">hostPID</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#204a87;font-weight:bold">true</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">tolerations</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">key</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">node-role.kubernetes.io/master</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">effect</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">NoSchedule</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">lxcfs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">registry.cn-hangzhou.aliyuncs.com/denverdino/lxcfs:3.1.2</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">imagePullPolicy</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Always</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">securityContext</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">privileged</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#204a87;font-weight:bold">true</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">volumeMounts</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">cgroup</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">mountPath</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/sys/fs/cgroup</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">lxcfs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">mountPath</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/var/lib/lxcfs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">mountPropagation</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Bidirectional</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">usr-local</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">mountPath</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/usr/local</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">volumes</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">cgroup</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">hostPath</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">path</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/sys/fs/cgroup</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">usr-local</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">hostPath</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">path</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/usr/local</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">lxcfs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">hostPath</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">path</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/var/lib/lxcfs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">type</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">DirectoryOrCreate</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h2 id="5-3-lxcfs-admission-webhook-https-github-com-denverdino-lxcfs-admission-webhook">5.3. <a href="https://github.com/denverdino/lxcfs-admission-webhook">lxcfs-admission-webhook</a></h2>
+<p><code>lxcfs-admission-webhook</code>实现了一个动态的准入webhook，更准确的讲是实现了一个<a href="https://kubernetes.io/zh/docs/reference/access-authn-authz/admission-controllers/#mutatingadmissionwebhook">修改性质的webhook</a>，即监听pod的创建，然后对pod执行patch的操作，从而将lxcfs与容器内的目录映射关系植入到pod创建的yaml中从而实现自动挂载。</p>
+<p><a href="https://github.com/denverdino/lxcfs-admission-webhook/blob/master/deployment/deployment.yaml">deployment</a></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">apps/v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Deployment</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">lxcfs-admission-webhook-deployment</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">labels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">app</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">lxcfs-admission-webhook</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">replicas</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">selector</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">matchLabels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">app</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">lxcfs-admission-webhook</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">template</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">labels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">app</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">lxcfs-admission-webhook</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">lxcfs-admission-webhook</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">registry.cn-hangzhou.aliyuncs.com/denverdino/lxcfs-admission-webhook:v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">imagePullPolicy</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">IfNotPresent</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">args</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">            </span>- -<span style="color:#000">tlsCertFile=/etc/webhook/certs/cert.pem</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">            </span>- -<span style="color:#000">tlsKeyFile=/etc/webhook/certs/key.pem</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">            </span>- -<span style="color:#000">alsologtostderr</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">            </span>- -<span style="color:#000">v=4</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">            </span>- <span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000">&gt;&amp;1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">volumeMounts</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">            </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">webhook-certs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">              </span><span style="color:#204a87;font-weight:bold">mountPath</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/etc/webhook/certs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">              </span><span style="color:#204a87;font-weight:bold">readOnly</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#204a87;font-weight:bold">true</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">volumes</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">webhook-certs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">secret</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">            </span><span style="color:#204a87;font-weight:bold">secretName</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">lxcfs-admission-webhook-certs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>具体部署参考:<a href="https://github.com/denverdino/lxcfs-admission-webhook/blob/master/deployment/install.sh">install.sh</a></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#!/bin/bash
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>
+</span></span><span style="display:flex;"><span>./deployment/webhook-create-signed-cert.sh
+</span></span><span style="display:flex;"><span>kubectl get secret lxcfs-admission-webhook-certs
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>kubectl create -f deployment/deployment.yaml
+</span></span><span style="display:flex;"><span>kubectl create -f deployment/service.yaml
+</span></span><span style="display:flex;"><span>cat ./deployment/mutatingwebhook.yaml <span style="color:#000;font-weight:bold">|</span> ./deployment/webhook-patch-ca-bundle.sh &gt; ./deployment/mutatingwebhook-ca-bundle.yaml
+</span></span><span style="display:flex;"><span>kubectl create -f deployment/mutatingwebhook-ca-bundle.yaml
+</span></span></code></pre></div><p>执行命令</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>/deployment/install.sh
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="https://github.com/lxc/lxcfs">https://github.com/lxc/lxcfs</a></li>
+<li><a href="https://linuxcontainers.org/lxcfs/">https://linuxcontainers.org/lxcfs/</a></li>
+<li><a href="https://github.com/denverdino/lxcfs-admission-webhook">https://github.com/denverdino/lxcfs-admission-webhook</a></li>
+<li><a href="https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/">https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="User mailing list" aria-label="User mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="User mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Twitter" aria-label="Twitter">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/twitter" aria-label="Twitter">
+      <i class="fab fa-twitter"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Stack Overflow" aria-label="Stack Overflow">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/stack" aria-label="Stack Overflow">
+      <i class="fab fa-stack-overflow"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/k8s.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Slack" aria-label="Slack">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/slack" aria-label="Slack">
+      <i class="fab fa-slack"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Developer mailing list" aria-label="Developer mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="Developer mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2022 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<link rel="canonical" type="text/html" href="https://k8s.huweihuang.com/kubernetes-notes/operation/kubectl/">
+<link rel="alternate" type="application/rss&#43;xml" href="https://k8s.huweihuang.com/kubernetes-notes/operation/kubectl/index.xml">
+<meta name="robots" content="noindex, nofollow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>kubectl工具 | HUWEIHUAHG</title>
+<meta name="description" content="">
+<meta property="og:title" content="kubectl工具" />
+<meta property="og:description" content="Kubernetes学习笔记" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://k8s.huweihuang.com/kubernetes-notes/operation/kubectl/" /><meta property="og:site_name" content="HUWEIHUAHG" />
+
+<meta itemprop="name" content="kubectl工具">
+<meta itemprop="description" content="Kubernetes学习笔记"><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="kubectl工具"/>
+<meta name="twitter:description" content="Kubernetes学习笔记"/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.cd6c2bbb05cdf98237b53882fed8c7a8b3fd7a7f7963d7cb305dd0d984782137.css" as="style">
+<link href="/scss/main.min.cd6c2bbb05cdf98237b53882fed8c7a8b3fd7a7f7963d7cb305dd0d984782137.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-00000000-0', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-section">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">HUWEIHUAHG</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/kubernetes-notes/" ><span class="active">Kubernetes学习笔记</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input type="search" class="form-control td-search-input" placeholder="&#xf002; 站内搜索…" aria-label="站内搜索…" autocomplete="off">
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+
+
+
+
+<div class="td-content">
+<div class="pageinfo pageinfo-primary d-print-none">
+<p>
+这是本节的多页打印视图。
+<a href="#" onclick="print();return false;">点击此处打印</a>.
+</p><p>
+<a href="/kubernetes-notes/operation/kubectl/">返回本页常规视图</a>.
+</p>
+</div>
+
+
+
+<h1 class="title">kubectl工具</h1>
+
+
+
+
+
+    <ul>
+    
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>1: <a href="#pg-22f0195f73c944ee47a2e9c5921b05e9">kubectl安装与配置</a></li>
+
+
+    
+  
+    
+    
+	
+<li>2: <a href="#pg-580791bea464f97f9c44ba2cd0c9e6ec">kubectl命令说明</a></li>
+
+
+    
+  
+    
+    
+	
+<li>3: <a href="#pg-b6a39ccb3e2087cb00af1a7e430cac22">kubectl命令别名</a></li>
+
+
+    
+  
+
+    </ul>
+
+
+<div class="content">
+      
+</div>
+</div>
+
+
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-22f0195f73c944ee47a2e9c5921b05e9">1 - kubectl安装与配置</h1>
+    
+	<h1 id="1-kubectl的安装">1. kubectl的安装</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>curl -LO https://storage.googleapis.com/kubernetes-release/release/<span style="color:#204a87;font-weight:bold">$(</span>curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt<span style="color:#204a87;font-weight:bold">)</span>/bin/linux/amd64/kubectl <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> chmod +x kubectl <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> sudo mv kubectl /usr/local/bin/
+</span></span></code></pre></div><p>安装指定版本的kubectl，例如：<code>v1.9.0</code></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.9.0/bin/linux/amd64/kubectl <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> chmod +x kubectl <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> sudo mv kubectl /usr/local/bin/
+</span></span></code></pre></div><h1 id="2-配置k8s集群环境">2. 配置k8s集群环境</h1>
+<h2 id="2-1-命令行方式">2.1. 命令行方式</h2>
+<h3 id="2-1-1-非安全方式">2.1.1 非安全方式</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl config set-cluster k8s --server<span style="color:#ce5c00;font-weight:bold">=</span>http://&lt;url&gt; 
+</span></span><span style="display:flex;"><span>kubectl config set-context &lt;NAMESPACE&gt; --cluster<span style="color:#ce5c00;font-weight:bold">=</span>k8s --namespace<span style="color:#ce5c00;font-weight:bold">=</span>&lt;NAMESPACE&gt; 
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>kubectl config use-context &lt;NAMESPACE&gt; 
+</span></span></code></pre></div><h3 id="2-1-2-安全方式">2.1.2 安全方式</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl config set-cluster k8s --server<span style="color:#ce5c00;font-weight:bold">=</span>https://&lt;url&gt; --insecure-skip-tls-verify<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87">true</span>
+</span></span><span style="display:flex;"><span>kubectl config set-credentials k8s-user --username<span style="color:#ce5c00;font-weight:bold">=</span>&lt;username&gt; --password<span style="color:#ce5c00;font-weight:bold">=</span>&lt;password&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>kubectl config set-context &lt;NAMESPACE&gt; --cluster<span style="color:#ce5c00;font-weight:bold">=</span>k8s --user<span style="color:#ce5c00;font-weight:bold">=</span>k8s-user --namespace<span style="color:#ce5c00;font-weight:bold">=</span>&lt;NAMESPACE&gt; 
+</span></span><span style="display:flex;"><span>kubectl config use-context &lt;NAMESPACE&gt;
+</span></span></code></pre></div><h3 id="2-1-3-查询当前配置环境">2.1.3 查询当前配置环境</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>root@test <span style="color:#ce5c00;font-weight:bold">]</span><span style="color:#8f5902;font-style:italic"># kubectl cluster-info</span>
+</span></span><span style="display:flex;"><span>Kubernetes master is running at http://192.168.10.3:8081
+</span></span></code></pre></div><h2 id="2-2-添加配置文件的方式">2.2. 添加配置文件的方式</h2>
+<p>当没有指定<code> --kubeconfig</code>参数和<code>$KUBECONFIG</code>的环境变量的时候，会默认读取<code>${HOME}/.kube/config</code>。</p>
+<p>因此创建<code>${HOME}/.kube/config</code>文件，并在``${HOME}/.kube/ssl`目录下创建ca.pem、cert.pem、key.pem文件。</p>
+<p>内容如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Config</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">clusters</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">local</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">cluster</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">certificate-authority</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">./ssl/ca.pem</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">server</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">https://192.168.10.3:6443</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">users</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">kubelet</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">user</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">client-certificate</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">./ssl/cert.pem</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">client-key</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">./ssl/key.pem</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">contexts</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span>- <span style="color:#204a87;font-weight:bold">context</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">cluster</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">local</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">user</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">kubelet</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">kubelet-cluster.local</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">current-context</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">kubelet-cluster.local</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h1 id="3-kubectl-config">3. kubectl config</h1>
+<p>kubectl config命令说明</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl config --help
+</span></span><span style="display:flex;"><span>Modify kubeconfig files using subcommands like <span style="color:#4e9a06">&#34;kubectl config set current-context my-context&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>The loading order follows these rules:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  1. If the --kubeconfig flag is set, <span style="color:#204a87;font-weight:bold">then</span> only that file is loaded.  The flag may only be <span style="color:#204a87">set</span> once and no merging takes
+</span></span><span style="display:flex;"><span>place.
+</span></span><span style="display:flex;"><span>  2. If <span style="color:#000">$KUBECONFIG</span> environment variable is set, <span style="color:#204a87;font-weight:bold">then</span> it is used a list of paths <span style="color:#ce5c00;font-weight:bold">(</span>normal path delimitting rules <span style="color:#204a87;font-weight:bold">for</span> your
+</span></span><span style="display:flex;"><span>system<span style="color:#ce5c00;font-weight:bold">)</span>.  These paths are merged.  When a value is modified, it is modified in the file that defines the stanza.  When a
+</span></span><span style="display:flex;"><span>value is created, it is created in the first file that exists.  If no files in the chain exist, <span style="color:#204a87;font-weight:bold">then</span> it creates the last
+</span></span><span style="display:flex;"><span>file in the list.
+</span></span><span style="display:flex;"><span>  3. Otherwise, <span style="color:#4e9a06">${</span><span style="color:#000">HOME</span><span style="color:#4e9a06">}</span>/.kube/config is used and no merging takes place.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Available Commands:
+</span></span><span style="display:flex;"><span>  current-context Displays the current-context
+</span></span><span style="display:flex;"><span>  delete-cluster  Delete the specified cluster from the kubeconfig
+</span></span><span style="display:flex;"><span>  delete-context  Delete the specified context from the kubeconfig
+</span></span><span style="display:flex;"><span>  get-clusters    Display clusters defined in the kubeconfig
+</span></span><span style="display:flex;"><span>  get-contexts    Describe one or many contexts
+</span></span><span style="display:flex;"><span>  rename-context  Renames a context from the kubeconfig file.
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">set</span>             Sets an individual value in a kubeconfig file
+</span></span><span style="display:flex;"><span>  set-cluster     Sets a cluster entry in kubeconfig
+</span></span><span style="display:flex;"><span>  set-context     Sets a context entry in kubeconfig
+</span></span><span style="display:flex;"><span>  set-credentials Sets a user entry in kubeconfig
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">unset</span>           Unsets an individual value in a kubeconfig file
+</span></span><span style="display:flex;"><span>  use-context     Sets the current-context in a kubeconfig file
+</span></span><span style="display:flex;"><span>  view            Display merged kubeconfig settings or a specified kubeconfig file
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Usage:
+</span></span><span style="display:flex;"><span>  kubectl config SUBCOMMAND <span style="color:#ce5c00;font-weight:bold">[</span>options<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Use <span style="color:#4e9a06">&#34;kubectl &lt;command&gt; --help&#34;</span> <span style="color:#204a87;font-weight:bold">for</span> more information about a given command.
+</span></span><span style="display:flex;"><span>Use <span style="color:#4e9a06">&#34;kubectl options&#34;</span> <span style="color:#204a87;font-weight:bold">for</span> a list of global command-line options <span style="color:#ce5c00;font-weight:bold">(</span>applies to all commands<span style="color:#ce5c00;font-weight:bold">)</span>.
+</span></span></code></pre></div><h1 id="4-shell自动补齐">4. shell自动补齐</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#204a87">source</span> &lt;<span style="color:#ce5c00;font-weight:bold">(</span>kubectl completion bash<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> <span style="color:#4e9a06">&#34;source &lt;(kubectl completion bash)&#34;</span> &gt;&gt; ~/.bashrc
+</span></span></code></pre></div><p>如果出现以下报错</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kubectl自动补齐失败</span>
+</span></span><span style="display:flex;"><span>kubectl _get_comp_words_by_ref : <span style="color:#204a87">command</span> not found
+</span></span></code></pre></div><p>解决方法：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>yum install bash-completion -y
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">source</span> /etc/profile.d/bash_completion.sh 
+</span></span></code></pre></div><p>参考文章：</p>
+<ul>
+<li><a href="https://kubernetes.io/docs/tasks/tools/install-kubectl/">https://kubernetes.io/docs/tasks/tools/install-kubectl/</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-580791bea464f97f9c44ba2cd0c9e6ec">2 - kubectl命令说明</h1>
+    
+	<h1 id="1-kubectl命令介绍">1. kubectl命令介绍</h1>
+<p>kubectl的命令语法</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl <span style="color:#ce5c00;font-weight:bold">[</span>command<span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">[</span>TYPE<span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">[</span>NAME<span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">[</span>flags<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span></code></pre></div><p>其中command，TYPE，NAME，和flags分别是：</p>
+<ul>
+<li>
+<p><code>command</code>: 指定要在一个或多个资源进行操作，例如<code>create</code>，<code>get</code>，<code>describe</code>，<code>delete</code>。</p>
+</li>
+<li>
+<p><code>TYPE</code>：指定<a href="https://kubernetes.io/cn/docs/user-guide/kubectl-overview/#%E8%B5%84%E6%BA%90%E7%B1%BB%E5%9E%8B">资源类型</a>。资源类型区分大小写，您可以指定单数，复数或缩写形式。例如，以下命令产生相同的输出：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl get pod pod1  
+</span></span><span style="display:flex;"><span>kubectl get pods pod1 
+</span></span><span style="display:flex;"><span>kubectl get po pod1
+</span></span></code></pre></div></li>
+<li>
+<p><code>NAME</code>：指定资源的名称。名称区分大小写。如果省略名称，则会显示所有资源的详细信息,比如<code>$ kubectl get pods</code>。</p>
+<p>按类型和名称指定多种资源：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>* 要分组资源，如果它们都是相同的类型：<span style="color:#4e9a06">`</span>TYPE1 name1 name2 name&lt;<span style="color:#8f5902;font-style:italic">#&gt;`.&lt;br/&gt;</span>
+</span></span><span style="display:flex;"><span>例: <span style="color:#4e9a06">`</span>$ kubectl get pod example-pod1 example-pod2<span style="color:#4e9a06">`</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>* 要分别指定多种资源类型:  <span style="color:#4e9a06">`</span>TYPE1/name1 TYPE1/name2 TYPE2/name3 TYPE&lt;<span style="color:#8f5902;font-style:italic">#&gt;/name&lt;#&gt;`.&lt;br/&gt;</span>
+</span></span><span style="display:flex;"><span>例: <span style="color:#4e9a06">`</span>$ kubectl get pod/example-pod1 replicationcontroller/example-rc1<span style="color:#4e9a06">`</span>
+</span></span></code></pre></div></li>
+<li>
+<p><code>flags</code>：指定可选标志。例如，您可以使用<code>-s</code>或<code>--serverflags</code>来指定Kubernetes API服务器的地址和端口。</p>
+</li>
+</ul>
+<p><strong>更多命令介绍：</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>root@node5 ~<span style="color:#ce5c00;font-weight:bold">]</span><span style="color:#8f5902;font-style:italic"># kubectl</span>
+</span></span><span style="display:flex;"><span>kubectl controls the Kubernetes cluster manager.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Find more information at https://github.com/kubernetes/kubernetes.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Basic Commands <span style="color:#ce5c00;font-weight:bold">(</span>Beginner<span style="color:#ce5c00;font-weight:bold">)</span>:
+</span></span><span style="display:flex;"><span>  create         Create a resource from a file or from stdin.
+</span></span><span style="display:flex;"><span>  expose         Take a replication controller, service, deployment or pod and expose it as a new Kubernetes Service
+</span></span><span style="display:flex;"><span>  run            Run a particular image on the cluster
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">set</span>            Set specific features on objects
+</span></span><span style="display:flex;"><span>  run-container  Run a particular image on the cluster. This <span style="color:#204a87">command</span> is deprecated, use <span style="color:#4e9a06">&#34;run&#34;</span> instead
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Basic Commands <span style="color:#ce5c00;font-weight:bold">(</span>Intermediate<span style="color:#ce5c00;font-weight:bold">)</span>:
+</span></span><span style="display:flex;"><span>  get            Display one or many resources
+</span></span><span style="display:flex;"><span>  explain        Documentation of resources
+</span></span><span style="display:flex;"><span>  edit           Edit a resource on the server
+</span></span><span style="display:flex;"><span>  delete         Delete resources by filenames, stdin, resources and names, or by resources and label selector
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Deploy Commands:
+</span></span><span style="display:flex;"><span>  rollout        Manage the rollout of a resource
+</span></span><span style="display:flex;"><span>  rolling-update Perform a rolling update of the given ReplicationController
+</span></span><span style="display:flex;"><span>  scale          Set a new size <span style="color:#204a87;font-weight:bold">for</span> a Deployment, ReplicaSet, Replication Controller, or Job
+</span></span><span style="display:flex;"><span>  autoscale      Auto-scale a Deployment, ReplicaSet, or ReplicationController
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Cluster Management Commands:
+</span></span><span style="display:flex;"><span>  certificate    Modify certificate resources.
+</span></span><span style="display:flex;"><span>  cluster-info   Display cluster info
+</span></span><span style="display:flex;"><span>  top            Display Resource <span style="color:#ce5c00;font-weight:bold">(</span>CPU/Memory/Storage<span style="color:#ce5c00;font-weight:bold">)</span> usage.
+</span></span><span style="display:flex;"><span>  cordon         Mark node as unschedulable
+</span></span><span style="display:flex;"><span>  uncordon       Mark node as schedulable
+</span></span><span style="display:flex;"><span>  drain          Drain node in preparation <span style="color:#204a87;font-weight:bold">for</span> maintenance
+</span></span><span style="display:flex;"><span>  taint          Update the taints on one or more nodes
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Troubleshooting and Debugging Commands:
+</span></span><span style="display:flex;"><span>  describe       Show details of a specific resource or group of resources
+</span></span><span style="display:flex;"><span>  logs           Print the logs <span style="color:#204a87;font-weight:bold">for</span> a container in a pod
+</span></span><span style="display:flex;"><span>  attach         Attach to a running container
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">exec</span>           Execute a <span style="color:#204a87">command</span> in a container
+</span></span><span style="display:flex;"><span>  port-forward   Forward one or more <span style="color:#204a87">local</span> ports to a pod
+</span></span><span style="display:flex;"><span>  proxy          Run a proxy to the Kubernetes API server
+</span></span><span style="display:flex;"><span>  cp             Copy files and directories to and from containers.
+</span></span><span style="display:flex;"><span>  auth           Inspect authorization
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Advanced Commands:
+</span></span><span style="display:flex;"><span>  apply          Apply a configuration to a resource by filename or stdin
+</span></span><span style="display:flex;"><span>  patch          Update field<span style="color:#ce5c00;font-weight:bold">(</span>s<span style="color:#ce5c00;font-weight:bold">)</span> of a resource using strategic merge patch
+</span></span><span style="display:flex;"><span>  replace        Replace a resource by filename or stdin
+</span></span><span style="display:flex;"><span>  convert        Convert config files between different API versions
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Settings Commands:
+</span></span><span style="display:flex;"><span>  label          Update the labels on a resource
+</span></span><span style="display:flex;"><span>  annotate       Update the annotations on a resource
+</span></span><span style="display:flex;"><span>  completion     Output shell completion code <span style="color:#204a87;font-weight:bold">for</span> the specified shell <span style="color:#ce5c00;font-weight:bold">(</span>bash or zsh<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Other Commands:
+</span></span><span style="display:flex;"><span>  api-versions   Print the supported API versions on the server, in the form of <span style="color:#4e9a06">&#34;group/version&#34;</span>
+</span></span><span style="display:flex;"><span>  config         Modify kubeconfig files
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">help</span>           Help about any <span style="color:#204a87">command</span>
+</span></span><span style="display:flex;"><span>  plugin         Runs a command-line plugin
+</span></span><span style="display:flex;"><span>  version        Print the client and server version information
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Use <span style="color:#4e9a06">&#34;kubectl &lt;command&gt; --help&#34;</span> <span style="color:#204a87;font-weight:bold">for</span> more information about a given command.
+</span></span><span style="display:flex;"><span>Use <span style="color:#4e9a06">&#34;kubectl options&#34;</span> <span style="color:#204a87;font-weight:bold">for</span> a list of global command-line options <span style="color:#ce5c00;font-weight:bold">(</span>applies to all commands<span style="color:#ce5c00;font-weight:bold">)</span>.
+</span></span></code></pre></div><h1 id="2-操作的常用资源对象">2. 操作的常用资源对象</h1>
+<ol>
+<li>Node</li>
+<li>Podes</li>
+<li>Replication Controllers</li>
+<li>Services</li>
+<li>Namespace</li>
+<li>Deployment</li>
+<li>StatefulSet</li>
+</ol>
+<p><strong>具体对象类型及缩写：</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>  * all
+</span></span><span style="display:flex;"><span>  * certificatesigningrequests <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;csr&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * clusterrolebindings
+</span></span><span style="display:flex;"><span>  * clusterroles
+</span></span><span style="display:flex;"><span>  * componentstatuses <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;cs&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * configmaps <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;cm&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * controllerrevisions
+</span></span><span style="display:flex;"><span>  * cronjobs
+</span></span><span style="display:flex;"><span>  * customresourcedefinition <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;crd&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * daemonsets <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;ds&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * deployments <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;deploy&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * endpoints <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;ep&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * events <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;ev&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * horizontalpodautoscalers <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;hpa&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * ingresses <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;ing&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * <span style="color:#204a87">jobs</span>
+</span></span><span style="display:flex;"><span>  * limitranges <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;limits&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * namespaces <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;ns&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * networkpolicies <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;netpol&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * nodes <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;no&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * persistentvolumeclaims <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;pvc&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * persistentvolumes <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;pv&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * poddisruptionbudgets <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;pdb&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * podpreset
+</span></span><span style="display:flex;"><span>  * pods <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;po&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * podsecuritypolicies <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;psp&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * podtemplates
+</span></span><span style="display:flex;"><span>  * replicasets <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;rs&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * replicationcontrollers <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;rc&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * resourcequotas <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;quota&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * rolebindings
+</span></span><span style="display:flex;"><span>  * roles
+</span></span><span style="display:flex;"><span>  * secrets
+</span></span><span style="display:flex;"><span>  * serviceaccounts <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;sa&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * services <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;svc&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * statefulsets <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;sts&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  * storageclasses <span style="color:#ce5c00;font-weight:bold">(</span>aka <span style="color:#4e9a06">&#39;sc&#39;</span><span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span></code></pre></div><h1 id="3-kubectl命令分类-command">3. kubectl命令分类[command]</h1>
+<h2 id="3-1-增">3.1 增</h2>
+<p>1）create:[Create a resource by filename or stdin]</p>
+<p>2）run:[ Run a particular image on the cluster]</p>
+<p>3）apply:[Apply a configuration to a resource by filename or stdin]</p>
+<p>4）proxy:[Run a proxy to the Kubernetes API server ]</p>
+<h2 id="3-2-删">3.2 删</h2>
+<p>1）delete:[Delete resources ]</p>
+<h2 id="3-3-改">3.3 改</h2>
+<p>1）scale:[Set a new size for a Replication Controller]</p>
+<p>2）exec:[Execute a command in a container]</p>
+<p>3）attach:[Attach to a running container]</p>
+<p>4）patch:[Update field(s) of a resource by stdin]</p>
+<p>5）edit:[Edit a resource on the server]</p>
+<p>6） label:[Update the labels on a resource]</p>
+<p>7）annotate:[Auto-scale a replication controller]</p>
+<p>8）replace:[Replace a resource by filename or stdin]</p>
+<p>9）config:[config modifies kubeconfig files]</p>
+<h2 id="3-4-查">3.4 查</h2>
+<p>1）get:[Display one or many resources]</p>
+<p>2）describe:[Show details of a specific resource or group of resources]</p>
+<p>3）log:[Print the logs for a container in a pod]</p>
+<p>4）cluster-info:[Display cluster info]</p>
+<p>5） version:[Print the client and server version information]</p>
+<p>6）api-versions:[Print the supported API versions]</p>
+<h1 id="4-pod相关命令">4. Pod相关命令</h1>
+<h2 id="4-1-查询pod">4.1 查询Pod</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl get pod -o wide --namespace<span style="color:#ce5c00;font-weight:bold">=</span>&lt;NAMESPACE&gt;
+</span></span></code></pre></div><h2 id="4-2-进入pod">4.2 进入Pod</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl <span style="color:#204a87">exec</span> -it &lt;PodName&gt; /bin/bash --namespace<span style="color:#ce5c00;font-weight:bold">=</span>&lt;NAMESPACE&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 进入Pod中指定容器</span>
+</span></span><span style="display:flex;"><span>kubectl <span style="color:#204a87">exec</span> -it &lt;PodName&gt; -c &lt;ContainerName&gt; /bin/bash --namespace<span style="color:#ce5c00;font-weight:bold">=</span>&lt;NAMESPACE&gt;
+</span></span></code></pre></div><h2 id="4-3-删除pod">4.3 删除Pod</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl delete pod &lt;PodName&gt; --namespace<span style="color:#ce5c00;font-weight:bold">=</span>&lt;NAMESPACE&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 强制删除Pod，当Pod一直处于Terminating状态</span>
+</span></span><span style="display:flex;"><span>kubectl delete pod &lt;PodName&gt; --namespace<span style="color:#ce5c00;font-weight:bold">=</span>&lt;NAMESPACE&gt; --force --grace-period<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 删除某个namespace下某个类型的所有对象</span>
+</span></span><span style="display:flex;"><span>kubectl delete deploy --all --namespace<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87">test</span>
+</span></span></code></pre></div><h2 id="4-4-日志查看">4.4 日志查看</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ 查看运行容器日志 
+</span></span><span style="display:flex;"><span>kubectl logs &lt;PodName&gt; --namespace<span style="color:#ce5c00;font-weight:bold">=</span>&lt;NAMESPACE&gt;
+</span></span><span style="display:flex;"><span>$ 查看上一个挂掉的容器日志 
+</span></span><span style="display:flex;"><span>kubectl logs &lt;PodName&gt; -p --namespace<span style="color:#ce5c00;font-weight:bold">=</span>&lt;NAMESPACE&gt; 
+</span></span></code></pre></div><h1 id="5-常用命令">5. 常用命令</h1>
+<h2 id="5-1-node隔离与恢复">5.1. Node隔离与恢复</h2>
+<p>说明：Node设置隔离之后，原先运行在该Node上的Pod不受影响，后续的Pod不会调度到被隔离的Node上。</p>
+<p><strong>1. Node隔离</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># cordon命令</span>
+</span></span><span style="display:flex;"><span>kubectl cordon &lt;NodeName&gt;
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 或者</span>
+</span></span><span style="display:flex;"><span>kubectl patch node &lt;NodeName&gt; -p <span style="color:#4e9a06">&#39;{&#34;spec&#34;:{&#34;unschedulable&#34;:true}}&#39;</span>
+</span></span></code></pre></div><p><strong>2. Node恢复</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># uncordon</span>
+</span></span><span style="display:flex;"><span>kubectl uncordon &lt;NodeName&gt;
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 或者</span>
+</span></span><span style="display:flex;"><span>kubectl patch node &lt;NodeName&gt; -p <span style="color:#4e9a06">&#39;{&#34;spec&#34;:{&#34;unschedulable&#34;:false}}&#39;</span>
+</span></span></code></pre></div><h2 id="5-2-kubectl-label">5.2. kubectl label</h2>
+<p><strong>1. 固定Pod到指定机器</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl label node &lt;NodeName&gt; namespace/&lt;NAMESPACE&gt;<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87">true</span>
+</span></span></code></pre></div><p><strong>2. 取消Pod固定机器</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl label node &lt;NodeName&gt; namespace/&lt;NAMESPACE&gt;-
+</span></span></code></pre></div><h2 id="5-3-升级镜像">5.3. 升级镜像</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 升级镜像</span>
+</span></span><span style="display:flex;"><span>kubectl <span style="color:#204a87">set</span> image deployment/nginx <span style="color:#000">nginx</span><span style="color:#ce5c00;font-weight:bold">=</span>nginx:1.15.12 -n nginx
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看滚动升级情况</span>
+</span></span><span style="display:flex;"><span>kubectl rollout status deployment/nginx  -n nginx
+</span></span></code></pre></div><h2 id="5-4-调整资源值">5.4. 调整资源值</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 调整指定容器的资源值</span>
+</span></span><span style="display:flex;"><span>kubectl <span style="color:#204a87">set</span> resources sts nginx-0 -c<span style="color:#ce5c00;font-weight:bold">=</span>agent --limits<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#000">memory</span><span style="color:#ce5c00;font-weight:bold">=</span>512Mi -n nginx
+</span></span></code></pre></div><h2 id="5-5-调整readiness-probe">5.5. 调整readiness probe</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 批量查看readiness probe timeoutSeconds</span>
+</span></span><span style="display:flex;"><span>kubectl get statefulset -o<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#000">jsonpath</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;{range .items[*]}{.metadata.name}{&#34;\t&#34;}{.spec.template.spec.containers[0].readinessProbe.timeoutSeconds}{&#34;\n&#34;}{end}&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 调整readiness probe timeoutSeconds参数</span>
+</span></span><span style="display:flex;"><span>kubectl patch statefulset nginx-sts --type<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;json&#39;</span> -p<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;[{&#34;op&#34;: &#34;replace&#34;, &#34;path&#34;: &#34;/spec/template/spec/containers/0/readinessProbe/timeoutSeconds&#34;, &#34;value&#34;:5}]&#39;</span> -n nginx
+</span></span></code></pre></div><h2 id="5-6-调整tolerations属性">5.6. 调整tolerations属性</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl patch statefulset nginx-sts --patch <span style="color:#4e9a06">&#39;{&#34;spec&#34;: {&#34;template&#34;: {&#34;spec&#34;: {&#34;tolerations&#34;: [{&#34;effect&#34;: &#34;NoSchedule&#34;,&#34;key&#34;: &#34;dedicated&#34;,&#34;operator&#34;: &#34;Equal&#34;,&#34;value&#34;: &#34;nginx&#34;}]}}}}&#39;</span> -n nginx
+</span></span></code></pre></div><h2 id="5-7-查看所有节点的ip">5.7. 查看所有节点的IP</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl get nodes -o<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#000">jsonpath</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;{range .items[*]}{.metadata.name}{&#34;\t&#34;}{.status.addresses[0].address}{&#34;\n&#34;}{end}&#39;</span>
+</span></span></code></pre></div><h2 id="5-8-查看当前k8s组件leader节点">5.8. 查看当前k8s组件leader节点</h2>
+<p>当k8s集群高可用部署的时候，<code>kube-controller-manager</code>和<code>kube-scheduler</code>只能一个服务处于实际逻辑运行状态，通过参数<code>--leader-elect=true</code>来开启选举操作。以下提供查询leader节点的命令。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl get endpoints kube-controller-manager --namespace<span style="color:#ce5c00;font-weight:bold">=</span>kube-system  -o yaml
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>apiVersion: v1
+</span></span><span style="display:flex;"><span>kind: Endpoints
+</span></span><span style="display:flex;"><span>metadata:
+</span></span><span style="display:flex;"><span>  annotations:
+</span></span><span style="display:flex;"><span>    control-plane.alpha.kubernetes.io/leader: <span style="color:#4e9a06">&#39;{&#34;holderIdentity&#34;:&#34;xxx.xxx.xxx.xxx_6537b938-7f5a-11e9-8487-00220d338975&#34;,&#34;leaseDurationSeconds&#34;:15,&#34;acquireTime&#34;:&#34;2019-05-26T02:03:18Z&#34;,&#34;renewTime&#34;:&#34;2019-05-26T02:06:08Z&#34;,&#34;leaderTransitions&#34;:1}&#39;</span>
+</span></span><span style="display:flex;"><span>  creationTimestamp: <span style="color:#4e9a06">&#34;2019-05-26T01:52:39Z&#34;</span>
+</span></span><span style="display:flex;"><span>  name: kube-controller-manager
+</span></span><span style="display:flex;"><span>  namespace: kube-system
+</span></span><span style="display:flex;"><span>  resourceVersion: <span style="color:#4e9a06">&#34;1965&#34;</span>
+</span></span><span style="display:flex;"><span>  selfLink: /api/v1/namespaces/kube-system/endpoints/kube-controller-manager
+</span></span><span style="display:flex;"><span>  uid: f1755fc5-7f58-11e9-b4c4-00220d338975
+</span></span></code></pre></div><p>以上表示<code>&quot;holderIdentity&quot;:&quot;xxx.xxx.xxx.xxx</code>为kube-controller-manager的leader节点。</p>
+<p>同理，可以通过以下命令查看<code>kube-scheduler</code>的leader节点。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl get endpoints kube-scheduler --namespace<span style="color:#ce5c00;font-weight:bold">=</span>kube-system  -o yaml
+</span></span></code></pre></div><h2 id="5-9-修改副本数">5.9. 修改副本数</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl scale deployment.v1.apps/nginx-deployment --replicas<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">10</span>
+</span></span></code></pre></div><h2 id="5-10-批量删除pod">5.10. 批量删除pod</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl get po -n default <span style="color:#000;font-weight:bold">|</span>grep Evicted <span style="color:#000;font-weight:bold">|</span>awk <span style="color:#4e9a06">&#39;{print $1}&#39;</span> <span style="color:#000;font-weight:bold">|</span>xargs -I <span style="color:#ce5c00;font-weight:bold">{}</span> kubectl delete po  <span style="color:#ce5c00;font-weight:bold">{}</span> -n default
+</span></span></code></pre></div><h2 id="5-11-各种查看命令">5.11. 各种查看命令</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 不使用外部工具来输出解码后的 Secret</span>
+</span></span><span style="display:flex;"><span>kubectl get secret my-secret -o go-template<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;{{range $k,$v := .data}}{{&#34;### &#34;}}{{$k}}{{&#34;\n&#34;}}{{$v|base64decode}}{{&#34;\n\n&#34;}}{{end}}&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 列出事件（Events），按时间戳排序</span>
+</span></span><span style="display:flex;"><span>kubectl get events --sort-by<span style="color:#ce5c00;font-weight:bold">=</span>.metadata.creationTimestamp
+</span></span></code></pre></div><h1 id="6-kubectl日志级别">6. kubectl日志级别</h1>
+<p>Kubectl 日志输出详细程度是通过 <code>-v</code> 或者 <code>--v</code> 来控制的，参数后跟一个数字表示日志的级别。 Kubernetes 通用的日志习惯和相关的日志级别在 <a href="https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/logging.md">这里</a> 有相应的描述。</p>
+<table>
+<thead>
+<tr>
+<th>详细程度</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--v=0</code></td>
+<td>用于那些应该 <em>始终</em> 对运维人员可见的信息，因为这些信息一般很有用。</td>
+</tr>
+<tr>
+<td><code>--v=1</code></td>
+<td>如果您不想要看到冗余信息，此值是一个合理的默认日志级别。</td>
+</tr>
+<tr>
+<td><code>--v=2</code></td>
+<td>输出有关服务的稳定状态的信息以及重要的日志消息，这些信息可能与系统中的重大变化有关。这是建议大多数系统设置的默认日志级别。</td>
+</tr>
+<tr>
+<td><code>--v=3</code></td>
+<td>包含有关系统状态变化的扩展信息。</td>
+</tr>
+<tr>
+<td><code>--v=4</code></td>
+<td>包含调试级别的冗余信息。</td>
+</tr>
+<tr>
+<td><code>--v=5</code></td>
+<td>跟踪级别的详细程度。</td>
+</tr>
+<tr>
+<td><code>--v=6</code></td>
+<td>显示所请求的资源。</td>
+</tr>
+<tr>
+<td><code>--v=7</code></td>
+<td>显示 HTTP 请求头。</td>
+</tr>
+<tr>
+<td><code>--v=8</code></td>
+<td>显示 HTTP 请求内容。</td>
+</tr>
+<tr>
+<td><code>--v=9</code></td>
+<td>显示 HTTP 请求内容而且不截断内容。</td>
+</tr>
+</tbody>
+</table>
+<p>参考文章：</p>
+<ul>
+<li><a href="https://kubernetes.io/docs/reference/kubectl/overview/">https://kubernetes.io/docs/reference/kubectl/overview/</a></li>
+<li><a href="https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/">https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/</a></li>
+<li><a href="https://kubernetes.io/zh/docs/reference/kubectl/cheatsheet/">https://kubernetes.io/zh/docs/reference/kubectl/cheatsheet/</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-b6a39ccb3e2087cb00af1a7e430cac22">3 - kubectl命令别名</h1>
+    
+	<h1 id="1-kubectl-aliases">1. kubectl-aliases</h1>
+<p><a href="https://github.com/ahmetb/kubectl-aliases">kubectl-aliases</a>开源工具是由<a href="https://github.com/ahmetb/kubectl-aliases/blob/master/generate_aliases.py">脚本</a>通过拼接各种kubectl相关元素组成的<a href="https://github.com/ahmetb/kubectl-aliases/blob/master/.kubectl_aliases">alias命令别名列表</a>，其中命令别名拼接元素如下：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">base</th>
+<th style="text-align:left">[system?]</th>
+<th style="text-align:left">[operation]</th>
+<th style="text-align:left">[resource]</th>
+<th style="text-align:left">[flags]</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>k</code>ubectl</td>
+<td style="text-align:left">-n=kube-<code>sys</code>tem</td>
+<td style="text-align:left"><code>g</code>et<br /> <code>d</code>escribe <br /><code>rm</code>:delete<br /> <code>lo</code>gs<br /> <code>ex</code>ec<br /> <code>a</code>pply</td>
+<td style="text-align:left"><code>po</code>ds<br /> <code>dep</code>loyment<br /> <code>sec</code>ret<br /> <code>ing</code>ress<br /> <code>no</code>de <br /><code>svc</code><br /> <code>ns</code> <br /><code>cm</code></td>
+<td style="text-align:left"><code>oyaml</code> <br /><code>ojson</code><br /> <code>owide</code> <br /><code>all</code><br /> <code>w</code>atch<br /> <code>f</code>ile<br /> <code>l</code></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><code>k</code>=kubectl
+<ul>
+<li><strong>sys</strong>=<code>--namespace kube-system</code></li>
+</ul>
+</li>
+<li>commands:
+<ul>
+<li><strong>g</strong>=<code>get</code></li>
+<li><strong>d</strong>=<code>describe</code></li>
+<li><strong>rm</strong>=<code>delete</code></li>
+<li><strong>a</strong>:<code>apply -f</code></li>
+<li><strong>ex</strong>: <code>exec -i -t</code></li>
+<li><strong>lo</strong>: <code>logs -f</code></li>
+</ul>
+</li>
+<li>resources:
+<ul>
+<li><strong>po</strong>=<code>pod</code></li>
+<li><strong>dep</strong>=<code>deployment</code></li>
+<li><strong>ing</strong>=<code>ingress</code></li>
+<li><strong>svc</strong>=<code>service</code></li>
+<li><strong>cm</strong>=<code>configmap</code></li>
+<li><strong>sec</strong>=<code>secret</code></li>
+<li><strong>ns</strong>=<code>namespace</code></li>
+<li><strong>no</strong>=<code>node</code></li>
+</ul>
+</li>
+<li>flags:
+<ul>
+<li>output format: <strong>oyaml</strong>, <strong>ojson</strong>, <strong>owide</strong></li>
+<li><strong>all</strong>: <code>--all</code> or <code>--all-namespaces</code> depending on the command</li>
+<li><strong>sl</strong>: <code>--show-labels</code></li>
+<li><strong>w</strong>=<code>-w/--watch</code></li>
+</ul>
+</li>
+<li>value flags (should be at the end):
+<ul>
+<li><strong>f</strong>=<code>-f/--filename</code></li>
+<li><strong>l</strong>=<code>-l/--selector</code></li>
+</ul>
+</li>
+</ul>
+<h1 id="2-示例">2. 示例</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 示例1</span>
+</span></span><span style="display:flex;"><span>kd → kubectl describe
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 示例2</span>
+</span></span><span style="display:flex;"><span>kgdepallw → kubectl get deployment —all-namespaces —watch
+</span></span></code></pre></div><p><strong>alias get示例：</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#204a87">alias</span> <span style="color:#000">k</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;kubectl&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">alias</span> <span style="color:#000">kg</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;kubectl get&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">alias</span> <span style="color:#000">kgpo</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;kubectl get pods&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">alias</span> <span style="color:#000">kgpoojson</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;kubectl get pods -o=json&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">alias</span> <span style="color:#000">kgpon</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;kubectl get pods --namespace&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">alias</span> <span style="color:#000">ksysgpooyamll</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;kubectl --namespace=kube-system get pods -o=yaml -l&#39;</span>
+</span></span></code></pre></div><h1 id="3-安装">3. 安装</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 将 .kubectl_aliases下载到 home 目录</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">cd</span> ~ <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> wget https://raw.githubusercontent.com/ahmetb/kubectl-aliases/master/.kubectl_aliases
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 将以下内容添加到 .bashrc中，并执行 source .bashrc</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span> -f ~/.kubectl_aliases <span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> <span style="color:#204a87">source</span> ~/.kubectl_aliases
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">function</span> kubectl<span style="color:#ce5c00;font-weight:bold">()</span> <span style="color:#ce5c00;font-weight:bold">{</span> <span style="color:#204a87">command</span> kubectl <span style="color:#000">$@</span><span style="color:#000;font-weight:bold">;</span> <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果需要提示别名的完整命令，则将以下内容添加到 .bashrc中，并执行 source .bashrc</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span> -f ~/.kubectl_aliases <span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> <span style="color:#204a87">source</span> ~/.kubectl_aliases
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">function</span> kubectl<span style="color:#ce5c00;font-weight:bold">()</span> <span style="color:#ce5c00;font-weight:bold">{</span> <span style="color:#204a87">echo</span> <span style="color:#4e9a06">&#34;+ kubectl </span><span style="color:#000">$@</span><span style="color:#4e9a06">&#34;</span><span style="color:#000;font-weight:bold">;</span> <span style="color:#204a87">command</span> kubectl <span style="color:#000">$@</span><span style="color:#000;font-weight:bold">;</span> <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="https://ahmet.im/blog/kubectl-aliases/">https://ahmet.im/blog/kubectl-aliases/</a></li>
+<li><a href="https://github.com/ahmetb/kubectl-aliases">https://github.com/ahmetb/kubectl-aliases</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="User mailing list" aria-label="User mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="User mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Twitter" aria-label="Twitter">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/twitter" aria-label="Twitter">
+      <i class="fab fa-twitter"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Stack Overflow" aria-label="Stack Overflow">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/stack" aria-label="Stack Overflow">
+      <i class="fab fa-stack-overflow"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/k8s.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Slack" aria-label="Slack">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/slack" aria-label="Slack">
+      <i class="fab fa-slack"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Developer mailing list" aria-label="Developer mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="Developer mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2022 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+
+
+  </body>
+</html>

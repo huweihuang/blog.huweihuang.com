@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<link rel="canonical" type="text/html" href="https://k8s.huweihuang.com/docs/trouble-shooting/">
+<link rel="alternate" type="application/rss&#43;xml" href="https://k8s.huweihuang.com/docs/trouble-shooting/index.xml">
+<meta name="robots" content="noindex, nofollow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>问题排查 | HUWEIHUAHG</title>
+<meta name="description" content="">
+<meta property="og:title" content="问题排查" />
+<meta property="og:description" content="Kubernetes学习笔记" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://k8s.huweihuang.com/docs/trouble-shooting/" /><meta property="og:site_name" content="HUWEIHUAHG" />
+
+<meta itemprop="name" content="问题排查">
+<meta itemprop="description" content="Kubernetes学习笔记"><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="问题排查"/>
+<meta name="twitter:description" content="Kubernetes学习笔记"/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.cd6c2bbb05cdf98237b53882fed8c7a8b3fd7a7f7963d7cb305dd0d984782137.css" as="style">
+<link href="/scss/main.min.cd6c2bbb05cdf98237b53882fed8c7a8b3fd7a7f7963d7cb305dd0d984782137.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-00000000-0', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-section">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">HUWEIHUAHG</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/docs/" ><span class="active">Kubernetes学习笔记</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input type="search" class="form-control td-search-input" placeholder="&#xf002; 站内搜索…" aria-label="站内搜索…" autocomplete="off">
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+
+
+
+
+<div class="td-content">
+<div class="pageinfo pageinfo-primary d-print-none">
+<p>
+这是本节的多页打印视图。
+<a href="#" onclick="print();return false;">点击此处打印</a>.
+</p><p>
+<a href="/docs/trouble-shooting/">返回本页常规视图</a>.
+</p>
+</div>
+
+
+
+<h1 class="title">问题排查</h1>
+
+
+
+
+
+    <ul>
+    
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>1: <a href="#pg-e7bdc3fc404d1624976869efdc9c3438">节点问题</a></li>
+
+
+    
+    <ul>
+        
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>1.1: <a href="#pg-29fa75bf631e41c0f6c85449f8dad866">keycreate permission denied</a></li>
+
+
+    
+  
+    
+    
+	
+<li>1.2: <a href="#pg-06f8a82462778d68925a83559d17de05">Cgroup不支持pid资源</a></li>
+
+
+    
+  
+    
+    
+	
+<li>1.3: <a href="#pg-731642af480988e37dbd3cd0b611e291">Cgroup子系统无法挂载</a></li>
+
+
+    
+  
+
+    </ul>
+    
+  
+    
+    
+	
+<li>2: <a href="#pg-60de4e255442be7744171c2097830d7a">Pod驱逐</a></li>
+
+
+    
+  
+    
+    
+	
+<li>3: <a href="#pg-c88262d39ddefdce52da6ca97dc46ad4">镜像拉取失败问题</a></li>
+
+
+    
+  
+    
+    
+	
+<li>4: <a href="#pg-0291f8b7eeaf8bbdbb9953ce15d05faa">PVC Terminating</a></li>
+
+
+    
+  
+
+    </ul>
+
+
+<div class="content">
+      
+</div>
+</div>
+
+
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-e7bdc3fc404d1624976869efdc9c3438">1 - 节点问题</h1>
+    
+	
+</div>
+
+
+
+    
+      
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-29fa75bf631e41c0f6c85449f8dad866">1.1 - keycreate permission denied</h1>
+    
+	<h1 id="问题描述">问题描述</h1>
+<pre tabindex="0"><code>write /proc/self/attr/keycreate: permission denied
+</code></pre><p>具体报错：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kuberuntime_manager.go:758<span style="color:#ce5c00;font-weight:bold">]</span> createPodSandbox <span style="color:#204a87;font-weight:bold">for</span> pod <span style="color:#4e9a06">&#34;ecc-hostpath-provisioner-8jbhf_kube-system(b8050fd3-4ffe-11eb-a82e-c6090b53405b)&#34;</span> failed: rpc error: <span style="color:#000">code</span> <span style="color:#ce5c00;font-weight:bold">=</span> Unknown <span style="color:#000">desc</span> <span style="color:#ce5c00;font-weight:bold">=</span> failed to start sandbox container <span style="color:#204a87;font-weight:bold">for</span> pod <span style="color:#4e9a06">&#34;ecc-hostpath-provisioner-8jbhf&#34;</span>: Error response from daemon: OCI runtime create failed: container_linux.go:349: starting container process caused <span style="color:#4e9a06">&#34;process_linux.go:449: container init caused \&#34;write /proc/self/attr/keycreate: permission denied\&#34;&#34;</span>: unknown
+</span></span></code></pre></div><h1 id="解决办法">解决办法</h1>
+<p>SELINUX未设置成disabled</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 将SELINUX设置成disabled</span>
+</span></span><span style="display:flex;"><span>setenforce <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#8f5902;font-style:italic"># 临时生效</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 永久生效，但需重启，配合上述命令可以不用立即重启</span>
+</span></span><span style="display:flex;"><span>sed -i <span style="color:#4e9a06">&#34;s/SELINUX=enforcing/SELINUX=disabled/g&#34;</span> /etc/selinux/config
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看SELinux状态</span>
+</span></span><span style="display:flex;"><span>$ /usr/sbin/sestatus -v 
+</span></span><span style="display:flex;"><span>SELinux status:                 disabled
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ getenforce
+</span></span><span style="display:flex;"><span>Disabled
+</span></span></code></pre></div>
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-06f8a82462778d68925a83559d17de05">1.2 - Cgroup不支持pid资源</h1>
+    
+	<h1 id="问题描述">问题描述</h1>
+<p>机器内核版本较低，kubelet启动异常，报错如下：</p>
+<pre tabindex="0"><code>Failed to start ContainerManager failed to initialize top level QOS containers: failed to update top level Burstable QOS cgroup : failed to set supported cgroup subsystems for cgroup [kubepods burstable]: Failed to find subsystem mount for required subsystem: pids
+</code></pre><h1 id="原因分析">原因分析</h1>
+<p>低版本内核的cgroup不支持pids资源的功能，</p>
+<pre tabindex="0"><code>cat /proc/cgroups
+#subsys_name	hierarchy	num_cgroups	enabled
+cpuset	5	6	1
+cpu	2	76	1
+cpuacct	2	76	1
+memory	4	76	1
+devices	10	76	1
+freezer	7	6	1
+net_cls	3	6	1
+blkio	8	76	1
+perf_event	9	6	1
+hugetlb	6	6	1
+</code></pre><p>正常机器的cgroup</p>
+<pre tabindex="0"><code>root@host:~# cat /proc/cgroups
+#subsys_name	hierarchy	num_cgroups	enabled
+cpuset	5	17	1
+cpu	7	80	1
+cpuacct	7	80	1
+memory	12	80	1
+devices	10	80	1
+freezer	2	17	1
+net_cls	4	17	1
+blkio	8	80	1
+perf_event	6	17	1
+hugetlb	11	17	1
+pids	3	80	1    # 此处支持pids资源
+oom	9	1	1
+</code></pre><h1 id="解决方案">解决方案</h1>
+<p>1、升级内核版本，使得cgroup支持pids资源。</p>
+<p>或者</p>
+<p>2、将kubelet的启动参数添加 SupportPodPidsLimit=false,SupportNodePidsLimit=false</p>
+<pre tabindex="0"><code>vi /etc/systemd/system/kubelet.service
+
+# 添加 kubelet 启动参数 
+--feature-gates=... ,SupportPodPidsLimit=false,SupportNodePidsLimit=false \
+
+systemctl daemon-reload &amp;&amp; systemctl restart kubelet.service
+</code></pre><p>文档参考：</p>
+<ul>
+<li>
+<p><a href="https://kubernetes.io/zh/blog/2019/04/15/kubernetes-1.14-%E7%A8%B3%E5%AE%9A%E6%80%A7%E6%94%B9%E8%BF%9B%E4%B8%AD%E7%9A%84%E8%BF%9B%E7%A8%8Bid%E9%99%90%E5%88%B6/">Kubernetes 1.14 稳定性改进中的进程ID限制</a></p>
+</li>
+<li>
+<p><a href="https://blog.csdn.net/qq_38900565/article/details/100707025">https://blog.csdn.net/qq_38900565/article/details/100707025</a></p>
+</li>
+<li>
+<p><a href="https://adoyle.me/Today-I-Learned/k8s/k8s-deployment.html">https://adoyle.me/Today-I-Learned/k8s/k8s-deployment.html</a></p>
+</li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-731642af480988e37dbd3cd0b611e291">1.3 - Cgroup子系统无法挂载</h1>
+    
+	<h1 id="问题描述">问题描述</h1>
+<p>内核版本： 5.4.56-200.el7.x86_64</p>
+<p>docker报错</p>
+<pre tabindex="0"><code>May 13 16:54:26 8b26d7a8 dockerd[44352]: time=&#34;2021-05-13T16:54:26.565235530+08:00&#34; level=warning msg=&#34;failed to load plugin io.containerd.snapshotter.v1.devmapper&#34; error=&#34;devmapper not configured&#34;
+May 13 16:54:26 8b26d7a8 dockerd[44352]: time=&#34;2021-05-13T16:54:26.565525512+08:00&#34; level=warning msg=&#34;could not use snapshotter devmapper in metadata plugin&#34; error=&#34;devmapper not configured&#34;
+May 13 16:54:26 8b26d7a8 dockerd[44352]: time=&#34;2021-05-13T16:54:26.574734345+08:00&#34; level=warning msg=&#34;Your kernel does not support CPU realtime scheduler&#34;
+May 13 16:54:26 8b26d7a8 dockerd[44352]: time=&#34;2021-05-13T16:54:26.574792864+08:00&#34; level=warning msg=&#34;Your kernel does not support cgroup blkio weight&#34;
+May 13 16:54:26 8b26d7a8 dockerd[44352]: time=&#34;2021-05-13T16:54:26.574800326+08:00&#34; level=warning msg=&#34;Your kernel does not support cgroup blkio weight_device&#34;
+</code></pre><p>kubelet报错</p>
+<p><img src="../../images/troubleshooting/cgroup-not-mount.png" alt="kubelet"></p>
+<h1 id="解决">解决</h1>
+<p>cgroup问题解决：</p>
+<p>1、curl <a href="https://pi-ops.oss-cn-hangzhou.aliyuncs.com/scripts/cgroupfs-mount.sh">https://pi-ops.oss-cn-hangzhou.aliyuncs.com/scripts/cgroupfs-mount.sh</a> | bash</p>
+<p>2、重启设备即可解决</p>
+
+</div>
+
+
+
+    
+	
+  
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-60de4e255442be7744171c2097830d7a">2 - Pod驱逐</h1>
+    
+	<h1 id="问题描述">问题描述</h1>
+<p>节点Pod被驱逐</p>
+<h1 id="原因">原因</h1>
+<h2 id="1-查看节点和该节点pod状态">1. 查看节点和该节点pod状态</h2>
+<p>查看节点状态为Ready，查看该节点的所有pod，发现存在被驱逐的pod和nvidia-device-plugin为pending</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>root@host:~$ kgpoallowide <span style="color:#000;font-weight:bold">|</span>grep 192.168.1.1
+</span></span><span style="display:flex;"><span>department-56   173e397c-ea35-4aac-85d8-07106e55d7b7   0/1       Evicted             <span style="color:#0000cf;font-weight:bold">0</span>          52d       &lt;none&gt;            192.168.1.1   &lt;none&gt;
+</span></span><span style="display:flex;"><span>kube-system     nvidia-device-plugin-daemonset-d58d2   0/1       Pending             <span style="color:#0000cf;font-weight:bold">0</span>          1s        &lt;none&gt;            192.168.1.1   &lt;none&gt;
+</span></span></code></pre></div><h2 id="2-查看对应节点kubelet的日志">2. 查看对应节点kubelet的日志</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">0905</span> 15:42:13.182280   <span style="color:#0000cf;font-weight:bold">23506</span> eviction_manager.go:142<span style="color:#ce5c00;font-weight:bold">]</span> Failed to admit pod rdma-device-plugin-daemonset-8nwb8_kube-system<span style="color:#ce5c00;font-weight:bold">(</span>acc28a85-cfb0-11e9-9729-6c92bf5e2432<span style="color:#ce5c00;font-weight:bold">)</span> - node has conditions: <span style="color:#ce5c00;font-weight:bold">[</span>DiskPressure<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>I0905 15:42:14.827343   <span style="color:#0000cf;font-weight:bold">23506</span> kubelet.go:1836<span style="color:#ce5c00;font-weight:bold">]</span> SyncLoop <span style="color:#ce5c00;font-weight:bold">(</span>ADD, <span style="color:#4e9a06">&#34;api&#34;</span><span style="color:#ce5c00;font-weight:bold">)</span>: <span style="color:#4e9a06">&#34;nvidia-device-plugin-daemonset-88sm6_kube-system(adbd9227-cfb0-11e9-9729-6c92bf5e2432)&#34;</span>
+</span></span><span style="display:flex;"><span>W0905 15:42:14.827372   <span style="color:#0000cf;font-weight:bold">23506</span> eviction_manager.go:142<span style="color:#ce5c00;font-weight:bold">]</span> Failed to admit pod nvidia-device-plugin-daemonset-88sm6_kube-system<span style="color:#ce5c00;font-weight:bold">(</span>adbd9227-cfb0-11e9-9729-6c92bf5e2432<span style="color:#ce5c00;font-weight:bold">)</span> - node has conditions: <span style="color:#ce5c00;font-weight:bold">[</span>DiskPressure<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>I0905 15:42:15.722378   <span style="color:#0000cf;font-weight:bold">23506</span> kubelet_node_status.go:607<span style="color:#ce5c00;font-weight:bold">]</span> Update capacity <span style="color:#204a87;font-weight:bold">for</span> nvidia.com/gpu-share to <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>I0905 15:42:16.692488   <span style="color:#0000cf;font-weight:bold">23506</span> kubelet.go:1852<span style="color:#ce5c00;font-weight:bold">]</span> SyncLoop <span style="color:#ce5c00;font-weight:bold">(</span>DELETE, <span style="color:#4e9a06">&#34;api&#34;</span><span style="color:#ce5c00;font-weight:bold">)</span>: <span style="color:#4e9a06">&#34;rdma-device-plugin-daemonset-8nwb8_kube-system(acc28a85-cfb0-11e9-9729-6c92bf5e2432)&#34;</span>
+</span></span><span style="display:flex;"><span>W0905 15:42:16.698445   <span style="color:#0000cf;font-weight:bold">23506</span> status_manager.go:489<span style="color:#ce5c00;font-weight:bold">]</span> Failed to delete status <span style="color:#204a87;font-weight:bold">for</span> pod <span style="color:#4e9a06">&#34;rdma-device-plugin-daemonset-8nwb8_kube-system(acc28a85-cfb0-11e9-9729-6c92bf5e2432)&#34;</span>: pod <span style="color:#4e9a06">&#34;rdma-device-plugin-daemonset-8nwb8&#34;</span> not found
+</span></span><span style="display:flex;"><span>I0905 15:42:16.698490   <span style="color:#0000cf;font-weight:bold">23506</span> kubelet.go:1846<span style="color:#ce5c00;font-weight:bold">]</span> SyncLoop <span style="color:#ce5c00;font-weight:bold">(</span>REMOVE, <span style="color:#4e9a06">&#34;api&#34;</span><span style="color:#ce5c00;font-weight:bold">)</span>: <span style="color:#4e9a06">&#34;rdma-device-plugin-daemonset-8nwb8_kube-system(acc28a85-cfb0-11e9-9729-6c92bf5e2432)&#34;</span>
+</span></span><span style="display:flex;"><span>I0905 15:42:16.699267   <span style="color:#0000cf;font-weight:bold">23506</span> kubelet.go:2040<span style="color:#ce5c00;font-weight:bold">]</span> Failed to delete pod <span style="color:#4e9a06">&#34;rdma-device-plugin-daemonset-8nwb8_kube-system(acc28a85-cfb0-11e9-9729-6c92bf5e2432)&#34;</span>, err: pod not found
+</span></span><span style="display:flex;"><span>W0905 15:42:16.777355   <span style="color:#0000cf;font-weight:bold">23506</span> eviction_manager.go:332<span style="color:#ce5c00;font-weight:bold">]</span> eviction manager: attempting to reclaim nodefs
+</span></span><span style="display:flex;"><span>I0905 15:42:16.777384   <span style="color:#0000cf;font-weight:bold">23506</span> eviction_manager.go:346<span style="color:#ce5c00;font-weight:bold">]</span> eviction manager: must evict pod<span style="color:#ce5c00;font-weight:bold">(</span>s<span style="color:#ce5c00;font-weight:bold">)</span> to reclaim nodefs
+</span></span><span style="display:flex;"><span>E0905 15:42:16.777390   <span style="color:#0000cf;font-weight:bold">23506</span> eviction_manager.go:357<span style="color:#ce5c00;font-weight:bold">]</span> eviction manager: eviction thresholds have been met, but no pods are active to evict
+</span></span></code></pre></div><p>存在关于pod驱逐相关的日志，驱逐的原因为<code>node has conditions: [DiskPressure]</code>。</p>
+<h2 id="3-查看磁盘相关信息">3. 查看磁盘相关信息</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>root@host /<span style="color:#ce5c00;font-weight:bold">]</span><span style="color:#8f5902;font-style:italic"># df -h</span>
+</span></span><span style="display:flex;"><span>Filesystem      Size  Used Avail Use% Mounted on
+</span></span><span style="display:flex;"><span>devtmpfs        126G     <span style="color:#0000cf;font-weight:bold">0</span>  126G   0% /dev
+</span></span><span style="display:flex;"><span>tmpfs           126G     <span style="color:#0000cf;font-weight:bold">0</span>  126G   0% /dev/shm
+</span></span><span style="display:flex;"><span>tmpfs           126G   27M  126G   1% /run
+</span></span><span style="display:flex;"><span>tmpfs           126G     <span style="color:#0000cf;font-weight:bold">0</span>  126G   0% /sys/fs/cgroup
+</span></span><span style="display:flex;"><span>/dev/sda1        20G   19G     <span style="color:#0000cf;font-weight:bold">0</span> 100% /   <span style="color:#8f5902;font-style:italic"># 根目录磁盘满</span>
+</span></span><span style="display:flex;"><span>/dev/nvme1n1    3.0T  191G  2.8T   7% /data2
+</span></span><span style="display:flex;"><span>/dev/nvme0n1    3.0T  1.3T  1.7T  44% /data1
+</span></span><span style="display:flex;"><span>/dev/sda4       182G   95G   87G  53% /data
+</span></span><span style="display:flex;"><span>/dev/sda3        20G  3.8G   15G  20% /usr/local
+</span></span><span style="display:flex;"><span>tmpfs            26G     <span style="color:#0000cf;font-weight:bold">0</span>   26G   0% /run/user/0
+</span></span></code></pre></div><p>发现根目录的磁盘盘，接着查看哪些文件占用磁盘。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>root@host ~/kata<span style="color:#ce5c00;font-weight:bold">]</span><span style="color:#8f5902;font-style:italic"># du -sh ./*</span>
+</span></span><span style="display:flex;"><span>1.0M	./log
+</span></span><span style="display:flex;"><span>944K	./netlink
+</span></span><span style="display:flex;"><span>6.6G	./kernel3
+</span></span></code></pre></div><p>/var/log/下存在7G 的日志。清理相关日志和无用文件后，根目录恢复空间。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>root@host /data<span style="color:#ce5c00;font-weight:bold">]</span><span style="color:#8f5902;font-style:italic"># df -h</span>
+</span></span><span style="display:flex;"><span>Filesystem      Size  Used Avail Use% Mounted on
+</span></span><span style="display:flex;"><span>devtmpfs        126G     <span style="color:#0000cf;font-weight:bold">0</span>  126G   0% /dev
+</span></span><span style="display:flex;"><span>tmpfs           126G     <span style="color:#0000cf;font-weight:bold">0</span>  126G   0% /dev/shm
+</span></span><span style="display:flex;"><span>tmpfs           126G   27M  126G   1% /run
+</span></span><span style="display:flex;"><span>tmpfs           126G     <span style="color:#0000cf;font-weight:bold">0</span>  126G   0% /sys/fs/cgroup
+</span></span><span style="display:flex;"><span>/dev/sda1        20G  5.8G   13G  32% /   <span style="color:#8f5902;font-style:italic"># 根目录正常</span>
+</span></span><span style="display:flex;"><span>/dev/nvme1n1    3.0T  191G  2.8T   7% /data2
+</span></span></code></pre></div><p>查看节点pod状态，相关plugin的pod恢复正常。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>root@host:~$ kgpoallowide <span style="color:#000;font-weight:bold">|</span>grep 192.168.1.1
+</span></span><span style="display:flex;"><span>kube-system     nvidia-device-plugin-daemonset-h4pjc   1/1       Running             <span style="color:#0000cf;font-weight:bold">0</span>          16m       192.168.1.1   192.168.1.1   &lt;none&gt;
+</span></span><span style="display:flex;"><span>kube-system     rdma-device-plugin-daemonset-xlkbv     1/1       Running             <span style="color:#0000cf;font-weight:bold">0</span>          16m       192.168.1.1   192.168.1.1   &lt;none&gt;
+</span></span></code></pre></div><h2 id="4-查看kubelet配置">4. 查看kubelet配置</h2>
+<p>查看kubelet关于pod驱逐相关的参数配置，可见节点kubelet开启了驱逐机制，正常情况下该配置应该是关闭的。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#000">ExecStart</span><span style="color:#ce5c00;font-weight:bold">=</span>/usr/local/bin/kubelet <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>	...
+</span></span><span style="display:flex;"><span>  --eviction-hard<span style="color:#ce5c00;font-weight:bold">=</span>nodefs.available&lt;1% <span style="color:#4e9a06">\
+</span></span></span></code></pre></div><h1 id="解决方案">解决方案</h1>
+<p>总结以上原因为，kubelet开启了pod驱逐的机制，根目录的磁盘达到100%，pod被驱逐，且无法再正常创建在该节点。</p>
+<p>解决方案如下：</p>
+<p>1、关闭kubelet的驱逐机制。</p>
+<p>2、清除根目录的文件，恢复根目录空间，并后续增加根目录的磁盘监控。</p>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-c88262d39ddefdce52da6ca97dc46ad4">3 - 镜像拉取失败问题</h1>
+    
+	<p>常见镜像拉取问题排查</p>
+<h2 id="1-pod状态为errimagepull或imagepullbackoff">1. Pod状态为ErrImagePull或ImagePullBackOff</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>docker-hub-75d4dfb984-5hggg           0/1     ImagePullBackOff   <span style="color:#0000cf;font-weight:bold">0</span>          14m     192.168.1.30   &lt;node ip&gt;   
+</span></span><span style="display:flex;"><span>docker-hub-75d4dfb984-9r57b           0/1     ErrImagePull       <span style="color:#0000cf;font-weight:bold">0</span>          53s     192.168.0.42   &lt;node ip&gt;   
+</span></span></code></pre></div><ul>
+<li>ErrImagePull：表示pod已经调度到node节点，kubelet调用docker去拉取镜像失败。</li>
+<li>ImagePullBackOff：表示kubelet拉取镜像失败后，不断重试去拉取仍然失败。</li>
+</ul>
+<h2 id="2-查看pod的事件">2. 查看pod的事件</h2>
+<p>通过kubectl describe pod 命令查看pod事件，该事件的报错信息在kubelet或docker的日志中也会查看到。</p>
+<h3 id="2-1-http-server-gave-http-response-to-https-client">2.1. http: server gave HTTP response to HTTPS client</h3>
+<p>如果遇到以下报错，尝试将该镜像仓库添加到docker可信任的镜像仓库配置中。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>Error getting v2 registry: Get https://docker.com:8080/v2/: http: server gave HTTP response to HTTPS client<span style="color:#4e9a06">&#34;
+</span></span></span></code></pre></div><p>具体操作是修改/etc/docker/daemon.json的insecure-registries参数</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#cat /etc/docker/daemon.json</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	...
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;insecure-registries&#34;</span>: <span style="color:#ce5c00;font-weight:bold">[</span>
+</span></span><span style="display:flex;"><span>	...
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;docker.com:8080&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#ce5c00;font-weight:bold">]</span>,
+</span></span><span style="display:flex;"><span>  ...
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="2-2-no-basic-auth-credentials">2.2. no basic auth credentials</h3>
+<p>如果遇到<code>no basic auth credentials</code>报错，说明kubelet调用docker接口去拉取镜像时，镜像仓库的认证信息失败。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>  Normal   BackOff    18s               kubelet, 192.168.1.1  Back-off pulling image <span style="color:#4e9a06">&#34;docker.com:8080/public/2048:latest&#34;</span>
+</span></span><span style="display:flex;"><span>  Warning  Failed     18s               kubelet, 192.168.1.1  Error: ImagePullBackOff
+</span></span><span style="display:flex;"><span>  Normal   Pulling    5s <span style="color:#ce5c00;font-weight:bold">(</span>x2 over 18s<span style="color:#ce5c00;font-weight:bold">)</span>  kubelet, 192.168.1.1  Pulling image <span style="color:#4e9a06">&#34;docker.com:8080/public/2048:latest&#34;</span>
+</span></span><span style="display:flex;"><span>  Warning  Failed     5s <span style="color:#ce5c00;font-weight:bold">(</span>x2 over 18s<span style="color:#ce5c00;font-weight:bold">)</span>  kubelet, 192.168.1.1  Failed to pull image <span style="color:#4e9a06">&#34;docker.com:8080/public/2048:latest&#34;</span>: rpc error: <span style="color:#000">code</span> <span style="color:#ce5c00;font-weight:bold">=</span> Unknown <span style="color:#000">desc</span> <span style="color:#ce5c00;font-weight:bold">=</span> Error response from daemon: Get http://docker.com:8080/v2/public/2048/manifests/latest: no basic auth credentials
+</span></span><span style="display:flex;"><span>  Warning  Failed     5s <span style="color:#ce5c00;font-weight:bold">(</span>x2 over 18s<span style="color:#ce5c00;font-weight:bold">)</span>  kubelet, 192.168.1.1  Error: ErrImagePull
+</span></span></code></pre></div><p>具体操作，在拉取镜像失败的节点上登录该镜像仓库，认证信息会更新到<code> $HOME/.docker/config.json</code>文件中。将该文件拷贝到<code>/var/lib/kubelet/config.json</code>中。</p>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-0291f8b7eeaf8bbdbb9953ce15d05faa">4 - PVC Terminating</h1>
+    
+	<h1 id="问题描述">问题描述</h1>
+<pre tabindex="0"><code>pvc terminating
+</code></pre><p>pvc在删除时，卡在terminating中。</p>
+<h1 id="解决方法">解决方法</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl patch pvc <span style="color:#ce5c00;font-weight:bold">{</span>PVC_NAME<span style="color:#ce5c00;font-weight:bold">}</span> -p <span style="color:#4e9a06">&#39;{&#34;metadata&#34;:{&#34;finalizers&#34;:null}}&#39;</span>
+</span></span></code></pre></div>
+</div>
+
+
+
+    
+	
+  
+
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="User mailing list" aria-label="User mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="User mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Twitter" aria-label="Twitter">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/twitter" aria-label="Twitter">
+      <i class="fab fa-twitter"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Stack Overflow" aria-label="Stack Overflow">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/stack" aria-label="Stack Overflow">
+      <i class="fab fa-stack-overflow"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/k8s.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Slack" aria-label="Slack">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/slack" aria-label="Slack">
+      <i class="fab fa-slack"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Developer mailing list" aria-label="Developer mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="Developer mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2022 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+
+
+
+  </body>
+</html>
