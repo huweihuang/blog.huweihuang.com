@@ -1,0 +1,929 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<link rel="canonical" type="text/html" href="https://k8s.huweihuang.com/golang-notes/basis/">
+<link rel="alternate" type="application/rss&#43;xml" href="https://k8s.huweihuang.com/golang-notes/basis/index.xml">
+<meta name="robots" content="noindex, nofollow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>顺序编程 | HUWEIHUAHG</title>
+<meta name="description" content="">
+<meta property="og:title" content="顺序编程" />
+<meta property="og:description" content="Kubernetes学习笔记" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://k8s.huweihuang.com/golang-notes/basis/" /><meta property="og:site_name" content="HUWEIHUAHG" />
+
+<meta itemprop="name" content="顺序编程">
+<meta itemprop="description" content="Kubernetes学习笔记"><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="顺序编程"/>
+<meta name="twitter:description" content="Kubernetes学习笔记"/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.cd6c2bbb05cdf98237b53882fed8c7a8b3fd7a7f7963d7cb305dd0d984782137.css" as="style">
+<link href="/scss/main.min.cd6c2bbb05cdf98237b53882fed8c7a8b3fd7a7f7963d7cb305dd0d984782137.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-00000000-0', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-section">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">HUWEIHUAHG</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/kubernetes-notes/" ><span>Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/golang-notes/" ><span class="active">Golang学习笔记</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input type="search" class="form-control td-search-input" placeholder="&#xf002; 站内搜索…" aria-label="站内搜索…" autocomplete="off">
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+
+
+
+
+<div class="td-content">
+<div class="pageinfo pageinfo-primary d-print-none">
+<p>
+这是本节的多页打印视图。
+<a href="#" onclick="print();return false;">点击此处打印</a>.
+</p><p>
+<a href="/golang-notes/basis/">返回本页常规视图</a>.
+</p>
+</div>
+
+
+
+<h1 class="title">顺序编程</h1>
+
+
+
+
+
+    <ul>
+    
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>1: <a href="#pg-f0665a4ffa073bc955e8985e7da650be">变量与常量</a></li>
+
+
+    
+  
+    
+    
+	
+<li>2: <a href="#pg-8c5a55e97fdbfcfbb8f91043c01b4c7d">数据类型</a></li>
+
+
+    
+  
+    
+    
+	
+<li>3: <a href="#pg-46a114232811022faa125b8294f17449">流程语句</a></li>
+
+
+    
+  
+    
+    
+	
+<li>4: <a href="#pg-76885969b59488f67b4016e7f549d7d9">函数与闭包</a></li>
+
+
+    
+  
+    
+    
+	
+<li>5: <a href="#pg-87f83fc3da9f5dcbb6bebac4f77c1552">错误处理</a></li>
+
+
+    
+  
+
+    </ul>
+
+
+<div class="content">
+      
+</div>
+</div>
+
+
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-f0665a4ffa073bc955e8985e7da650be">1 - 变量与常量</h1>
+    
+	<h1 id="1-变量">1.变量</h1>
+<h2 id="1-1变量声明">1.1变量声明</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、单变量声明,类型放在变量名之后，可以为任意类型
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">变量名</span> <span style="color:#000">类型</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">v1</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">v2</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">v3</span> <span style="color:#204a87;font-weight:bold">string</span> <span style="color:#8f5902;font-style:italic">//多变量同类型声明
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、多变量声明
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">v1</span> <span style="color:#204a87;font-weight:bold">int</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">v2</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">int</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="1-2变量初始化">1.2变量初始化</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、使用关键字var，声明变量类型并赋值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">v1</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">10</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、使用关键字var，直接对变量赋值，go可以自动推导出变量类型
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">v2</span><span style="color:#000;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">10</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//3、直接使用“：=”对变量赋值，不使用var，两者同时使用会语法冲突，推荐使用
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">v3</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#0000cf;font-weight:bold">10</span>
+</span></span></code></pre></div><h2 id="1-3变量赋值">1.3变量赋值</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、声明后再变量赋值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">v</span> <span style="color:#204a87;font-weight:bold">int</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">v</span><span style="color:#000;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">10</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、多重赋值，经常使用在函数的多返回值中，err,v=func(arg)
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">i</span><span style="color:#a40000">，</span><span style="color:#000">j</span><span style="color:#000;font-weight:bold">=</span><span style="color:#000">j</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">i</span>  <span style="color:#8f5902;font-style:italic">//两者互换，并不需要引入中间变量
+</span></span></span></code></pre></div><h2 id="1-4匿名变量">1.4匿名变量</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//Go中所有声明后的变量都需要调用到，当出现函数多返回值，并且部分返回值不需要使用时，可以使用匿名变量丢弃该返回值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">GetName</span><span style="color:#000;font-weight:bold">()(</span><span style="color:#000">firstName</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">lastName</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">nickName</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">){</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#4e9a06">&#34;May&#34;</span><span style="color:#000;font-weight:bold">,</span><span style="color:#4e9a06">&#34;Chan&#34;</span><span style="color:#000;font-weight:bold">,</span><span style="color:#4e9a06">&#34;Make&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">nickName</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#000">GetName</span><span style="color:#000;font-weight:bold">()</span>  <span style="color:#8f5902;font-style:italic">//使用匿名变量丢弃部分返回值
+</span></span></span></code></pre></div><h1 id="2-常量">2.常量</h1>
+<p>​	Go语言中，常量是编译时期就已知且不可变的值，常量可以是数值类型（整型、浮点型、复数类型）、布尔类型、字符串类型。</p>
+<h2 id="2-1字面常量">2.1字面常量</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//字面常量(literal)指程序中硬编码的常量
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#0000cf;font-weight:bold">3.14</span>
+</span></span><span style="display:flex;"><span><span style="color:#a40000">“</span><span style="color:#000">foo</span><span style="color:#a40000">”</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">true</span>
+</span></span></code></pre></div><h2 id="2-2常量定义">2.2常量定义</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、可以限定常量类型，但非必需
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">const</span> <span style="color:#000">Pi</span> <span style="color:#204a87;font-weight:bold">float64</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#0000cf;font-weight:bold">3.14</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、无类型常量和字面常量一样
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">const</span> <span style="color:#000">zero</span><span style="color:#000;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">0.0</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//3、多常量赋值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">const</span><span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">size</span> <span style="color:#204a87;font-weight:bold">int64</span><span style="color:#000;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1024</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">eof</span><span style="color:#000;font-weight:bold">=</span><span style="color:#ce5c00;font-weight:bold">-</span><span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//4、常量的多重赋值，类似变量的多重赋值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">const</span> <span style="color:#000">u</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">v</span> <span style="color:#204a87;font-weight:bold">float32</span><span style="color:#000;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">3</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">const</span> <span style="color:#000">a</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">b</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">c</span><span style="color:#000;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">,</span><span style="color:#4e9a06">&#34;foo&#34;</span>    <span style="color:#8f5902;font-style:italic">//无类型常量的多重赋值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//5、常量赋值是编译期行为，可以赋值为一个编译期运算的常量表达式
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">const</span> <span style="color:#000">mask</span><span style="color:#000;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#ce5c00;font-weight:bold">&lt;&lt;</span><span style="color:#0000cf;font-weight:bold">3</span>
+</span></span></code></pre></div><h2 id="2-3预定义常量">2.3预定义常量</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//预定义常量：true、false、iota
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//iota：可修改常量，在每次const出现时被重置为0，在下一个const出现前，每出现一次iota，其代表的值自动增1。
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">const</span><span style="color:#000;font-weight:bold">(</span>          <span style="color:#8f5902;font-style:italic">//iota重置为0
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">c0</span><span style="color:#000;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">iota</span>       <span style="color:#8f5902;font-style:italic">//c0==0
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">c1</span><span style="color:#000;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">iota</span>       <span style="color:#8f5902;font-style:italic">//c1==1
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">c2</span><span style="color:#000;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">iota</span>       <span style="color:#8f5902;font-style:italic">//c2==2
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//两个const赋值语句一样可以省略后一个
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">const</span><span style="color:#000;font-weight:bold">(</span>          <span style="color:#8f5902;font-style:italic">//iota重置为0
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">c0</span><span style="color:#000;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">iota</span>       <span style="color:#8f5902;font-style:italic">//c0==0
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">c1</span>            <span style="color:#8f5902;font-style:italic">//c1==1
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">c2</span>            <span style="color:#8f5902;font-style:italic">//c2==2
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><h2 id="2-4枚举">2.4枚举</h2>
+<p>枚举指一系列相关常量。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">const</span><span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">Sunday</span><span style="color:#000;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">iota</span>    <span style="color:#8f5902;font-style:italic">//Sunday==0,以此类推
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">Monday</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">Tuesday</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">Wednesday</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">Thursday</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">Friday</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">Saturday</span>       <span style="color:#8f5902;font-style:italic">//大写字母开头表示包外可见
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">numberOfDays</span>   <span style="color:#8f5902;font-style:italic">//小写字母开头表示包内私有
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div>
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-8c5a55e97fdbfcfbb8f91043c01b4c7d">2 - 数据类型</h1>
+    
+	<h1 id="类型">类型</h1>
+<h1 id="1-基础类型">1. 基础类型</h1>
+<h2 id="1-1-布尔类型">1.1. 布尔类型</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//布尔类型的关键字为bool,值为true或false，不可写为0或1
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">v1</span> <span style="color:#204a87;font-weight:bold">bool</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">v1</span><span style="color:#000;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">true</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//接受表达式判断赋值，不支持自动或强制类型转换
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">v2</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#ce5c00;font-weight:bold">==</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><h2 id="1-2-整型">1.2. 整型</h2>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578665/article/golang/basics/int.png" alt="这里写图片描述"></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、类型表示
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//int和int32为不同类型，不会自动类型转换需要强制类型转换
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//强制类型转换需注意精度损失（浮点数→整数），值溢出（大范围→小范围）
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">v2</span> <span style="color:#204a87;font-weight:bold">int32</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">v1</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#0000cf;font-weight:bold">64</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">v2</span><span style="color:#000;font-weight:bold">=</span><span style="color:#204a87">int32</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">v1</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、数值运算,支持“+,-,*,/和%”
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#ce5c00;font-weight:bold">%</span><span style="color:#0000cf;font-weight:bold">3</span> <span style="color:#8f5902;font-style:italic">//求余
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//3、比较运算,“&lt;,&gt;,==,&gt;=,&lt;=,!=”
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//不同类型不能进行比较例如int和int8，但可以与字面常量（literal）进行比较
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">i</span> <span style="color:#204a87;font-weight:bold">int32</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">j</span> <span style="color:#204a87;font-weight:bold">int64</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">j</span><span style="color:#000;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">2</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">i</span><span style="color:#ce5c00;font-weight:bold">==</span><span style="color:#000">j</span>  <span style="color:#8f5902;font-style:italic">//编译错误，不同类型不能进行比较
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">i</span><span style="color:#ce5c00;font-weight:bold">==</span><span style="color:#0000cf;font-weight:bold">1</span> <span style="color:#ce5c00;font-weight:bold">||</span> <span style="color:#000">j</span><span style="color:#ce5c00;font-weight:bold">==</span><span style="color:#0000cf;font-weight:bold">2</span>  <span style="color:#8f5902;font-style:italic">//编译通过，可以与字面常量（literal）进行比较
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//4、位运算
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//Go(^x)取反与C语言(~x)不同，其他类似，具体见下表
+</span></span></span></code></pre></div><p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578663/article/golang/basics/bit-operation.png" alt="这里写图片描述"></p>
+<h2 id="1-3-浮点型">1.3. 浮点型</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、浮点型分为float32(类似C中的float)，float64(类似C中的double)
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">f1</span> <span style="color:#204a87;font-weight:bold">float32</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">f1</span><span style="color:#000;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">12</span>     <span style="color:#8f5902;font-style:italic">//不加小数点，被推导为整型
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">f2</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#0000cf;font-weight:bold">12.0</span>  <span style="color:#8f5902;font-style:italic">//加小数点，被推导为float64
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">f1</span><span style="color:#000;font-weight:bold">=</span><span style="color:#204a87">float32</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">f2</span><span style="color:#000;font-weight:bold">)</span>  <span style="color:#8f5902;font-style:italic">//需要执行强制转换
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、浮点数的比较
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//浮点数不是精确的表达方式，不能直接使用“==”来判断是否相等，可以借用math的包math.Fdim 
+</span></span></span></code></pre></div><h2 id="1-4-复数类型">1.4. 复数类型</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、复数的表示
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">v1</span> <span style="color:#204a87;font-weight:bold">complex64</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">v1</span><span style="color:#000;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">3.2</span><span style="color:#ce5c00;font-weight:bold">+</span><span style="color:#0000cf;font-weight:bold">12i</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//v1 v2 v3 表示为同一个数
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">v2</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#0000cf;font-weight:bold">3.2</span><span style="color:#ce5c00;font-weight:bold">+</span><span style="color:#0000cf;font-weight:bold">12i</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">v3</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87">complex</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">3.2</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">12</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、实部与虚部
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//z=complex(x,y),通过内置函数实部x=real(z),虚部y=imag(z)
+</span></span></span></code></pre></div><h2 id="1-5-字符串">1.5. 字符串</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//声明与赋值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">str</span> <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">str</span><span style="color:#000;font-weight:bold">=</span><span style="color:#4e9a06">&#34;hello world&#34;</span>
+</span></span></code></pre></div><p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578664/article/golang/basics/string.png" alt="这里写图片描述"></p>
+<h2 id="1-6-字符类型">1.6. 字符类型</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、byte，即uint8的别名
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、rune，即Unicode
+</span></span></span></code></pre></div><h2 id="1-7-错误类型-error">1.7. 错误类型（error）</h2>
+<h1 id="2-复合类型">2. 复合类型</h1>
+<h2 id="2-1-数组-array">2.1. 数组(array)</h2>
+<p>数组表示同一类型数据，数组长度定义后就不可更改，长度是数组内的一个内置常量，可通过len()来获取。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、创建数组
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">array1</span> <span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">]</span><span style="color:#204a87;font-weight:bold">int</span>    <span style="color:#8f5902;font-style:italic">//声明：var 变量名 类型
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">array2</span> <span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">]</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">=[</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">]</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">{</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">}</span>   <span style="color:#8f5902;font-style:italic">//初始化
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">array3</span><span style="color:#a40000">：</span><span style="color:#000;font-weight:bold">=[</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">]</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">{</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">}</span>    <span style="color:#8f5902;font-style:italic">//直接用“：=”赋值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#000;font-weight:bold">][</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">]</span><span style="color:#204a87;font-weight:bold">int</span>  <span style="color:#8f5902;font-style:italic">//二维数组
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#000;font-weight:bold">]</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#204a87;font-weight:bold">float</span>  <span style="color:#8f5902;font-style:italic">//指针数组
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、元素访问
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">v</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">array</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">//第一个返回值为数组下标，第二个为元素的值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//3、值类型
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//数组在Go中作为一个值类型，值类型在赋值和函数参数传递时，只复制副本，因此在函数体中并不能改变数组的内容，需用指针来改变数组的值。
+</span></span></span></code></pre></div><h2 id="2-2-切片-slice">2.2. 切片(slice)</h2>
+<p>​	数组在定义了长度后无法改变，且作为值类型在传递时产生副本，并不能改变数组元素的值。因此切片的功能弥补了这个不足，切片类似指向数组的一个指针。可以抽象为三个变量：指向数组的指针；切片中元素的个数(len函数)；已分配的存储空间(cap函数)。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、创建切片
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//a)基于数组创建
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">myArray</span> <span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">]</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">=[</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">]{</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">mySlice</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">=</span><span style="color:#000">myArray</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">first</span><span style="color:#000;font-weight:bold">:</span><span style="color:#000">last</span><span style="color:#000;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">slice1</span><span style="color:#000;font-weight:bold">=</span><span style="color:#000">myArray</span><span style="color:#000;font-weight:bold">[:]</span>   <span style="color:#8f5902;font-style:italic">//基于数组所有元素创建
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">slice2</span><span style="color:#000;font-weight:bold">=</span><span style="color:#000">myArray</span><span style="color:#000;font-weight:bold">[:</span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#000;font-weight:bold">]</span>  <span style="color:#8f5902;font-style:italic">//基于前三个元素创建
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">slice3</span><span style="color:#000;font-weight:bold">=</span><span style="color:#000">myArray</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#000;font-weight:bold">:]</span>  <span style="color:#8f5902;font-style:italic">//基于第3个元素开始后的所有元素创建
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//b)直接创建
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">slice1</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">([]</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">)</span>       <span style="color:#8f5902;font-style:italic">//元素初始值为0，初始个数为5
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">slice2</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">([]</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">10</span><span style="color:#000;font-weight:bold">)</span>    <span style="color:#8f5902;font-style:italic">//元素初始值为0，初始个数为5，预留个数为10
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">slice3</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">{</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">}</span>    <span style="color:#8f5902;font-style:italic">//初始化赋值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//c)基于切片创建
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">oldSlice</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">{</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">newSlice</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#000">oldSlice</span><span style="color:#000;font-weight:bold">[:</span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#000;font-weight:bold">]</span>   <span style="color:#8f5902;font-style:italic">//基于切片创建，不能超过原切片的存储空间(cap函数的值)
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、元素遍历
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">v</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">slice</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">//与数组的方式一致，使用range来遍历
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#8f5902;font-style:italic">//第一个返回值(i)为索引，第二个为元素的值(v)
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//3、动态增减元素
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//切片分存储空间(cap)和元素个数(len)，当存储空间小于实际的元素个数，会重新分配一块原空间2倍的内存块，并将原数据复制到该内存块中，合理的分配存储空间可以以空间换时间，降低系统开销。
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//添加元素
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">newSlice</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87">append</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">oldSlice</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#000;font-weight:bold">)</span>   <span style="color:#8f5902;font-style:italic">//直接将元素加进去，若存储空间不够会按上述方式扩容。
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">newSlice1</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87">append</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">oldSlice1</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">oldSlice2</span><span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#000;font-weight:bold">)</span>  <span style="color:#8f5902;font-style:italic">//将oldSlice2的元素打散后加到oldSlice1中，三个点不可省略。
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//4、内容复制
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//copy()函数可以复制切片，如果切片大小不一样，按较小的切片元素个数进行复制
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">slice1</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">{</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">slice2</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">{</span><span style="color:#0000cf;font-weight:bold">6</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">7</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">8</span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">copy</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">slice2</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">slice1</span><span style="color:#000;font-weight:bold">)</span>   <span style="color:#8f5902;font-style:italic">//只会复制slice1的前三个元素到slice2中
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87">copy</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">slice1</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">slice1</span><span style="color:#000;font-weight:bold">)</span>   <span style="color:#8f5902;font-style:italic">//只会复制slice2的三个元素到slice1中的前三个位置
+</span></span></span></code></pre></div><h2 id="2-3-键值对-map">2.3. 键值对(map)</h2>
+<p>map是一堆键值对的未排序集合。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、先声明后创建再赋值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">map1</span> <span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">键类型</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#000">值类型</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//创建
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">map1</span><span style="color:#000;font-weight:bold">=</span><span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">键类型</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#000">值类型</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">map1</span><span style="color:#000;font-weight:bold">=</span><span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">键类型</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#000">值类型</span> <span style="color:#000">存储空间</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//赋值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">map1</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">]=</span><span style="color:#000">value</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 直接创建
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">m2</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 然后赋值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">m2</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#34;a&#34;</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;aa&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">m2</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#34;b&#34;</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;bb&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 初始化 + 赋值一体化
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">m3</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#4e9a06">&#34;a&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#4e9a06">&#34;aa&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#4e9a06">&#34;b&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#4e9a06">&#34;bb&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、元素删除
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//delete()函数删除对应key的键值对，如果key不存在，不会报错；如果value为nil，则会抛出异常(panic)。
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87">delete</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">map1</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>  
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//3、元素查找
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">value</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">ok</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#000">myMap</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">ok</span><span style="color:#000;font-weight:bold">{</span><span style="color:#8f5902;font-style:italic">//如果找到
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#8f5902;font-style:italic">//处理找到的value值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//遍历
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">key</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">value</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">myMap</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">//处理key或value
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>map可以用来判断一个值是否在切片或数组中。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 判断某个类型（假如为myType）的值是否在切片或数组（假如为myList）中
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 构造一个map,key的类型为myType,value为bool型
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">myMap</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">myType</span><span style="color:#000;font-weight:bold">]</span><span style="color:#204a87;font-weight:bold">bool</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">myList</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#000">myType</span><span style="color:#000;font-weight:bold">{</span><span style="color:#000">value1</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">value2</span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 将切片中的值存为map中的key（因为key不能重复）,map的value都为true
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">value</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">myList</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">myMap</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">value</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87;font-weight:bold">true</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 判断valueX是否在myList中，即判断其是否在myMap的key中
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">ok</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">myMap</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">valueX</span><span style="color:#000;font-weight:bold">];</span> <span style="color:#000">ok</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// 如果valueX 在myList中，执行后续操作
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-4-指针-pointer">2.4. 指针(pointer)</h2>
+<p>具体参考<a href="https://www.huweihuang.com/golang-notes/oop/pointer.html">Go语言指针详解</a></p>
+<h2 id="2-5-结构体-struct">2.5. 结构体(struct)</h2>
+<p>具体参考<a href="https://www.huweihuang.com/golang-notes/oop/struct-method.html">Go面向对象编程之结构体</a></p>
+<h2 id="2-6-接口-interface">2.6. 接口(interface)</h2>
+<p>具体参考<a href="https://www.huweihuang.com/golang-notes/oop/interface/interface.html">Go面向对象编程之接口</a></p>
+<h2 id="2-7-通道-chan">2.7. 通道(chan)</h2>
+<p>具体参考<a href="https://www.huweihuang.com/golang-notes/concurrency/channel.html">Go并发编程之channel</a></p>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-46a114232811022faa125b8294f17449">3 - 流程语句</h1>
+    
+	<h1 id="流程语句">流程语句</h1>
+<h2 id="1-条件语句">1. 条件语句</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//在if之后条件语句之前可以添加变量初始化语句，用;号隔离
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">&lt;</span><span style="color:#000">条件语句</span><span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#000;font-weight:bold">{</span>    <span style="color:#8f5902;font-style:italic">//条件语句不需要用括号括起来，花括号必须存在
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#8f5902;font-style:italic">//语句体
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span><span style="color:#204a87;font-weight:bold">else</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">//语句体
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//在有返回值的函数中，不允许将最后的return语句放在if...else...的结构中，否则会编译失败
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//例如以下为错误范例
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">example</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">x</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">x</span><span style="color:#ce5c00;font-weight:bold">==</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#0000cf;font-weight:bold">5</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000;font-weight:bold">}</span><span style="color:#204a87;font-weight:bold">else</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">x</span>  <span style="color:#8f5902;font-style:italic">//最后的return语句放在if-else结构中，所以编译失败
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-选择语句">2. 选择语句</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、根据条件不同，对应不同的执行体
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">switch</span> <span style="color:#000">i</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>  	<span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Printf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;0&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">:</span>                <span style="color:#8f5902;font-style:italic">//满足条件就会退出，只有添加fallthrough才会继续执行下一个case语句
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  	<span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Prinntf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;1&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">:</span>            <span style="color:#8f5902;font-style:italic">//单个case可以出现多个选项
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  	<span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Printf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;2,3,1&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">default</span><span style="color:#000;font-weight:bold">:</span>               <span style="color:#8f5902;font-style:italic">//当都不满足以上条件时，执行default语句
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  	<span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Printf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Default&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、该模式等价于多个if-else的功能
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">switch</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#000;font-weight:bold">&lt;</span><span style="color:#000">条件表达式1</span><span style="color:#000;font-weight:bold">&gt;:</span>
+</span></span><span style="display:flex;"><span>  	<span style="color:#000">语句体1</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#000;font-weight:bold">&lt;</span><span style="color:#000">条件表达式2</span><span style="color:#000;font-weight:bold">&gt;:</span>
+</span></span><span style="display:flex;"><span>  	<span style="color:#000">语句体2</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="3-循环语句">3. 循环语句</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、Go只支持for关键字，不支持while，do-while结构
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">j</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">;</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">&lt;</span><span style="color:#0000cf;font-weight:bold">10</span><span style="color:#000;font-weight:bold">;</span><span style="color:#000">i</span><span style="color:#ce5c00;font-weight:bold">++</span><span style="color:#000;font-weight:bold">{</span>    <span style="color:#8f5902;font-style:italic">//支持多个赋值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#8f5902;font-style:italic">//语句体
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、无限循环
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">sum</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">for</span><span style="color:#000;font-weight:bold">{</span>  <span style="color:#8f5902;font-style:italic">//不接条件表达式表示无限循环
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">sum</span><span style="color:#ce5c00;font-weight:bold">++</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">sum</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#0000cf;font-weight:bold">100</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">break</span>   <span style="color:#8f5902;font-style:italic">//满足条件跳出循环
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//3、支持continue和break，break可以指定中断哪个循环，break JLoop(标签)
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">j</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">;</span><span style="color:#000">j</span><span style="color:#000;font-weight:bold">&lt;</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">;</span><span style="color:#000">j</span><span style="color:#ce5c00;font-weight:bold">++</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">;</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">&lt;</span><span style="color:#0000cf;font-weight:bold">10</span><span style="color:#000;font-weight:bold">;</span><span style="color:#000">i</span><span style="color:#ce5c00;font-weight:bold">++</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">i</span><span style="color:#000;font-weight:bold">&gt;</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#204a87;font-weight:bold">break</span> <span style="color:#000">JLoop</span>   <span style="color:#8f5902;font-style:italic">//终止JLoop标签处的外层循环
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">JLoop</span><span style="color:#000;font-weight:bold">:</span>    <span style="color:#8f5902;font-style:italic">//标签处
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#ce5c00;font-weight:bold">...</span>
+</span></span></code></pre></div><h2 id="4-跳转语句">4. 跳转语句</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//关键字goto支持跳转
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">myfunc</span><span style="color:#000;font-weight:bold">(){</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">i</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">HERE</span><span style="color:#000;font-weight:bold">:</span>           <span style="color:#8f5902;font-style:italic">//定义标签处
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">i</span><span style="color:#ce5c00;font-weight:bold">++</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">i</span><span style="color:#000;font-weight:bold">&lt;</span><span style="color:#0000cf;font-weight:bold">10</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">goto</span> <span style="color:#000">HERE</span>     <span style="color:#8f5902;font-style:italic">//跳转到标签处
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div>
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-76885969b59488f67b4016e7f549d7d9">4 - 函数与闭包</h1>
+    
+	<h1 id="函数">函数</h1>
+<h2 id="1-函数定义与调用">1. 函数定义与调用</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、函数组成：关键字func ,函数名，参数列表，返回值，函数体，返回语句
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//先名称后类型
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">函数名</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">参数列表</span><span style="color:#000;font-weight:bold">)(</span><span style="color:#000">返回值列表</span><span style="color:#000;font-weight:bold">){</span>  <span style="color:#8f5902;font-style:italic">//参数列表和返回值列表以变量声明的形式，如果单返回值可以直接加类型
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">函数体</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">return</span>    <span style="color:#8f5902;font-style:italic">//返回语句
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//例子
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">Add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">a</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">b</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">)(</span><span style="color:#000">ret</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">err</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">){</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">//函数体 
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#204a87;font-weight:bold">return</span>   <span style="color:#8f5902;font-style:italic">//return语句
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、函数调用
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//先导入函数所在的包，直接调用函数
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#4e9a06">&#34;mymath&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">sum</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">err</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#000">mymath</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">)</span>   <span style="color:#8f5902;font-style:italic">//多返回值和错误处理机制
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//可见性，包括函数、类型、变量
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//本包内可见(private)：小写字母开头
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//包外可见(public)：大写字母开头
+</span></span></span></code></pre></div><h2 id="2-不定参数">2. 不定参数</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、不定参数的类型
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">myfunc</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">args</span> <span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">){</span>   <span style="color:#8f5902;font-style:italic">//...type不定参数的类型，必须是最后一个参数，本质是切片
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">arg</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">args</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">arg</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//函数调用,传参可以选择多个，个数不定
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">myfunc</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">myfunc</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、不定参数的传递，假如有个变参函数myfunc2(args ...int)
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">myfunc1</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">args</span> <span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">){</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">//按原样传递
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">myfunc2</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">args</span><span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">//传递切片
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">myfunc2</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">args</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">:]</span><span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//3、任意类型的不定参数，使用interface{}作为指定类型
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">Printf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">format</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">args</span> <span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{}){</span>   <span style="color:#8f5902;font-style:italic">//此为标准库中fmt.Printf()函数的原型
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#8f5902;font-style:italic">//函数体
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="3-多返回值">3. 多返回值</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//多返回值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">file</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">File</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Read</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">b</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">byte</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">n</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">err</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//使用下划线&#34;_&#34;来丢弃返回值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">n</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">_</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#000">f</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Read</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">buf</span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><h2 id="4-匿名函数">4. 匿名函数</h2>
+<p>匿名函数：不带函数名的函数，可以像变量一样被传递。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">a</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">b</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">z</span> <span style="color:#204a87;font-weight:bold">float32</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">bool</span><span style="color:#000;font-weight:bold">{</span>  <span style="color:#8f5902;font-style:italic">//没有函数名
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">a</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">b</span><span style="color:#000;font-weight:bold">&lt;</span><span style="color:#204a87">int</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">z</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">f</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">x</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">y</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">x</span><span style="color:#ce5c00;font-weight:bold">+</span><span style="color:#000">y</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="5-闭包">5. 闭包</h2>
+<h3 id="5-1-闭包的概念">5.1. 闭包的概念</h3>
+<p>闭包是可以包含自由变量（未绑定到特定的对象）的代码块，这些变量不在代码块内或全局上下文中定义，而在定义代码块的环境中定义。要执行的代码块为自由变量提供绑定的计算环境（作用域）。</p>
+<h3 id="5-2-闭包的价值">5.2. 闭包的价值</h3>
+<p>闭包的价值在于可以作为一个变量对象来进行传递和返回。即可以把函数本身看作是一个变量。</p>
+<h3 id="5-3-go中的闭包">5.3. Go中的闭包</h3>
+<p>Go闭包是指引用了函数外的变量的一种函数，这样该函数就被绑定在某个变量上，只要闭包还被使用则引用的变量会一直存在。</p>
+<p>Go的匿名函数是一个闭包，Go闭包常用在go和defer关键字中。</p>
+<h3 id="5-4-闭包的坑">5.4. 闭包的坑</h3>
+<p>在for range中goroutine的方式使用闭包，如果没有给匿名函数传入一个变量，或新建一个变量存储迭代的变量，那么goroutine执行的结果会是最后一个迭代变量的结果，而不是每个迭代变量的结果。这是因为如果没有通过一个变量来拷贝迭代变量，那么闭包因为绑定了变量，当每个groutine运行时，迭代变量可能被更改。</p>
+<p>示例如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// false, print 3 3 3
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">values</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">{</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">val</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">values</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">go</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">val</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}()</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// true, print 1 2 3
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">val</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">values</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">go</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">val</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">val</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}(</span><span style="color:#000">val</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="5-5-闭包的示例">5.5 闭包的示例</h3>
+<blockquote>
+<p>closure.go</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">package</span> <span style="color:#000">main</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#4e9a06">&#34;fmt&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">main</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">j</span> <span style="color:#204a87;font-weight:bold">int</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#0000cf;font-weight:bold">5</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">a</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">i</span> <span style="color:#204a87;font-weight:bold">int</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#0000cf;font-weight:bold">10</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Printf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;i, j: %d, %d\n&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">i</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">j</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">a</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">j</span> <span style="color:#ce5c00;font-weight:bold">*=</span> <span style="color:#0000cf;font-weight:bold">2</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">a</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="5-6-闭包的参考链接">5.6 闭包的参考链接</h3>
+<ul>
+<li><a href="https://tour.golang.org/moretypes/25">https://tour.golang.org/moretypes/25</a></li>
+<li><a href="https://golang.org/doc/faq#closures_and_goroutines">https://golang.org/doc/faq#closures_and_goroutines</a></li>
+<li><a href="https://github.com/golang/go/wiki/CommonMistakes">https://github.com/golang/go/wiki/CommonMistakes</a></li>
+</ul>
+<p>参考：</p>
+<ul>
+<li>《Go语言编程》</li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-87f83fc3da9f5dcbb6bebac4f77c1552">5 - 错误处理</h1>
+    
+	<h1 id="错误处理">错误处理</h1>
+<h2 id="1-error接口">1. error接口</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//定义error接口
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">Error</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//调用error接口
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">Foo</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">param</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">n</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">err</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">){</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">//...
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">n</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">err</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#000">Foo</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span><span style="color:#ce5c00;font-weight:bold">!=</span><span style="color:#204a87;font-weight:bold">nil</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">//错误处理
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span><span style="color:#204a87;font-weight:bold">else</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">//使用返回值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-defer-延迟函数">2. defer[延迟函数]</h2>
+<p>语法：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">function_name</span><span style="color:#000;font-weight:bold">()</span>
+</span></span></code></pre></div><p>1）defer在声明时不会执行，而是推迟执行，在return执行前，倒序执行defer[先进后出]，一般用于释放资源，清理数据，记录日志，异常处理等。</p>
+<p>2）defer有一个特性：即使函数抛出异常，defer仍会被执行，这样不会出现程序错误导致资源不被释放，或者因为第三方包的异常导致程序崩溃。</p>
+<p>3）一般用于打开文件后释放资源的操作，比如打开一个文件，最后总是要关闭的。而在打开和关闭之间，会有诸多的处理，可能会有诸多的if-else、根据不同的情况需要提前返回</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">f</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">open</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">filename</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">f</span><span style="color:#000;font-weight:bold">.</span><span style="color:#204a87">close</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">do_something</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">condition_a</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span><span style="color:#204a87;font-weight:bold">return</span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">do_something_again</span><span style="color:#000;font-weight:bold">()</span> 
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">condition_b</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span><span style="color:#204a87;font-weight:bold">return</span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">do_further_things</span><span style="color:#000;font-weight:bold">()</span>
+</span></span></code></pre></div><p>4）defer示例</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">package</span> <span style="color:#000">main</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#4e9a06">&#34;fmt&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">deferTest</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">number</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">int</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">number</span><span style="color:#ce5c00;font-weight:bold">++</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;three:&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">number</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">number</span><span style="color:#ce5c00;font-weight:bold">++</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;two:&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">number</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">number</span><span style="color:#ce5c00;font-weight:bold">++</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;one:&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">number</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">number</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">main</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;函数返回值：&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">deferTest</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">/*
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">one: 1
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">two: 2
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">three: 3
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">函数返回值： 0
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">*/</span>
+</span></span></code></pre></div><h2 id="3-panic-和recover">3. panic()和recover()</h2>
+<p>Go中使用内置函数<code>panic()</code>和<code>recover()</code>来处理程序中的错误。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#204a87">panic</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#204a87">recover</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{}</span>
+</span></span></code></pre></div><h3 id="3-1-panic">3.1. panic()</h3>
+<p>当函数执行触发了panic()函数时，如果没有使用到defer关键字，函数执行流程会被立即终止；如果使用了defer关键字，则会逐层执行defer语句，直到所有的函数被终止。</p>
+<p>错误信息，包括panic函数传入的参数，将会被报告出来。</p>
+<p>示例如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87">panic</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">404</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">panic</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;network broken&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">panic</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">Error</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;file not exists&#34;</span><span style="color:#000;font-weight:bold">))</span>
+</span></span></code></pre></div><h3 id="3-2-recover">3.2. recover()</h3>
+<p>recover()函数用于终止错误处理流程。一般使用在defer关键字后以有效截取错误处理流程。如果没有在发生异常的goroutine中明确调用恢复过程（使用recover关键字） ，会导致该goroutine所属的进程打印异常信息后直接退出。</p>
+<p>示例如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">r</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">recover</span><span style="color:#000;font-weight:bold">();</span> <span style="color:#000">r</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">log</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Printf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Runtime error caught: %v&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">r</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}()</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">foo</span><span style="color:#000;font-weight:bold">()</span>
+</span></span></code></pre></div><p>无论foo()中是否触发了错误处理流程，该匿名defer函数都将在函数退出时得到执行。假如foo()中触发了错误处理流程， recover()函数执行将使得该错误处理过程终止。如果错误处理流程被触发时，程序传给panic函数的参数不为nil，则该函数还会打印详细的错误信息。</p>
+<p>参考：</p>
+<ul>
+<li>《Go语言编程》</li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="User mailing list" aria-label="User mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="User mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Twitter" aria-label="Twitter">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/twitter" aria-label="Twitter">
+      <i class="fab fa-twitter"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Stack Overflow" aria-label="Stack Overflow">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/stack" aria-label="Stack Overflow">
+      <i class="fab fa-stack-overflow"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/k8s.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Slack" aria-label="Slack">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/slack" aria-label="Slack">
+      <i class="fab fa-slack"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Developer mailing list" aria-label="Developer mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="Developer mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2022 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+
+
+  </body>
+</html>

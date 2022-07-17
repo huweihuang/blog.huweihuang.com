@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<meta name="robots" content="index, follow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>Channel | HUWEIHUAHG</title>
+<meta name="description" content="Channel
+channel就像管道的形式，是goroutine之间的通信方式，是进程内的通信方式，跨进程通信建议用分布式系统的方法来解决，例如Socket或http等通信协议。channel是类型相关，即一个channel只能传递一种类型的值，在声明时指定。
+1. 基本语法
+1.1. …">
+<meta property="og:title" content="Channel" />
+<meta property="og:description" content="Channel channel就像管道的形式，是goroutine之间的通信方式，是进程内的通信方式，跨进程通信建议用分布式系统的方法来解决，例如Socket或http等通信协议。channel是类型相关，即一个channel只能传递一种类型的值，在声明时指定。
+1. 基本语法 1.1. channel的声明 //1、channel声明，声明一个管道chanName，该管道可以传递的类型是ElementType //管道是一种复合类型，[chan ElementType],表示可以传递ElementType类型的管道[类似定语从句的修饰方法] var chanName chan ElementType var ch chan int //声明一个可以传递int类型的管道 var m map[string] chan bool //声明一个map，值的类型为可以传递bool类型的管道 1.2. 初始化 //2、初始化 ch:=make(chan int) //make一般用来声明一个复合类型，参数为复合类型的属性 1.3. 管道读写 //3、管道写入,把值想象成一个球，&#34;&lt;-&#34;的方向，表示球的流向，ch即为管道 //写入时，当管道已满（管道有缓冲长度）则会导致程序堵塞，直到有goroutine从中读取出值 ch &lt;- value //管道读取，&#34;&lt;-&#34;表示从管道把球倒出来赋值给一个变量 //当管道为空，读取数据会导致程序阻塞，直到有goroutine写入值 value:= &lt;-ch 1.4. select //4、每个case必须是一个IO操作，面向channel的操作，只执行其中的一个case操作，一旦满足则结束select过程 //面向channel的操作无非三种情况：成功读出；成功写入；即没有读出也没有写入 select{ case &lt;-chan1: //如果chan1读到数据，则进行该case处理语句 case chan2&lt;-1: //如果成功向chan2写入数据，则进入该case处理语句 default: //如果上面都没有成功，则进入default处理流程 } 2. 缓冲和超时机制 2.1. 缓冲机制 //1、缓冲机制：为管道指定空间长度，达到类似消息队列的效果 c:=make(chan int,1024) //第二个参数为缓冲区大小，与切片的空间大小类似 //通过range关键字来实现依次读取管道的数据，与数组或切片的range使用方法类似 for i :=range c{ fmt.Println(&#34;Received:&#34;,i) } 2." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://k8s.huweihuang.com/golang-notes/concurrency/channel/" /><meta property="article:section" content="golang-notes" />
+
+<meta property="og:site_name" content="HUWEIHUAHG" />
+
+<meta itemprop="name" content="Channel">
+<meta itemprop="description" content="Channel channel就像管道的形式，是goroutine之间的通信方式，是进程内的通信方式，跨进程通信建议用分布式系统的方法来解决，例如Socket或http等通信协议。channel是类型相关，即一个channel只能传递一种类型的值，在声明时指定。
+1. 基本语法 1.1. channel的声明 //1、channel声明，声明一个管道chanName，该管道可以传递的类型是ElementType //管道是一种复合类型，[chan ElementType],表示可以传递ElementType类型的管道[类似定语从句的修饰方法] var chanName chan ElementType var ch chan int //声明一个可以传递int类型的管道 var m map[string] chan bool //声明一个map，值的类型为可以传递bool类型的管道 1.2. 初始化 //2、初始化 ch:=make(chan int) //make一般用来声明一个复合类型，参数为复合类型的属性 1.3. 管道读写 //3、管道写入,把值想象成一个球，&#34;&lt;-&#34;的方向，表示球的流向，ch即为管道 //写入时，当管道已满（管道有缓冲长度）则会导致程序堵塞，直到有goroutine从中读取出值 ch &lt;- value //管道读取，&#34;&lt;-&#34;表示从管道把球倒出来赋值给一个变量 //当管道为空，读取数据会导致程序阻塞，直到有goroutine写入值 value:= &lt;-ch 1.4. select //4、每个case必须是一个IO操作，面向channel的操作，只执行其中的一个case操作，一旦满足则结束select过程 //面向channel的操作无非三种情况：成功读出；成功写入；即没有读出也没有写入 select{ case &lt;-chan1: //如果chan1读到数据，则进行该case处理语句 case chan2&lt;-1: //如果成功向chan2写入数据，则进入该case处理语句 default: //如果上面都没有成功，则进入default处理流程 } 2. 缓冲和超时机制 2.1. 缓冲机制 //1、缓冲机制：为管道指定空间长度，达到类似消息队列的效果 c:=make(chan int,1024) //第二个参数为缓冲区大小，与切片的空间大小类似 //通过range关键字来实现依次读取管道的数据，与数组或切片的range使用方法类似 for i :=range c{ fmt.Println(&#34;Received:&#34;,i) } 2.">
+
+<meta itemprop="wordCount" content="188">
+<meta itemprop="keywords" content="Golang," /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Channel"/>
+<meta name="twitter:description" content="Channel channel就像管道的形式，是goroutine之间的通信方式，是进程内的通信方式，跨进程通信建议用分布式系统的方法来解决，例如Socket或http等通信协议。channel是类型相关，即一个channel只能传递一种类型的值，在声明时指定。
+1. 基本语法 1.1. channel的声明 //1、channel声明，声明一个管道chanName，该管道可以传递的类型是ElementType //管道是一种复合类型，[chan ElementType],表示可以传递ElementType类型的管道[类似定语从句的修饰方法] var chanName chan ElementType var ch chan int //声明一个可以传递int类型的管道 var m map[string] chan bool //声明一个map，值的类型为可以传递bool类型的管道 1.2. 初始化 //2、初始化 ch:=make(chan int) //make一般用来声明一个复合类型，参数为复合类型的属性 1.3. 管道读写 //3、管道写入,把值想象成一个球，&#34;&lt;-&#34;的方向，表示球的流向，ch即为管道 //写入时，当管道已满（管道有缓冲长度）则会导致程序堵塞，直到有goroutine从中读取出值 ch &lt;- value //管道读取，&#34;&lt;-&#34;表示从管道把球倒出来赋值给一个变量 //当管道为空，读取数据会导致程序阻塞，直到有goroutine写入值 value:= &lt;-ch 1.4. select //4、每个case必须是一个IO操作，面向channel的操作，只执行其中的一个case操作，一旦满足则结束select过程 //面向channel的操作无非三种情况：成功读出；成功写入；即没有读出也没有写入 select{ case &lt;-chan1: //如果chan1读到数据，则进行该case处理语句 case chan2&lt;-1: //如果成功向chan2写入数据，则进入该case处理语句 default: //如果上面都没有成功，则进入default处理流程 } 2. 缓冲和超时机制 2.1. 缓冲机制 //1、缓冲机制：为管道指定空间长度，达到类似消息队列的效果 c:=make(chan int,1024) //第二个参数为缓冲区大小，与切片的空间大小类似 //通过range关键字来实现依次读取管道的数据，与数组或切片的range使用方法类似 for i :=range c{ fmt.Println(&#34;Received:&#34;,i) } 2."/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.cd6c2bbb05cdf98237b53882fed8c7a8b3fd7a7f7963d7cb305dd0d984782137.css" as="style">
+<link href="/scss/main.min.cd6c2bbb05cdf98237b53882fed8c7a8b3fd7a7f7963d7cb305dd0d984782137.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-00000000-0', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-page">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">HUWEIHUAHG</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/kubernetes-notes/" ><span>Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/golang-notes/" ><span class="active">Golang学习笔记</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input type="search" class="form-control td-search-input" placeholder="&#xf002; 站内搜索…" aria-label="站内搜索…" autocomplete="off">
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <aside class="col-12 col-md-3 col-xl-2 td-sidebar d-print-none">
+            
+<div id="td-sidebar-menu" class="td-sidebar__inner">
+  <form class="td-sidebar__search d-flex align-items-center">
+    <input type="search" class="form-control td-search-input" placeholder="&#xf002; 站内搜索…" aria-label="站内搜索…" autocomplete="off">
+
+    <button class="btn btn-link td-sidebar__toggle d-md-none p-0 ml-3 fas fa-bars" type="button" data-toggle="collapse" data-target="#td-section-nav" aria-controls="td-docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    </button>
+  </form>
+  <nav class="collapse td-sidebar-nav foldable-nav" id="td-section-nav">
+    <ul class="td-sidebar-nav__section pr-md-3 ul-0">
+      <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-golang-notes-li">
+  <a href="/golang-notes/" class="align-left pl-0 td-sidebar-link td-sidebar-link__section tree-root" id="m-golang-notes"><span class="">Golang学习笔记</span></a>
+  <ul class="ul-1">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-summary-li">
+  <input type="checkbox" id="m-golang-notes-summary-check"/>
+  <label for="m-golang-notes-summary-check"><a href="/golang-notes/summary/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-summary"><span class="">语言概述</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-summary-go-resource-li">
+  <input type="checkbox" id="m-golang-notes-summary-go-resource-check"/>
+  <label for="m-golang-notes-summary-go-resource-check"><a href="/golang-notes/summary/go-resource/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-summary-go-resource"><span class="">Golang资源</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-summary-skill-tree-li">
+  <input type="checkbox" id="m-golang-notes-summary-skill-tree-check"/>
+  <label for="m-golang-notes-summary-skill-tree-check"><a href="/golang-notes/summary/skill-tree/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-summary-skill-tree"><span class="">后端开发技能树</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-summary-language-li">
+  <input type="checkbox" id="m-golang-notes-summary-language-check"/>
+  <label for="m-golang-notes-summary-language-check"><a href="/golang-notes/summary/language/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-summary-language"><span class="">计算机语言概述</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-introduction-li">
+  <input type="checkbox" id="m-golang-notes-introduction-check"/>
+  <label for="m-golang-notes-introduction-check"><a href="/golang-notes/introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-introduction"><span class="">安装与配置</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-introduction-golang-li">
+  <input type="checkbox" id="m-golang-notes-introduction-golang-check"/>
+  <label for="m-golang-notes-introduction-golang-check"><a href="/golang-notes/introduction/golang/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-introduction-golang"><span class="">Golang介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-introduction-install-li">
+  <input type="checkbox" id="m-golang-notes-introduction-install-check"/>
+  <label for="m-golang-notes-introduction-install-check"><a href="/golang-notes/introduction/install/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-introduction-install"><span class="">Golang安装</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-introduction-package-li">
+  <input type="checkbox" id="m-golang-notes-introduction-package-check"/>
+  <label for="m-golang-notes-introduction-package-check"><a href="/golang-notes/introduction/package/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-introduction-package"><span class="">包管理工具</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-introduction-package-go-modules-li">
+  <input type="checkbox" id="m-golang-notes-introduction-package-go-modules-check"/>
+  <label for="m-golang-notes-introduction-package-go-modules-check"><a href="/golang-notes/introduction/package/go-modules/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-introduction-package-go-modules"><span class="">go modules的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-introduction-package-dep-usage-li">
+  <input type="checkbox" id="m-golang-notes-introduction-package-dep-usage-check"/>
+  <label for="m-golang-notes-introduction-package-dep-usage-check"><a href="/golang-notes/introduction/package/dep-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-introduction-package-dep-usage"><span class="">dep的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-introduction-package-glide-usage-li">
+  <input type="checkbox" id="m-golang-notes-introduction-package-glide-usage-check"/>
+  <label for="m-golang-notes-introduction-package-glide-usage-check"><a href="/golang-notes/introduction/package/glide-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-introduction-package-glide-usage"><span class="">glide的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-introduction-package-govendor-usage-li">
+  <input type="checkbox" id="m-golang-notes-introduction-package-govendor-usage-check"/>
+  <label for="m-golang-notes-introduction-package-govendor-usage-check"><a href="/golang-notes/introduction/package/govendor-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-introduction-package-govendor-usage"><span class="">govendor的使用</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-basis-li">
+  <input type="checkbox" id="m-golang-notes-basis-check"/>
+  <label for="m-golang-notes-basis-check"><a href="/golang-notes/basis/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-basis"><span class="">顺序编程</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-basis-var-const-li">
+  <input type="checkbox" id="m-golang-notes-basis-var-const-check"/>
+  <label for="m-golang-notes-basis-var-const-check"><a href="/golang-notes/basis/var-const/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-basis-var-const"><span class="">变量与常量</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-basis-data-types-li">
+  <input type="checkbox" id="m-golang-notes-basis-data-types-check"/>
+  <label for="m-golang-notes-basis-data-types-check"><a href="/golang-notes/basis/data-types/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-basis-data-types"><span class="">数据类型</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-basis-control-structures-li">
+  <input type="checkbox" id="m-golang-notes-basis-control-structures-check"/>
+  <label for="m-golang-notes-basis-control-structures-check"><a href="/golang-notes/basis/control-structures/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-basis-control-structures"><span class="">流程语句</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-basis-functions-li">
+  <input type="checkbox" id="m-golang-notes-basis-functions-check"/>
+  <label for="m-golang-notes-basis-functions-check"><a href="/golang-notes/basis/functions/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-basis-functions"><span class="">函数与闭包</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-basis-errors-li">
+  <input type="checkbox" id="m-golang-notes-basis-errors-check"/>
+  <label for="m-golang-notes-basis-errors-check"><a href="/golang-notes/basis/errors/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-basis-errors"><span class="">错误处理</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-oop-li">
+  <input type="checkbox" id="m-golang-notes-oop-check"/>
+  <label for="m-golang-notes-oop-check"><a href="/golang-notes/oop/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-oop"><span class="">面向对象编程</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-oop-oop-li">
+  <input type="checkbox" id="m-golang-notes-oop-oop-check"/>
+  <label for="m-golang-notes-oop-oop-check"><a href="/golang-notes/oop/oop/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-oop-oop"><span class="">面向对象编程概述</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-oop-struct-method-li">
+  <input type="checkbox" id="m-golang-notes-oop-struct-method-check"/>
+  <label for="m-golang-notes-oop-struct-method-check"><a href="/golang-notes/oop/struct-method/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-oop-struct-method"><span class="">类与方法</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-oop-pointer-li">
+  <input type="checkbox" id="m-golang-notes-oop-pointer-check"/>
+  <label for="m-golang-notes-oop-pointer-check"><a href="/golang-notes/oop/pointer/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-oop-pointer"><span class="">指针</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-oop-interface-li">
+  <input type="checkbox" id="m-golang-notes-oop-interface-check"/>
+  <label for="m-golang-notes-oop-interface-check"><a href="/golang-notes/oop/interface/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-oop-interface"><span class="">面向接口编程</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-oop-interface-interface-li">
+  <input type="checkbox" id="m-golang-notes-oop-interface-interface-check"/>
+  <label for="m-golang-notes-oop-interface-interface-check"><a href="/golang-notes/oop/interface/interface/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-oop-interface-interface"><span class="">接口概述</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-oop-interface-client-go-interface-li">
+  <input type="checkbox" id="m-golang-notes-oop-interface-client-go-interface-check"/>
+  <label for="m-golang-notes-oop-interface-client-go-interface-check"><a href="/golang-notes/oop/interface/client-go-interface/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-oop-interface-client-go-interface"><span class="">client-go中接口</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-oop-interface-common-interface-li">
+  <input type="checkbox" id="m-golang-notes-oop-interface-common-interface-check"/>
+  <label for="m-golang-notes-oop-interface-common-interface-check"><a href="/golang-notes/oop/interface/common-interface/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-oop-interface-common-interface"><span class="">通用接口设计</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-golang-notes-concurrency-li">
+  <input type="checkbox" id="m-golang-notes-concurrency-check" checked/>
+  <label for="m-golang-notes-concurrency-check"><a href="/golang-notes/concurrency/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-concurrency"><span class="">并发编程</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-concurrency-concurrency-li">
+  <input type="checkbox" id="m-golang-notes-concurrency-concurrency-check"/>
+  <label for="m-golang-notes-concurrency-concurrency-check"><a href="/golang-notes/concurrency/concurrency/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-concurrency-concurrency"><span class="">并发基础</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-concurrency-goroutine-li">
+  <input type="checkbox" id="m-golang-notes-concurrency-goroutine-check"/>
+  <label for="m-golang-notes-concurrency-goroutine-check"><a href="/golang-notes/concurrency/goroutine/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-concurrency-goroutine"><span class="">Goroutine</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-concurrency-channel-li">
+  <input type="checkbox" id="m-golang-notes-concurrency-channel-check"/>
+  <label for="m-golang-notes-concurrency-channel-check"><a href="/golang-notes/concurrency/channel/" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-golang-notes-concurrency-channel"><span class="td-sidebar-nav-active-item">Channel</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-concurrency-parallelization-li">
+  <input type="checkbox" id="m-golang-notes-concurrency-parallelization-check"/>
+  <label for="m-golang-notes-concurrency-parallelization-check"><a href="/golang-notes/concurrency/parallelization/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-concurrency-parallelization"><span class="">并行化</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-text-li">
+  <input type="checkbox" id="m-golang-notes-text-check"/>
+  <label for="m-golang-notes-text-check"><a href="/golang-notes/text/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-text"><span class="">文本处理</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-text-json-li">
+  <input type="checkbox" id="m-golang-notes-text-json-check"/>
+  <label for="m-golang-notes-text-json-check"><a href="/golang-notes/text/json/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-text-json"><span class="">Json处理</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-text-file-li">
+  <input type="checkbox" id="m-golang-notes-text-file-check"/>
+  <label for="m-golang-notes-text-file-check"><a href="/golang-notes/text/file/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-text-file"><span class="">文件操作</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-text-string-li">
+  <input type="checkbox" id="m-golang-notes-text-string-check"/>
+  <label for="m-golang-notes-text-string-check"><a href="/golang-notes/text/string/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-text-string"><span class="">字符串处理</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-text-template-li">
+  <input type="checkbox" id="m-golang-notes-text-template-check"/>
+  <label for="m-golang-notes-text-template-check"><a href="/golang-notes/text/template/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-text-template"><span class="">模板语法</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-test-li">
+  <input type="checkbox" id="m-golang-notes-test-check"/>
+  <label for="m-golang-notes-test-check"><a href="/golang-notes/test/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-test"><span class="">单元测试</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-test-test-li">
+  <input type="checkbox" id="m-golang-notes-test-test-check"/>
+  <label for="m-golang-notes-test-test-check"><a href="/golang-notes/test/test/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-test-test"><span class="">单元测试</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-test-gdb-li">
+  <input type="checkbox" id="m-golang-notes-test-gdb-check"/>
+  <label for="m-golang-notes-test-gdb-check"><a href="/golang-notes/test/gdb/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-test-gdb"><span class="">GDB调试</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-principle-li">
+  <input type="checkbox" id="m-golang-notes-principle-check"/>
+  <label for="m-golang-notes-principle-check"><a href="/golang-notes/principle/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-principle"><span class="">原理篇</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-principle-go-scheduler-li">
+  <input type="checkbox" id="m-golang-notes-principle-go-scheduler-check"/>
+  <label for="m-golang-notes-principle-go-scheduler-check"><a href="/golang-notes/principle/go-scheduler/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-principle-go-scheduler"><span class="">Goroutine调度</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-principle-memory-allocation-li">
+  <input type="checkbox" id="m-golang-notes-principle-memory-allocation-check"/>
+  <label for="m-golang-notes-principle-memory-allocation-check"><a href="/golang-notes/principle/memory-allocation/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-principle-memory-allocation"><span class="">内存分配</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-principle-garbage-collection-li">
+  <input type="checkbox" id="m-golang-notes-principle-garbage-collection-check"/>
+  <label for="m-golang-notes-principle-garbage-collection-check"><a href="/golang-notes/principle/garbage-collection/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-principle-garbage-collection"><span class="">垃圾回收</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-principle-understand-channel-li">
+  <input type="checkbox" id="m-golang-notes-principle-understand-channel-check"/>
+  <label for="m-golang-notes-principle-understand-channel-check"><a href="/golang-notes/principle/understand-channel/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-principle-understand-channel"><span class="">深入理解Channel</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-framework-li">
+  <input type="checkbox" id="m-golang-notes-framework-check"/>
+  <label for="m-golang-notes-framework-check"><a href="/golang-notes/framework/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-framework"><span class="">框架与工具</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-framework-cobra-li">
+  <input type="checkbox" id="m-golang-notes-framework-cobra-check"/>
+  <label for="m-golang-notes-framework-cobra-check"><a href="/golang-notes/framework/cobra/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-framework-cobra"><span class="">Cobra命令框架</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-framework-cobra-cobra-usage-li">
+  <input type="checkbox" id="m-golang-notes-framework-cobra-cobra-usage-check"/>
+  <label for="m-golang-notes-framework-cobra-cobra-usage-check"><a href="/golang-notes/framework/cobra/cobra-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-framework-cobra-cobra-usage"><span class="">cobra 介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-framework-cobra-cobra-command-li">
+  <input type="checkbox" id="m-golang-notes-framework-cobra-cobra-command-check"/>
+  <label for="m-golang-notes-framework-cobra-cobra-command-check"><a href="/golang-notes/framework/cobra/cobra-command/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-framework-cobra-cobra-command"><span class="">cobra command</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-framework-cobra-cobra-flags-li">
+  <input type="checkbox" id="m-golang-notes-framework-cobra-cobra-flags-check"/>
+  <label for="m-golang-notes-framework-cobra-cobra-flags-check"><a href="/golang-notes/framework/cobra/cobra-flags/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-framework-cobra-cobra-flags"><span class="">cobra flags</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-web-li">
+  <input type="checkbox" id="m-golang-notes-web-check"/>
+  <label for="m-golang-notes-web-check"><a href="/golang-notes/web/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-web"><span class="">Web编程</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-web-golang-http-execution-flow-li">
+  <input type="checkbox" id="m-golang-notes-web-golang-http-execution-flow-check"/>
+  <label for="m-golang-notes-web-golang-http-execution-flow-check"><a href="/golang-notes/web/golang-http-execution-flow/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-web-golang-http-execution-flow"><span class="">Http包源码分析</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-web-beego-li">
+  <input type="checkbox" id="m-golang-notes-web-beego-check"/>
+  <label for="m-golang-notes-web-beego-check"><a href="/golang-notes/web/beego/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-web-beego"><span class="">Beego Web框架</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-web-beego-beego-introduction-li">
+  <input type="checkbox" id="m-golang-notes-web-beego-beego-introduction-check"/>
+  <label for="m-golang-notes-web-beego-beego-introduction-check"><a href="/golang-notes/web/beego/beego-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-web-beego-beego-introduction"><span class="">Beego 介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-web-beego-bee-li">
+  <input type="checkbox" id="m-golang-notes-web-beego-bee-check"/>
+  <label for="m-golang-notes-web-beego-bee-check"><a href="/golang-notes/web/beego/bee/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-web-beego-bee"><span class="">Bee 工具使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-web-beego-beego-project-li">
+  <input type="checkbox" id="m-golang-notes-web-beego-beego-project-check"/>
+  <label for="m-golang-notes-web-beego-beego-project-check"><a href="/golang-notes/web/beego/beego-project/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-web-beego-beego-project"><span class="">Beego 项目逻辑</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-web-beego-beego-log-li">
+  <input type="checkbox" id="m-golang-notes-web-beego-beego-log-check"/>
+  <label for="m-golang-notes-web-beego-beego-log-check"><a href="/golang-notes/web/beego/beego-log/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-web-beego-beego-log"><span class="">Beego 日志处理</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-code-li">
+  <input type="checkbox" id="m-golang-notes-code-check"/>
+  <label for="m-golang-notes-code-check"><a href="/golang-notes/code/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-code"><span class="">源码分析</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-code-confd-code-analysis-li">
+  <input type="checkbox" id="m-golang-notes-code-confd-code-analysis-check"/>
+  <label for="m-golang-notes-code-confd-code-analysis-check"><a href="/golang-notes/code/confd-code-analysis/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-code-confd-code-analysis"><span class="">confd源码分析</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-readme-li">
+  <input type="checkbox" id="m-golang-notes-readme-check"/>
+  <label for="m-golang-notes-readme-check"><a href="/golang-notes/readme/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-readme"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-summary-li">
+  <input type="checkbox" id="m-golang-notes-summary-check"/>
+  <label for="m-golang-notes-summary-check"><a href="/golang-notes/summary/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-summary"><span class=""></span></a></label>
+  
+</li>
+  </ul>
+</li>
+    </ul>
+  </nav>
+</div>
+
+          </aside>
+          <aside class="d-none d-xl-block col-xl-2 td-sidebar-toc d-print-none">
+            
+<div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
+<a href="https://github.com/huweihuang/k8s.huweihuang.com/tree/master/content/zh-cn/golang-notes/concurrency/channel.md" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa fa-file-alt fa-fw"></i> 查看页面源码</a>
+  <a href="https://github.com/huweihuang/k8s.huweihuang.com/edit/master/content/zh-cn/golang-notes/concurrency/channel.md" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 编辑此页</a>
+  <a href="https://github.com/huweihuang/k8s.huweihuang.com/new/master/content/zh-cn/golang-notes/concurrency/channel.md?filename=change-me.md&amp;value=---%0Atitle%3A&#43;%22Long&#43;Page&#43;Title%22%0AlinkTitle%3A&#43;%22Short&#43;Nav&#43;Title%22%0Aweight%3A&#43;100%0Adescription%3A&#43;%3E-%0A&#43;&#43;&#43;&#43;&#43;Page&#43;description&#43;for&#43;heading&#43;and&#43;indexes.%0A---%0A%0A%23%23&#43;Heading%0A%0AEdit&#43;this&#43;template&#43;to&#43;create&#43;your&#43;new&#43;page.%0A%0A%2A&#43;Give&#43;it&#43;a&#43;good&#43;name%2C&#43;ending&#43;in&#43;%60.md%60&#43;-&#43;e.g.&#43;%60getting-started.md%60%0A%2A&#43;Edit&#43;the&#43;%22front&#43;matter%22&#43;section&#43;at&#43;the&#43;top&#43;of&#43;the&#43;page&#43;%28weight&#43;controls&#43;how&#43;its&#43;ordered&#43;amongst&#43;other&#43;pages&#43;in&#43;the&#43;same&#43;directory%3B&#43;lowest&#43;number&#43;first%29.%0A%2A&#43;Add&#43;a&#43;good&#43;commit&#43;message&#43;at&#43;the&#43;bottom&#43;of&#43;the&#43;page&#43;%28%3C80&#43;characters%3B&#43;use&#43;the&#43;extended&#43;description&#43;field&#43;for&#43;more&#43;detail%29.%0A%2A&#43;Create&#43;a&#43;new&#43;branch&#43;so&#43;you&#43;can&#43;preview&#43;your&#43;new&#43;file&#43;and&#43;request&#43;a&#43;review&#43;via&#43;Pull&#43;Request.%0A" class="td-page-meta--child" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 添加子页面</a>
+  <a href="https://github.com/huweihuang/k8s.huweihuang.com/issues/new?title=Channel" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
+  <a href="https://github.com/huweihuang/k8s.huweihuang.com/issues/new" class="td-page-meta--project-issue" target="_blank" rel="noopener"><i class="fas fa-tasks fa-fw"></i> 提交项目问题</a>
+  <a id="print" href="https://k8s.huweihuang.com/golang-notes/concurrency/_print/"><i class="fa fa-print fa-fw"></i> 整节打印</a>
+
+</div>
+
+            
+
+
+<div class="td-toc"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#channel">Channel</a></li>
+    <li><a href="#1-基本语法">1. 基本语法</a>
+      <ul>
+        <li><a href="#1-1-channel的声明">1.1. channel的声明</a></li>
+        <li><a href="#1-2-初始化">1.2. 初始化</a></li>
+        <li><a href="#1-3-管道读写">1.3. 管道读写</a></li>
+        <li><a href="#1-4-select">1.4. select</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-缓冲和超时机制">2. 缓冲和超时机制</a>
+      <ul>
+        <li><a href="#2-1-缓冲机制">2.1. 缓冲机制</a></li>
+        <li><a href="#2-2-超时机制">2.2. 超时机制</a></li>
+        <li><a href="#2-3-channel的传递">2.3. channel的传递</a></li>
+        <li><a href="#2-4-单向channel">2.4. 单向channel</a></li>
+        <li><a href="#2-5-关闭channel">2.5. 关闭channel</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></div>
+
+
+
+            
+
+	
+		
+			
+				
+			
+			
+
+
+
+  
+  
+    <div class="taxonomy taxonomy-terms-cloud taxo-tags">
+      
+        <h5 class="taxonomy-title">Tags</h5>
+      
+      <ul class="taxonomy-terms">
+        
+          <li><a class="taxonomy-term" href="https://k8s.huweihuang.com/tags/golang/" data-taxonomy-term="golang"><span class="taxonomy-label">Golang</span><span class="taxonomy-count">40</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://k8s.huweihuang.com/tags/kubernetes/" data-taxonomy-term="kubernetes"><span class="taxonomy-label">Kubernetes</span><span class="taxonomy-count">4</span></a></li>
+        
+      </ul>
+    </div>
+  
+
+		
+			
+				
+			
+			
+
+
+
+  
+  
+
+		
+	
+
+          </aside>
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+  
+
+            <nav aria-label="breadcrumb" class="td-breadcrumbs">
+  <ol class="breadcrumb">
+  <li class="breadcrumb-item">
+    <a href="https://k8s.huweihuang.com/golang-notes/">Golang学习笔记</a>
+  </li>
+  <li class="breadcrumb-item">
+    <a href="https://k8s.huweihuang.com/golang-notes/concurrency/">并发编程</a>
+  </li>
+  <li class="breadcrumb-item active" aria-current="page">
+    <a href="https://k8s.huweihuang.com/golang-notes/concurrency/channel/">Channel</a>
+  </li>
+  </ol>
+</nav>
+            
+<div class="td-content">
+	<h1>Channel</h1>
+	
+	<header class="article-meta">
+		
+
+  
+    
+      
+
+
+<div class="taxonomy taxonomy-terms-article taxo-tags">
+  <h5 class="taxonomy-title">Tags:</h5>
+  <ul class="taxonomy-terms">
+    
+      <li><a class="taxonomy-term" href="https://k8s.huweihuang.com/tags/golang/" data-taxonomy-term="golang"><span class="taxonomy-label">Golang</span></a></li>
+    
+  </ul>
+</div>
+
+    
+      
+
+
+    
+  
+
+		
+	</header>    
+	<h1 id="channel">Channel</h1>
+<p>channel就像管道的形式，是goroutine之间的通信方式，是进程内的通信方式，跨进程通信建议用分布式系统的方法来解决，例如Socket或http等通信协议。channel是类型相关，即一个channel只能传递一种类型的值，在声明时指定。</p>
+<h1 id="1-基本语法">1. 基本语法</h1>
+<h2 id="1-1-channel的声明">1.1. channel的声明</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、channel声明，声明一个管道chanName，该管道可以传递的类型是ElementType
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//管道是一种复合类型，[chan ElementType],表示可以传递ElementType类型的管道[类似定语从句的修饰方法]
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">chanName</span> <span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#000">ElementType</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">ch</span> <span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">int</span>                  <span style="color:#8f5902;font-style:italic">//声明一个可以传递int类型的管道
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">m</span> <span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">bool</span>      <span style="color:#8f5902;font-style:italic">//声明一个map，值的类型为可以传递bool类型的管道
+</span></span></span></code></pre></div><h2 id="1-2-初始化">1.2. 初始化</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、初始化
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">ch</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">)</span>   <span style="color:#8f5902;font-style:italic">//make一般用来声明一个复合类型，参数为复合类型的属性
+</span></span></span></code></pre></div><h2 id="1-3-管道读写">1.3. 管道读写</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//3、管道写入,把值想象成一个球，&#34;&lt;-&#34;的方向，表示球的流向，ch即为管道
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//写入时，当管道已满（管道有缓冲长度）则会导致程序堵塞，直到有goroutine从中读取出值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">ch</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span> <span style="color:#000">value</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//管道读取，&#34;&lt;-&#34;表示从管道把球倒出来赋值给一个变量
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//当管道为空，读取数据会导致程序阻塞，直到有goroutine写入值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">value</span><span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#000">ch</span> 
+</span></span></code></pre></div><h2 id="1-4-select">1.4. select</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//4、每个case必须是一个IO操作，面向channel的操作，只执行其中的一个case操作，一旦满足则结束select过程
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//面向channel的操作无非三种情况：成功读出；成功写入；即没有读出也没有写入
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">select</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#000">chan1</span><span style="color:#000;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">//如果chan1读到数据，则进行该case处理语句
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#000">chan2</span><span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">//如果成功向chan2写入数据，则进入该case处理语句
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#204a87;font-weight:bold">default</span><span style="color:#000;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">//如果上面都没有成功，则进入default处理流程
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="2-缓冲和超时机制">2. 缓冲和超时机制</h1>
+<h2 id="2-1-缓冲机制">2.1. 缓冲机制</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、缓冲机制：为管道指定空间长度，达到类似消息队列的效果
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">c</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">1024</span><span style="color:#000;font-weight:bold">)</span>  <span style="color:#8f5902;font-style:italic">//第二个参数为缓冲区大小，与切片的空间大小类似
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//通过range关键字来实现依次读取管道的数据，与数组或切片的range使用方法类似
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Received:&#34;</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-2-超时机制">2.2. 超时机制</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、超时机制：利用select只要一个case满足，程序就继续执行而不考虑其他case的情况的特性实现超时机制
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">timeout</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">bool</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>    <span style="color:#8f5902;font-style:italic">//设置一个超时管道
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">go</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(){</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Sleep</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1e9</span><span style="color:#000;font-weight:bold">)</span>      <span style="color:#8f5902;font-style:italic">//设置超时时间，等待一分钟
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">timeout</span><span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#204a87;font-weight:bold">true</span>        <span style="color:#8f5902;font-style:italic">//一分钟后往管道放一个true的值
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}()</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">select</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#000">ch</span><span style="color:#000;font-weight:bold">:</span>           <span style="color:#8f5902;font-style:italic">//如果读到数据，则会结束select过程
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#8f5902;font-style:italic">//从ch中读取数据
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#000">timeout</span><span style="color:#000;font-weight:bold">:</span>      <span style="color:#8f5902;font-style:italic">//如果前面的case没有调用到，必定会读到true值，结束select，避免永久等待
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#8f5902;font-style:italic">//一直没有从ch中读取到数据，但从timeout中读取到了数据
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-3-channel的传递">2.3. channel的传递</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、channel的传递，来实现Linux系统中管道的功能，以插件的方式增加数据处理的流程
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">PipeData</span> <span style="color:#204a87;font-weight:bold">struct</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">value</span> <span style="color:#204a87;font-weight:bold">int</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">handler</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">int</span>   <span style="color:#8f5902;font-style:italic">//handler是属性？
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">next</span> <span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">int</span>   <span style="color:#8f5902;font-style:italic">//可以把[chan int]看成一个整体，表示放int类型的管道
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">handler</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">queue</span> <span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">PipeData</span><span style="color:#000;font-weight:bold">){</span> <span style="color:#8f5902;font-style:italic">//queue是一个存放*PipeDate类型的管道，可改变管道里的数据块内容
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">data</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">queue</span><span style="color:#000;font-weight:bold">{</span>     <span style="color:#8f5902;font-style:italic">//data的类型就是管道存放定义的类型，即PipeData
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">data</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">next</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span> <span style="color:#000">data</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">handler</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">data</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">value</span><span style="color:#000;font-weight:bold">)</span>    <span style="color:#8f5902;font-style:italic">//该方法实现将PipeData的value值存放到next的管道中
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-4-单向channel">2.4. 单向channel</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、单向channel：只能用于接收或发送数据，是对channel的一种使用限制
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//单向channel的声明
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">ch1</span> <span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">int</span>    <span style="color:#8f5902;font-style:italic">//正常channel，可读写
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">ch2</span> <span style="color:#204a87;font-weight:bold">chan</span><span style="color:#ce5c00;font-weight:bold">&lt;-</span> <span style="color:#204a87;font-weight:bold">int</span>  <span style="color:#8f5902;font-style:italic">//单向只写channel  [chan&lt;- int]看成一个整体，表示流入管道
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">ch3</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">int</span>  <span style="color:#8f5902;font-style:italic">//单向只读channel  [&lt;-chan int]看成一个整体，表示流出管道
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//管道类型强制转换
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">ch4</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">)</span>     <span style="color:#8f5902;font-style:italic">//ch4为双向管道
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">ch5</span><span style="color:#ce5c00;font-weight:bold">:=&lt;-</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87">int</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ch4</span><span style="color:#000;font-weight:bold">)</span>    <span style="color:#8f5902;font-style:italic">//把[&lt;-chan int]看成单向只读管道类型，对ch4进行强制类型转换
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">ch6</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87;font-weight:bold">chan</span><span style="color:#ce5c00;font-weight:bold">&lt;-</span> <span style="color:#204a87">int</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ch4</span><span style="color:#000;font-weight:bold">)</span>    <span style="color:#8f5902;font-style:italic">//把[chan&lt;- int]看成单向只写管道类型，对ch4进行强制类型转换
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">Parse</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ch</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">){</span>    <span style="color:#8f5902;font-style:italic">//最小权限原则
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">value</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">ch</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Parsing value&#34;</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">value</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-5-关闭channel">2.5. 关闭channel</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//3、关闭channel，使用内置函数close()函数即可
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87">close</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ch</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//判断channel是否关闭
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">x</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">ok</span><span style="color:#ce5c00;font-weight:bold">:=&lt;-</span><span style="color:#000">ch</span> <span style="color:#8f5902;font-style:italic">//ok==false表示channel已经关闭
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">!</span><span style="color:#000">ok</span> <span style="color:#000;font-weight:bold">{</span>   <span style="color:#8f5902;font-style:italic">//如果channel关闭，ok==false，!ok==true
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#8f5902;font-style:italic">//执行体
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div>
+	
+		<style>
+  .feedback--answer {
+    display: inline-block;
+  }
+  .feedback--answer-no {
+    margin-left: 1em;
+  }
+  .feedback--response {
+    display: none;
+    margin-top: 1em;
+  }
+  .feedback--response__visible {
+    display: block;
+  }
+</style>
+<div class="d-print-none">
+<h2 class="feedback--title">Feedback</h2>
+<p class="feedback--question">Was this page helpful?</p>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-yes">Yes</button>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-no">No</button>
+<p class="feedback--response feedback--response-yes">
+  Glad to hear it! Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+<p class="feedback--response feedback--response-no">
+  Sorry to hear that. Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+</div>
+<script>
+  const yesButton = document.querySelector('.feedback--answer-yes');
+  const noButton = document.querySelector('.feedback--answer-no');
+  const yesResponse = document.querySelector('.feedback--response-yes');
+  const noResponse = document.querySelector('.feedback--response-no');
+  const disableButtons = () => {
+    yesButton.disabled = true;
+    noButton.disabled = true;
+  };
+  const sendFeedback = (value) => {
+    if (typeof ga !== 'function') return;
+    const args = {
+      command: 'send',
+      hitType: 'event',
+      category: 'Helpful',
+      action: 'click',
+      label: window.location.pathname,
+      value: value
+    };
+    ga(args.command, args.hitType, args.category, args.action, args.label, args.value);
+  };
+  yesButton.addEventListener('click', () => {
+    yesResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(1);
+  });
+  noButton.addEventListener('click', () => {
+    noResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(0);
+  });
+</script>
+
+		<br />
+	
+	
+	
+</div>
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="User mailing list" aria-label="User mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="User mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Twitter" aria-label="Twitter">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/twitter" aria-label="Twitter">
+      <i class="fab fa-twitter"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Stack Overflow" aria-label="Stack Overflow">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/stack" aria-label="Stack Overflow">
+      <i class="fab fa-stack-overflow"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/k8s.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Slack" aria-label="Slack">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/slack" aria-label="Slack">
+      <i class="fab fa-slack"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Developer mailing list" aria-label="Developer mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="Developer mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2022 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+
+
+  </body>
+</html>

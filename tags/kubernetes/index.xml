@@ -1,0 +1,368 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>HUWEIHUAHG – Kubernetes</title>
+    <link>https://k8s.huweihuang.com/tags/kubernetes/</link>
+    <description>Recent content in Kubernetes on HUWEIHUAHG</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 16 Aug 2017 10:50:57 +0000</lastBuildDate>
+    
+	  <atom:link href="https://k8s.huweihuang.com/tags/kubernetes/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+      
+        
+      
+    
+    
+    <item>
+      <title>Kubernetes-Notes: 指定节点调度与隔离</title>
+      <link>https://k8s.huweihuang.com/kubernetes-notes/operation/node/nodeselector-and-taint/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://k8s.huweihuang.com/kubernetes-notes/operation/node/nodeselector-and-taint/</guid>
+      <description>
+        
+        
+        &lt;h1 id=&#34;1-nodeselector&#34;&gt;1. NodeSelector&lt;/h1&gt;
+&lt;h2 id=&#34;1-1-概念&#34;&gt;1.1. 概念&lt;/h2&gt;
+&lt;p&gt;如果需要&lt;code&gt;限制Pod到指定的Node&lt;/code&gt;上运行，则可以给Node打标签并给Pod配置NodeSelector。&lt;/p&gt;
+&lt;h2 id=&#34;1-2-使用方式&#34;&gt;1.2. 使用方式&lt;/h2&gt;
+&lt;h3 id=&#34;1-2-1-给node打标签&#34;&gt;1.2.1. 给Node打标签&lt;/h3&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# get node的name&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl get nodes
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 设置Label&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl label nodes &amp;lt;node-name&amp;gt; &amp;lt;label-key&amp;gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;label-value&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 例如&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl label nodes node-1 &lt;span style=&#34;color:#000&#34;&gt;disktype&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;ssd
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 查看Node的Label&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl get nodes --show-labels
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 删除Node的label&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl label node &amp;lt;node-name&amp;gt; &amp;lt;label-key&amp;gt;-
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;1-2-2-给pod设置nodeselector&#34;&gt;1.2.2. 给Pod设置NodeSelector&lt;/h3&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;apiVersion&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;v1&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;kind&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;Pod&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;metadata&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;nginx&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;labels&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;env&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;test&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;spec&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;containers&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;nginx&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;image&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;nginx&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;imagePullPolicy&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;IfNotPresent&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;nodeSelector&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;disktype&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;ssd   &lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 对应Node的Label&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;1-3-亲和性-affinity-和反亲和性-anti-affinity&#34;&gt;1.3. 亲和性（Affinity）和反亲和性（Anti-affinity）&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;待补充&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h1 id=&#34;2-taint-和-toleration&#34;&gt;2. Taint 和 Toleration&lt;/h1&gt;
+&lt;h2 id=&#34;2-1-概念&#34;&gt;2.1. 概念&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;nodeSelector&lt;/code&gt;可以通过&lt;code&gt;打标签&lt;/code&gt;的形式让Pod被调度到指定的Node上，&lt;code&gt;Taint &lt;/code&gt;则相反，它使节点能够排斥一类特定的Pod，除非Pod被指定了&lt;code&gt;toleration&lt;/code&gt;的标签。（&lt;code&gt;taint&lt;/code&gt;即污点，Node被打上污点；只有容忍[toleration]这些污点的Pod才可能被调度到该Node）。&lt;/p&gt;
+&lt;h2 id=&#34;2-2-使用方式&#34;&gt;2.2. 使用方式&lt;/h2&gt;
+&lt;h3 id=&#34;2-2-1-kubectl-taint&#34;&gt;2.2.1. kubectl taint&lt;/h3&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 给节点增加一个taint，它的key是&amp;lt;key&amp;gt;，value是&amp;lt;value&amp;gt;，effect是NoSchedule。&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl taint nodes &amp;lt;node_name&amp;gt; &amp;lt;key&amp;gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;value&amp;gt;:NoSchedule
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;只有拥有和这个&lt;code&gt;taint&lt;/code&gt;相匹配的&lt;code&gt;toleration&lt;/code&gt;的pod才能够被分配到 &lt;code&gt;node_name&lt;/code&gt; 这个节点。&lt;/p&gt;
+&lt;p&gt;例如，在 &lt;code&gt;PodSpec&lt;/code&gt; 中定义 pod 的 toleration：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;tolerations&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;key&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;key&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;operator&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;Equal&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;value&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;value&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;effect&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;NoSchedule&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;tolerations&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;key&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;key&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;operator&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;Exists&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;effect&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;NoSchedule&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;2-2-2-匹配规则&#34;&gt;2.2.2. 匹配规则：&lt;/h3&gt;
+&lt;p&gt;一个 toleration 和一个 taint 相“匹配”是指它们有一样的 key 和 effect ，并且：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果 &lt;code&gt;operator&lt;/code&gt; 是 &lt;code&gt;Exists&lt;/code&gt; （此时 toleration 不能指定 &lt;code&gt;value&lt;/code&gt;）&lt;/li&gt;
+&lt;li&gt;如果 &lt;code&gt;operator&lt;/code&gt; 是 &lt;code&gt;Equal&lt;/code&gt; ，则它们的 &lt;code&gt;value&lt;/code&gt; 应该相等&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;特殊情况：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;如果一个 toleration 的 &lt;code&gt;key&lt;/code&gt; 为空且 operator 为 &lt;code&gt;Exists&lt;/code&gt; ，表示这个 toleration 与任意的 key 、 value 和 effect 都匹配，即这个 toleration 能容忍任意 taint。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;tolerations&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;operator&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;Exists&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;如果一个 toleration 的 &lt;code&gt;effect&lt;/code&gt; 为空，则 &lt;code&gt;key&lt;/code&gt; 值与之相同的相匹配 taint 的 &lt;code&gt;effect&lt;/code&gt; 可以是任意值。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;tolerations&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;key&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;key&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;operator&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;Exists&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;一个节点可以设置多个taint，一个pod也可以设置多个toleration。Kubernetes 处理多个 taint 和 toleration 的过程就像一个过滤器：从一个节点的所有 taint 开始遍历，过滤掉那些 pod 中存在与之相匹配的 toleration 的 taint。余下未被过滤的 taint 的 effect 值决定了 pod 是否会被分配到该节点，特别是以下情况：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果未被过滤的 taint 中存在一个以上 effect 值为 &lt;code&gt;NoSchedule&lt;/code&gt; 的 taint，则 Kubernetes 不会将 pod 分配到该节点。&lt;/li&gt;
+&lt;li&gt;如果未被过滤的 taint 中不存在 effect 值为 &lt;code&gt;NoSchedule&lt;/code&gt; 的 taint，但是存在 effect 值为 &lt;code&gt;PreferNoSchedule&lt;/code&gt; 的 taint，则 Kubernetes 会&lt;em&gt;尝试&lt;/em&gt;将 pod 分配到该节点。&lt;/li&gt;
+&lt;li&gt;如果未被过滤的 taint 中存在一个以上 effect 值为 &lt;code&gt;NoExecute&lt;/code&gt; 的 taint，则 Kubernetes 不会将 pod 分配到该节点（如果 pod 还未在节点上运行），或者将 pod 从该节点驱逐（如果 pod 已经在节点上运行）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;2-2-3-effect的类型&#34;&gt;2.2.3. effect的类型&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;NoSchedule&lt;/code&gt;：只有拥有和这个 taint 相匹配的 toleration 的 pod 才能够被分配到这个节点。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;PreferNoSchedule&lt;/code&gt;：系统会&lt;em&gt;尽量&lt;/em&gt;避免将 pod 调度到存在其不能容忍 taint 的节点上，但这不是强制的。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;NoExecute&lt;/code&gt; ：任何不能忍受这个 taint 的 pod 都会马上被驱逐，任何可以忍受这个 taint 的 pod 都不会被驱逐。Pod可指定属性 &lt;code&gt;tolerationSeconds&lt;/code&gt; 的值，表示pod 还能继续在节点上运行的时间。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;tolerations&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;key&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;key1&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;operator&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;Equal&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;value&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;value1&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;effect&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;NoExecute&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;tolerationSeconds&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;3600&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;2-3-使用场景&#34;&gt;2.3. 使用场景&lt;/h2&gt;
+&lt;h3 id=&#34;2-3-1-专用节点&#34;&gt;2.3.1. 专用节点&lt;/h3&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl taint nodes &amp;lt;nodename&amp;gt; &lt;span style=&#34;color:#000&#34;&gt;dedicated&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;groupName&amp;gt;:NoSchedule
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;先给Node添加taint，然后给Pod添加相对应的 toleration，则该Pod可调度到taint的Node，也可调度到其他节点。&lt;/p&gt;
+&lt;p&gt;如果想&lt;strong&gt;让Pod只调度某些节点且某些节点只接受对应的Pod&lt;/strong&gt;，则需要在Node上添加&lt;code&gt;Label&lt;/code&gt;（例如：&lt;code&gt;dedicated=groupName&lt;/code&gt;），同时给Pod的&lt;code&gt;nodeSelector&lt;/code&gt;添加对应的&lt;code&gt;Label&lt;/code&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;2-3-2-特殊硬件节点&#34;&gt;2.3.2. 特殊硬件节点&lt;/h3&gt;
+&lt;p&gt;如果某些节点配置了特殊硬件（例如CPU），希望不使用这些特殊硬件的Pod不被调度该Node，以便保留必要资源。即可给Node设置&lt;code&gt;taint&lt;/code&gt;和&lt;code&gt;label&lt;/code&gt;，同时给Pod设置&lt;code&gt;toleration&lt;/code&gt;和&lt;code&gt;label&lt;/code&gt;来使得这些Node专门被指定Pod使用。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# kubectl taint&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl taint nodes nodename &lt;span style=&#34;color:#000&#34;&gt;special&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;true:NoSchedule 
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 或者&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl taint nodes nodename &lt;span style=&#34;color:#000&#34;&gt;special&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;true:PreferNoSchedule
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;2-3-3-基于taint驱逐&#34;&gt;2.3.3. 基于taint驱逐&lt;/h3&gt;
+&lt;p&gt;effect 值 &lt;code&gt;NoExecute&lt;/code&gt; ，它会影响已经在节点上运行的 pod，即根据策略对Pod进行驱逐。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果 pod 不能忍受effect 值为 &lt;code&gt;NoExecute&lt;/code&gt; 的 taint，那么 pod 将马上被驱逐&lt;/li&gt;
+&lt;li&gt;如果 pod 能够忍受effect 值为 &lt;code&gt;NoExecute&lt;/code&gt; 的 taint，但是在 toleration 定义中没有指定 &lt;code&gt;tolerationSeconds&lt;/code&gt;，则 pod 还会一直在这个节点上运行。&lt;/li&gt;
+&lt;li&gt;如果 pod 能够忍受effect 值为 &lt;code&gt;NoExecute&lt;/code&gt; 的 taint，而且指定了 &lt;code&gt;tolerationSeconds&lt;/code&gt;，则 pod 还能在这个节点上继续运行这个指定的时间长度。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;参考：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://kubernetes.io/docs/concepts/configuration/assign-pod-node/&#34;&gt;https://kubernetes.io/docs/concepts/configuration/assign-pod-node/&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/&#34;&gt;https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+
+      </description>
+    </item>
+    
+    <item>
+      <title>Kubernetes-Notes: Kubernetes核心原理（二）之Controller Manager</title>
+      <link>https://k8s.huweihuang.com/kubernetes-notes/principle/component/kubernetes-core-principle-controller-manager/</link>
+      <pubDate>Tue, 15 Aug 2017 11:50:57 +0000</pubDate>
+      
+      <guid>https://k8s.huweihuang.com/kubernetes-notes/principle/component/kubernetes-core-principle-controller-manager/</guid>
+      <description>
+        
+        
+        &lt;h1 id=&#34;1-controller-manager简介&#34;&gt;1. Controller Manager简介&lt;/h1&gt;
+&lt;p&gt;Controller Manager作为集群内部的管理控制中心，负责集群内的Node、Pod副本、服务端点（Endpoint）、命名空间（Namespace）、服务账号（ServiceAccount）、资源定额（ResourceQuota）的管理，当某个Node意外宕机时，Controller Manager会及时发现并执行自动化修复流程，确保集群始终处于预期的工作状态。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;http://res.cloudinary.com/dqxtn0ick/image/upload/v1510579017/article/kubernetes/core/controller-manager.png&#34; alt=&#34;controller manager&#34;&gt;&lt;/p&gt;
+&lt;p&gt;每个Controller通过API Server提供的接口实时监控整个集群的每个资源对象的当前状态，当发生各种故障导致系统状态发生变化时，会尝试将系统状态修复到“期望状态”。&lt;/p&gt;
+&lt;h1 id=&#34;2-replication-controller&#34;&gt;2. Replication Controller&lt;/h1&gt;
+&lt;p&gt;为了区分，将资源对象Replication Controller简称RC,而本文中是指Controller Manager中的Replication Controller，称为副本控制器。副本控制器的作用即保证集群中一个RC所关联的Pod副本数始终保持预设值。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;只有当Pod的重启策略是Always的时候（RestartPolicy=Always），副本控制器才会管理该Pod的操作（创建、销毁、重启等）。&lt;/li&gt;
+&lt;li&gt;RC中的Pod模板就像一个模具，模具制造出来的东西一旦离开模具，它们之间就再没关系了。一旦Pod被创建，无论模板如何变化，也不会影响到已经创建的Pod。&lt;/li&gt;
+&lt;li&gt;Pod可以通过修改label来脱离RC的管控，该方法可以用于将Pod从集群中迁移，数据修复等调试。&lt;/li&gt;
+&lt;li&gt;删除一个RC不会影响它所创建的Pod，如果要删除Pod需要将RC的副本数属性设置为0。&lt;/li&gt;
+&lt;li&gt;不要越过RC创建Pod，因为RC可以实现自动化控制Pod，提高容灾能力。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;2-1-replication-controller的职责&#34;&gt;2.1. Replication Controller的职责&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;确保集群中有且仅有N个Pod实例，N是RC中定义的Pod副本数量。&lt;/li&gt;
+&lt;li&gt;通过调整RC中的spec.replicas属性值来实现系统扩容或缩容。&lt;/li&gt;
+&lt;li&gt;通过改变RC中的Pod模板来实现系统的滚动升级。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;2-2-replication-controller使用场景&#34;&gt;2.2. Replication Controller使用场景&lt;/h2&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;使用场景&lt;/th&gt;
+&lt;th&gt;说明&lt;/th&gt;
+&lt;th&gt;使用命令&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;重新调度&lt;/td&gt;
+&lt;td&gt;当发生节点故障或Pod被意外终止运行时，可以重新调度保证集群中仍然运行指定的副本数。&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;弹性伸缩&lt;/td&gt;
+&lt;td&gt;通过手动或自动扩容代理修复副本控制器的spec.replicas属性，可以实现弹性伸缩。&lt;/td&gt;
+&lt;td&gt;kubectl scale&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;滚动更新&lt;/td&gt;
+&lt;td&gt;创建一个新的RC文件，通过kubectl 命令或API执行，则会新增一个新的副本同时删除旧的副本，当旧副本为0时，删除旧的RC。&lt;/td&gt;
+&lt;td&gt;kubectl rolling-update&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;滚动升级，具体可参考kubectl rolling-update --help,官方文档：&lt;a href=&#34;https://kubernetes.io/docs/tasks/run-application/rolling-update-replication-controller/&#34;&gt;https://kubernetes.io/docs/tasks/run-application/rolling-update-replication-controller/&lt;/a&gt;&lt;/p&gt;
+&lt;h1 id=&#34;3-node-controller&#34;&gt;3. Node Controller&lt;/h1&gt;
+&lt;p&gt;kubelet在启动时会通过API Server注册自身的节点信息，并定时向API Server汇报状态信息，API Server接收到信息后将信息更新到etcd中。&lt;/p&gt;
+&lt;p&gt;Node Controller通过API Server实时获取Node的相关信息，实现管理和监控集群中的各个Node节点的相关控制功能。流程如下&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510579017/article/kubernetes/core/NodeController.png&#34; alt=&#34;Node Controller&#34;&gt;&lt;/p&gt;
+&lt;p&gt;1、Controller Manager在启动时如果设置了--cluster-cidr参数，那么为每个没有设置Spec.PodCIDR的Node节点生成一个CIDR地址，并用该CIDR地址设置节点的Spec.PodCIDR属性，防止不同的节点的CIDR地址发生冲突。&lt;/p&gt;
+&lt;p&gt;2、具体流程见以上流程图。&lt;/p&gt;
+&lt;p&gt;3、逐个读取节点信息，如果节点状态变成非“就绪”状态，则将节点加入待删除队列，否则将节点从该队列删除。&lt;/p&gt;
+&lt;h1 id=&#34;4-resourcequota-controller&#34;&gt;4. ResourceQuota Controller&lt;/h1&gt;
+&lt;p&gt;资源配额管理确保指定的资源对象在任何时候都不会超量占用系统物理资源。&lt;/p&gt;
+&lt;p&gt;支持三个层次的资源配置管理：&lt;/p&gt;
+&lt;p&gt;1）容器级别：对CPU和Memory进行限制&lt;/p&gt;
+&lt;p&gt;2）Pod级别：对一个Pod内所有容器的可用资源进行限制&lt;/p&gt;
+&lt;p&gt;3）Namespace级别：包括&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Pod数量&lt;/li&gt;
+&lt;li&gt;Replication Controller数量&lt;/li&gt;
+&lt;li&gt;Service数量&lt;/li&gt;
+&lt;li&gt;ResourceQuota数量&lt;/li&gt;
+&lt;li&gt;Secret数量&lt;/li&gt;
+&lt;li&gt;可持有的PV（Persistent Volume）数量&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;说明：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;k8s配额管理是通过Admission Control（准入控制）来控制的；&lt;/li&gt;
+&lt;li&gt;Admission Control提供两种配额约束方式：LimitRanger和ResourceQuota；&lt;/li&gt;
+&lt;li&gt;LimitRanger作用于Pod和Container；&lt;/li&gt;
+&lt;li&gt;ResourceQuota作用于Namespace上，限定一个Namespace里的各类资源的使用总额。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;strong&gt;ResourceQuota Controller流程图&lt;/strong&gt;：&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510579017/article/kubernetes/core/ResourceQuotaController.png&#34; alt=&#34;ResourceQuota Controller&#34;&gt;&lt;/p&gt;
+&lt;h1 id=&#34;5-namespace-controller&#34;&gt;5. Namespace Controller&lt;/h1&gt;
+&lt;p&gt;用户通过API Server可以创建新的Namespace并保存在etcd中，Namespace Controller定时通过API Server读取这些Namespace信息。&lt;/p&gt;
+&lt;p&gt;如果Namespace被API标记为优雅删除（即设置删除期限，DeletionTimestamp）,则将该Namespace状态设置为“Terminating”,并保存到etcd中。同时Namespace Controller删除该Namespace下的ServiceAccount、RC、Pod等资源对象。&lt;/p&gt;
+&lt;h1 id=&#34;6-endpoint-controller&#34;&gt;6. Endpoint Controller&lt;/h1&gt;
+&lt;p&gt;&lt;strong&gt;Service、Endpoint、Pod的关系：&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510579017/article/kubernetes/core/EndpointController.png&#34; alt=&#34;Endpoint Controller&#34;&gt;&lt;/p&gt;
+&lt;p&gt;Endpoints表示了一个Service对应的所有Pod副本的访问地址，而Endpoints Controller负责生成和维护所有Endpoints对象的控制器。它负责监听Service和对应的Pod副本的变化。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;如果监测到Service被删除，则删除和该Service同名的Endpoints对象；&lt;/li&gt;
+&lt;li&gt;如果监测到新的Service被创建或修改，则根据该Service信息获得相关的Pod列表，然后创建或更新Service对应的Endpoints对象。&lt;/li&gt;
+&lt;li&gt;如果监测到Pod的事件，则更新它对应的Service的Endpoints对象。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;kube-proxy进程获取每个Service的Endpoints，实现Service的负载均衡功能。&lt;/p&gt;
+&lt;h1 id=&#34;7-service-controller&#34;&gt;7. Service Controller&lt;/h1&gt;
+&lt;p&gt;Service Controller是属于kubernetes集群与外部的云平台之间的一个接口控制器。Service Controller监听Service变化，如果是一个LoadBalancer类型的Service，则确保外部的云平台上对该Service对应的LoadBalancer实例被相应地创建、删除及更新路由转发表。&lt;/p&gt;
+&lt;p&gt;参考《Kubernetes权威指南》&lt;/p&gt;
+
+      </description>
+    </item>
+    
+    <item>
+      <title>Kubernetes-Notes: Kubernetes核心原理（三）之Scheduler</title>
+      <link>https://k8s.huweihuang.com/kubernetes-notes/principle/component/kubernetes-core-principle-scheduler/</link>
+      <pubDate>Tue, 15 Aug 2017 10:50:57 +0000</pubDate>
+      
+      <guid>https://k8s.huweihuang.com/kubernetes-notes/principle/component/kubernetes-core-principle-scheduler/</guid>
+      <description>
+        
+        
+        &lt;h1 id=&#34;1-scheduler简介&#34;&gt;1. Scheduler简介&lt;/h1&gt;
+&lt;p&gt;Scheduler负责Pod调度。在整个系统中起&amp;quot;承上启下&amp;quot;作用，承上：负责接收Controller Manager创建的新的Pod，为其选择一个合适的Node；启下：Node上的kubelet接管Pod的生命周期。&lt;/p&gt;
+&lt;p&gt;Scheduler：&lt;/p&gt;
+&lt;p&gt;1）通过调度算法为待调度Pod列表的每个Pod从Node列表中选择一个最适合的Node，并将信息写入etcd中&lt;/p&gt;
+&lt;p&gt;2）kubelet通过API Server监听到kubernetes Scheduler产生的Pod绑定信息，然后获取对应的Pod清单，下载Image，并启动容器。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510579017/article/kubernetes/core/scheduler.png&#34; alt=&#34;scheduler&#34;&gt;&lt;/p&gt;
+&lt;h1 id=&#34;2-调度流程&#34;&gt;2. 调度流程&lt;/h1&gt;
+&lt;p&gt;1、预选调度过程，即遍历所有目标Node,筛选出符合要求的候选节点，kubernetes内置了多种预选策略（xxx Predicates）供用户选择&lt;/p&gt;
+&lt;p&gt;2、确定最优节点，在第一步的基础上采用优选策略（xxx Priority）计算出每个候选节点的积分，取最高积分。&lt;/p&gt;
+&lt;p&gt;调度流程通过插件式加载的“调度算法提供者”（AlgorithmProvider）具体实现，一个调度算法提供者就是包括一组预选策略与一组优选策略的结构体。&lt;/p&gt;
+&lt;h1 id=&#34;3-预选策略&#34;&gt;3. 预选策略&lt;/h1&gt;
+&lt;p&gt;说明：返回true表示该节点满足该Pod的调度条件；返回false表示该节点不满足该Pod的调度条件。&lt;/p&gt;
+&lt;h2 id=&#34;3-1-nodiskconflict&#34;&gt;3.1. NoDiskConflict&lt;/h2&gt;
+&lt;p&gt;判断备选Pod的数据卷是否与该Node上已存在Pod挂载的数据卷冲突，如果是则返回false，否则返回true。&lt;/p&gt;
+&lt;h2 id=&#34;3-2-podfitsresources&#34;&gt;3.2. PodFitsResources&lt;/h2&gt;
+&lt;p&gt;判断备选节点的资源是否满足备选Pod的需求，即节点的剩余资源满不满足该Pod的资源使用。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;计算备选Pod和节点中已用资源（该节点所有Pod的使用资源）的总和。&lt;/li&gt;
+&lt;li&gt;获取备选节点的状态信息，包括节点资源信息。&lt;/li&gt;
+&lt;li&gt;如果（备选Pod+节点已用资源&amp;gt;该节点总资源）则返回false，即剩余资源不满足该Pod使用；否则返回true。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;3-3-podselectormatches&#34;&gt;3.3. PodSelectorMatches&lt;/h2&gt;
+&lt;p&gt;判断节点是否包含备选Pod的标签选择器指定的标签，即通过标签来选择Node。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;如果Pod中没有指定spec.nodeSelector，则返回true。&lt;/li&gt;
+&lt;li&gt;否则获得备选节点的标签信息，判断该节点的标签信息中是否包含该Pod的spec.nodeSelector中指定的标签，如果包含返回true，否则返回false。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;3-4-podfitshost&#34;&gt;3.4. PodFitsHost&lt;/h2&gt;
+&lt;p&gt;判断备选Pod的spec.nodeName所指定的节点名称与备选节点名称是否一致，如果一致返回true，否则返回false。&lt;/p&gt;
+&lt;h2 id=&#34;3-5-checknodelabelpresence&#34;&gt;3.5. CheckNodeLabelPresence&lt;/h2&gt;
+&lt;p&gt;检查备选节点中是否有Scheduler配置的标签，如果有返回true，否则返回false。&lt;/p&gt;
+&lt;h2 id=&#34;3-6-checkserviceaffinity&#34;&gt;3.6. CheckServiceAffinity&lt;/h2&gt;
+&lt;p&gt;判断备选节点是否包含Scheduler配置的标签，如果有返回true，否则返回false。&lt;/p&gt;
+&lt;h2 id=&#34;3-7-podfitsports&#34;&gt;3.7. PodFitsPorts&lt;/h2&gt;
+&lt;p&gt;判断备选Pod所用的端口列表中的端口是否在备选节点中已被占用，如果被占用返回false，否则返回true。&lt;/p&gt;
+&lt;h1 id=&#34;4-优选策略&#34;&gt;4. 优选策略&lt;/h1&gt;
+&lt;h2 id=&#34;4-1-leastrequestedpriority&#34;&gt;4.1. LeastRequestedPriority&lt;/h2&gt;
+&lt;p&gt;优先从备选节点列表中选择资源消耗最小的节点（CPU+内存）。&lt;/p&gt;
+&lt;h2 id=&#34;4-2-calculatenodelabelpriority&#34;&gt;4.2. CalculateNodeLabelPriority&lt;/h2&gt;
+&lt;p&gt;优先选择含有指定Label的节点。&lt;/p&gt;
+&lt;h2 id=&#34;4-3-balancedresourceallocation&#34;&gt;4.3. BalancedResourceAllocation&lt;/h2&gt;
+&lt;p&gt;优先从备选节点列表中选择各项资源使用率最均衡的节点。&lt;/p&gt;
+&lt;p&gt;参考《Kubernetes权威指南》&lt;/p&gt;
+
+      </description>
+    </item>
+    
+    <item>
+      <title>Kubernetes-Notes: Kubernetes核心原理（四）之kubelet</title>
+      <link>https://k8s.huweihuang.com/kubernetes-notes/principle/component/kubernetes-core-principle-kubelet/</link>
+      <pubDate>Wed, 16 Aug 2017 10:50:57 +0000</pubDate>
+      
+      <guid>https://k8s.huweihuang.com/kubernetes-notes/principle/component/kubernetes-core-principle-kubelet/</guid>
+      <description>
+        
+        
+        &lt;h1 id=&#34;1-kubelet简介&#34;&gt;1. kubelet简介&lt;/h1&gt;
+&lt;p&gt;在kubernetes集群中，每个Node节点都会启动kubelet进程，用来处理Master节点下发到本节点的任务，管理Pod和其中的容器。kubelet会在API Server上注册节点信息，定期向Master汇报节点资源使用情况，并通过cAdvisor监控容器和节点资源。可以把kubelet理解成【Server-Agent】架构中的agent，是Node上的pod管家。&lt;/p&gt;
+&lt;p&gt;更多kubelet配置参数信息可参考kubelet --help&lt;/p&gt;
+&lt;h1 id=&#34;2-节点管理&#34;&gt;2. 节点管理&lt;/h1&gt;
+&lt;p&gt;节点通过设置kubelet的启动参数“--register-node”，来决定是否向API Server注册自己，默认为true。可以通过kubelet --help或者查看kubernetes源码【cmd/kubelet/app/server.go中】来查看该参数。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;kubelet的配置文件&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;默认配置文件在/etc/kubernetes/kubelet中，其中&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;--api-servers：用来配置Master节点的IP和端口。&lt;/li&gt;
+&lt;li&gt;--kubeconfig：用来配置kubeconfig的路径，kubeconfig文件常用来指定证书。&lt;/li&gt;
+&lt;li&gt;--hostname-override：用来配置该节点在集群中显示的主机名。&lt;/li&gt;
+&lt;li&gt;--node-status-update-frequency：配置kubelet向Master心跳上报的频率，默认为10s。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;3-pod管理&#34;&gt;3. Pod管理&lt;/h1&gt;
+&lt;p&gt;kubelet有几种方式获取自身Node上所需要运行的Pod清单。但本文只讨论通过API Server监听etcd目录，同步Pod列表的方式。&lt;/p&gt;
+&lt;p&gt;kubelet通过API Server Client使用WatchAndList的方式监听etcd中/registry/nodes/${当前节点名称}和/registry/pods的目录，将获取的信息同步到本地缓存中。&lt;/p&gt;
+&lt;p&gt;kubelet监听etcd，执行对Pod的操作，对容器的操作则是通过Docker Client执行，例如启动删除容器等。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;kubelet创建和修改Pod流程：&lt;/strong&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;为该Pod创建一个数据目录。&lt;/li&gt;
+&lt;li&gt;从API Server读取该Pod清单。&lt;/li&gt;
+&lt;li&gt;为该Pod挂载外部卷（External Volume）&lt;/li&gt;
+&lt;li&gt;下载Pod用到的Secret。&lt;/li&gt;
+&lt;li&gt;检查运行的Pod，执行Pod中未完成的任务。&lt;/li&gt;
+&lt;li&gt;先创建一个Pause容器，该容器接管Pod的网络，再创建其他容器。&lt;/li&gt;
+&lt;li&gt;Pod中容器的处理流程：
+1）比较容器hash值并做相应处理。
+2）如果容器被终止了且没有指定重启策略，则不做任何处理。
+3）调用Docker Client下载容器镜像，调用Docker Client运行容器。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h1 id=&#34;4-容器健康检查&#34;&gt;4. 容器健康检查&lt;/h1&gt;
+&lt;p&gt;Pod通过探针的方式来检查容器的健康状态，具体可参考&lt;a href=&#34;https://www.huweihuang.com/kubernetes-notes/concepts/pod/pod-probe.html&#34;&gt;Pod详解#Pod健康检查&lt;/a&gt;。&lt;/p&gt;
+&lt;h1 id=&#34;5-cadvisor资源监控&#34;&gt;5. cAdvisor资源监控&lt;/h1&gt;
+&lt;p&gt;kubelet通过cAdvisor获取本节点信息及容器的数据。cAdvisor为谷歌开源的容器资源分析工具，默认集成到kubernetes中。&lt;/p&gt;
+&lt;p&gt;cAdvisor自动采集CPU,内存，文件系统，网络使用情况，容器中运行的进程，默认端口为4194。可以通过Node IP+Port访问。&lt;/p&gt;
+&lt;p&gt;更多参考：&lt;a href=&#34;http://github.com/google/cadvisor&#34;&gt;http://github.com/google/cadvisor&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;参考《Kubernetes权威指南》&lt;/p&gt;
+
+      </description>
+    </item>
+    
+  </channel>
+</rss>
