@@ -1,0 +1,1202 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<meta name="robots" content="index, follow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>HUWEIHUAHG</title>
+<meta name="description" content="kube-scheduler源码分析（五）之 PrioritizeNodes
+
+以下代码分析基于 kubernetes v1.12.0 版本。
+
+本文主要分析优选策略逻辑，即从预选的节点中选择出最优的节点。优选策略的具体实现函数为PrioritizeNodes。PrioritizeNodes最终返回 …">
+<meta property="og:title" content="" />
+<meta property="og:description" content="kube-scheduler源码分析（五）之 PrioritizeNodes 以下代码分析基于 kubernetes v1.12.0 版本。
+本文主要分析优选策略逻辑，即从预选的节点中选择出最优的节点。优选策略的具体实现函数为PrioritizeNodes。PrioritizeNodes最终返回是一个记录了各个节点分数的列表。
+1. 调用入口 genericScheduler.Schedule中对PrioritizeNodes的调用过程如下：
+此部分代码位于pkg/scheduler/core/generic_scheduler.go
+func (g *genericScheduler) Schedule(pod *v1.Pod, nodeLister algorithm.NodeLister) (string, error) { ... trace.Step(&#34;Prioritizing&#34;) startPriorityEvalTime := time.Now() // When only one node after predicate, just use it. if len(filteredNodes) == 1 { metrics.SchedulingAlgorithmPriorityEvaluationDuration.Observe(metrics.SinceInMicroseconds(startPriorityEvalTime)) return filteredNodes[0].Name, nil } metaPrioritiesInterface := g.priorityMetaProducer(pod, g.cachedNodeInfoMap) // 执行优选逻辑的操作，返回记录各个节点分数的列表 priorityList, err := PrioritizeNodes(pod, g.cachedNodeInfoMap, metaPrioritiesInterface, g.prioritizers, filteredNodes, g.extenders) if err != nil { return &#34;&#34;, err } metrics." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://k8s.huweihuang.com/k8s-source-code-analysis/kube-scheduler/prioritizenodes/" /><meta property="article:section" content="k8s-source-code-analysis" />
+
+<meta property="og:site_name" content="HUWEIHUAHG" />
+
+<meta itemprop="name" content="">
+<meta itemprop="description" content="kube-scheduler源码分析（五）之 PrioritizeNodes 以下代码分析基于 kubernetes v1.12.0 版本。
+本文主要分析优选策略逻辑，即从预选的节点中选择出最优的节点。优选策略的具体实现函数为PrioritizeNodes。PrioritizeNodes最终返回是一个记录了各个节点分数的列表。
+1. 调用入口 genericScheduler.Schedule中对PrioritizeNodes的调用过程如下：
+此部分代码位于pkg/scheduler/core/generic_scheduler.go
+func (g *genericScheduler) Schedule(pod *v1.Pod, nodeLister algorithm.NodeLister) (string, error) { ... trace.Step(&#34;Prioritizing&#34;) startPriorityEvalTime := time.Now() // When only one node after predicate, just use it. if len(filteredNodes) == 1 { metrics.SchedulingAlgorithmPriorityEvaluationDuration.Observe(metrics.SinceInMicroseconds(startPriorityEvalTime)) return filteredNodes[0].Name, nil } metaPrioritiesInterface := g.priorityMetaProducer(pod, g.cachedNodeInfoMap) // 执行优选逻辑的操作，返回记录各个节点分数的列表 priorityList, err := PrioritizeNodes(pod, g.cachedNodeInfoMap, metaPrioritiesInterface, g.prioritizers, filteredNodes, g.extenders) if err != nil { return &#34;&#34;, err } metrics.">
+
+<meta itemprop="wordCount" content="1947">
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content=""/>
+<meta name="twitter:description" content="kube-scheduler源码分析（五）之 PrioritizeNodes 以下代码分析基于 kubernetes v1.12.0 版本。
+本文主要分析优选策略逻辑，即从预选的节点中选择出最优的节点。优选策略的具体实现函数为PrioritizeNodes。PrioritizeNodes最终返回是一个记录了各个节点分数的列表。
+1. 调用入口 genericScheduler.Schedule中对PrioritizeNodes的调用过程如下：
+此部分代码位于pkg/scheduler/core/generic_scheduler.go
+func (g *genericScheduler) Schedule(pod *v1.Pod, nodeLister algorithm.NodeLister) (string, error) { ... trace.Step(&#34;Prioritizing&#34;) startPriorityEvalTime := time.Now() // When only one node after predicate, just use it. if len(filteredNodes) == 1 { metrics.SchedulingAlgorithmPriorityEvaluationDuration.Observe(metrics.SinceInMicroseconds(startPriorityEvalTime)) return filteredNodes[0].Name, nil } metaPrioritiesInterface := g.priorityMetaProducer(pod, g.cachedNodeInfoMap) // 执行优选逻辑的操作，返回记录各个节点分数的列表 priorityList, err := PrioritizeNodes(pod, g.cachedNodeInfoMap, metaPrioritiesInterface, g.prioritizers, filteredNodes, g.extenders) if err != nil { return &#34;&#34;, err } metrics."/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.cd6c2bbb05cdf98237b53882fed8c7a8b3fd7a7f7963d7cb305dd0d984782137.css" as="style">
+<link href="/scss/main.min.cd6c2bbb05cdf98237b53882fed8c7a8b3fd7a7f7963d7cb305dd0d984782137.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-00000000-0', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-page">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">HUWEIHUAHG</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/kubernetes-notes/" ><span>Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/k8s-source-code-analysis/" ><span class="active">Kubernetes源码分析</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/golang-notes/" ><span>Golang学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/about/" ><span>About</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input type="search" class="form-control td-search-input" placeholder="&#xf002; 站内搜索…" aria-label="站内搜索…" autocomplete="off">
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <aside class="col-12 col-md-3 col-xl-2 td-sidebar d-print-none">
+            
+<div id="td-sidebar-menu" class="td-sidebar__inner">
+  <form class="td-sidebar__search d-flex align-items-center">
+    <input type="search" class="form-control td-search-input" placeholder="&#xf002; 站内搜索…" aria-label="站内搜索…" autocomplete="off">
+
+    <button class="btn btn-link td-sidebar__toggle d-md-none p-0 ml-3 fas fa-bars" type="button" data-toggle="collapse" data-target="#td-section-nav" aria-controls="td-docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    </button>
+  </form>
+  <nav class="collapse td-sidebar-nav foldable-nav" id="td-section-nav">
+    <ul class="td-sidebar-nav__section pr-md-3 ul-0">
+      <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-k8s-source-code-analysis-li">
+  <a href="/k8s-source-code-analysis/" class="align-left pl-0 td-sidebar-link td-sidebar-link__section tree-root" id="m-k8s-source-code-analysis"><span class="">Kubernetes源码分析</span></a>
+  <ul class="ul-1">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-k8s-source-code-analysis-kube-apiserver-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-apiserver-check"/>
+  <label for="m-k8s-source-code-analysis-kube-apiserver-check"><a href="/k8s-source-code-analysis/kube-apiserver/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-k8s-source-code-analysis-kube-apiserver"><span class="">kube-apiserver</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand-check"/>
+  <label for="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand-check"><a href="/k8s-source-code-analysis/kube-apiserver/newapiservercommand/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand"><span class="">NewAPIServerCommand</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-k8s-source-code-analysis-kube-controller-manager-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-check"><a href="/k8s-source-code-analysis/kube-controller-manager/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-k8s-source-code-analysis-kube-controller-manager"><span class="">kube-controller-manager</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind-check"><a href="/k8s-source-code-analysis/kube-controller-manager/controller-manager-xmind/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind"><span class="">源码思维导图</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand-check"><a href="/k8s-source-code-analysis/kube-controller-manager/newcontrollermanagercommand/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand"><span class="">NewControllerManagerCommand</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller-check"><a href="/k8s-source-code-analysis/kube-controller-manager/deployment-controller/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller"><span class="">DeploymentController</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-informer-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-informer-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-informer-check"><a href="/k8s-source-code-analysis/kube-controller-manager/informer/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-informer"><span class="">Informer机制</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-k8s-source-code-analysis-kube-scheduler-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-check" checked/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-check"><a href="/k8s-source-code-analysis/kube-scheduler/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-k8s-source-code-analysis-kube-scheduler"><span class="">kube-scheduler</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind-check"><a href="/k8s-source-code-analysis/kube-scheduler/scheduler-xmind/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind"><span class="">源码思维导图</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand-check"><a href="/k8s-source-code-analysis/kube-scheduler/newschedulercommand/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand"><span class="">Main函数</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider-check"><a href="/k8s-source-code-analysis/kube-scheduler/registeralgorithmprovider/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider"><span class="">调度算法</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-scheduleone-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-scheduleone-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-scheduleone-check"><a href="/k8s-source-code-analysis/kube-scheduler/scheduleone/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-scheduleone"><span class="">调度流程</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit-check"><a href="/k8s-source-code-analysis/kube-scheduler/findnodesthatfit/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit"><span class="">预选策略</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes-check"><a href="/k8s-source-code-analysis/kube-scheduler/prioritizenodes/" title="" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes"><span class="td-sidebar-nav-active-item">优选策略</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-preempt-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-preempt-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-preempt-check"><a href="/k8s-source-code-analysis/kube-scheduler/preempt/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-preempt"><span class="">抢占逻辑</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-k8s-source-code-analysis-kubelet-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-check"><a href="/k8s-source-code-analysis/kubelet/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-k8s-source-code-analysis-kubelet"><span class="">kubelet</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-kubelet-xmind-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-kubelet-xmind-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-kubelet-xmind-check"><a href="/k8s-source-code-analysis/kubelet/kubelet-xmind/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-kubelet-xmind"><span class="">源码思维导图</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-newkubeletcommand-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-newkubeletcommand-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-newkubeletcommand-check"><a href="/k8s-source-code-analysis/kubelet/newkubeletcommand/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-newkubeletcommand"><span class="">NewKubeletCommand</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-newmainkubelet-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-newmainkubelet-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-newmainkubelet-check"><a href="/k8s-source-code-analysis/kubelet/newmainkubelet/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-newmainkubelet"><span class="">NewMainKubelet</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-startkubelet-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-startkubelet-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-startkubelet-check"><a href="/k8s-source-code-analysis/kubelet/startkubelet/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-startkubelet"><span class="">startKubelet</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-syncloopiteration-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-syncloopiteration-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-syncloopiteration-check"><a href="/k8s-source-code-analysis/kubelet/syncloopiteration/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-syncloopiteration"><span class="">syncLoopIteration</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-syncpod-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-syncpod-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-syncpod-check"><a href="/k8s-source-code-analysis/kubelet/syncpod/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-syncpod"><span class="">syncPod</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-readme-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-readme-check"/>
+  <label for="m-k8s-source-code-analysis-readme-check"><a href="/k8s-source-code-analysis/readme/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-readme"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-summary-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-summary-check"/>
+  <label for="m-k8s-source-code-analysis-summary-check"><a href="/k8s-source-code-analysis/summary/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-summary"><span class=""></span></a></label>
+  
+</li>
+  </ul>
+</li>
+    </ul>
+  </nav>
+</div>
+
+          </aside>
+          <aside class="d-none d-xl-block col-xl-2 td-sidebar-toc d-print-none">
+            
+<div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
+<a href="https://github.com/huweihuang/k8s.huweihuang.com/tree/master/content/zh-cn/k8s-source-code-analysis/kube-scheduler/PrioritizeNodes.md" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa fa-file-alt fa-fw"></i> 查看页面源码</a>
+  <a href="https://github.com/huweihuang/k8s.huweihuang.com/edit/master/content/zh-cn/k8s-source-code-analysis/kube-scheduler/PrioritizeNodes.md" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 编辑此页</a>
+  <a href="https://github.com/huweihuang/k8s.huweihuang.com/new/master/content/zh-cn/k8s-source-code-analysis/kube-scheduler/PrioritizeNodes.md?filename=change-me.md&amp;value=---%0Atitle%3A&#43;%22Long&#43;Page&#43;Title%22%0AlinkTitle%3A&#43;%22Short&#43;Nav&#43;Title%22%0Aweight%3A&#43;100%0Adescription%3A&#43;%3E-%0A&#43;&#43;&#43;&#43;&#43;Page&#43;description&#43;for&#43;heading&#43;and&#43;indexes.%0A---%0A%0A%23%23&#43;Heading%0A%0AEdit&#43;this&#43;template&#43;to&#43;create&#43;your&#43;new&#43;page.%0A%0A%2A&#43;Give&#43;it&#43;a&#43;good&#43;name%2C&#43;ending&#43;in&#43;%60.md%60&#43;-&#43;e.g.&#43;%60getting-started.md%60%0A%2A&#43;Edit&#43;the&#43;%22front&#43;matter%22&#43;section&#43;at&#43;the&#43;top&#43;of&#43;the&#43;page&#43;%28weight&#43;controls&#43;how&#43;its&#43;ordered&#43;amongst&#43;other&#43;pages&#43;in&#43;the&#43;same&#43;directory%3B&#43;lowest&#43;number&#43;first%29.%0A%2A&#43;Add&#43;a&#43;good&#43;commit&#43;message&#43;at&#43;the&#43;bottom&#43;of&#43;the&#43;page&#43;%28%3C80&#43;characters%3B&#43;use&#43;the&#43;extended&#43;description&#43;field&#43;for&#43;more&#43;detail%29.%0A%2A&#43;Create&#43;a&#43;new&#43;branch&#43;so&#43;you&#43;can&#43;preview&#43;your&#43;new&#43;file&#43;and&#43;request&#43;a&#43;review&#43;via&#43;Pull&#43;Request.%0A" class="td-page-meta--child" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 添加子页面</a>
+  <a href="https://github.com/huweihuang/k8s.huweihuang.com/issues/new?title=" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
+  <a href="https://github.com/huweihuang/k8s.huweihuang.com/issues/new" class="td-page-meta--project-issue" target="_blank" rel="noopener"><i class="fas fa-tasks fa-fw"></i> 提交项目问题</a>
+  <a id="print" href="https://k8s.huweihuang.com/k8s-source-code-analysis/kube-scheduler/_print/"><i class="fa fa-print fa-fw"></i> 整节打印</a>
+
+</div>
+
+            
+
+
+<div class="td-toc"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#kube-scheduler源码分析-五-之-prioritizenodes">kube-scheduler源码分析（五）之 PrioritizeNodes</a></li>
+    <li><a href="#1-调用入口-https-github-com-kubernetes-kubernetes-blob-v1-12-0-pkg-scheduler-core-generic-scheduler-go-l165">1. <a href="https://github.com/kubernetes/kubernetes/blob/v1.12.0/pkg/scheduler/core/generic_scheduler.go#L165">调用入口</a></a></li>
+    <li><a href="#2-prioritizenodes-https-github-com-kubernetes-kubernetes-blob-v1-12-0-pkg-scheduler-core-generic-scheduler-go-l602">2. <a href="https://github.com/kubernetes/kubernetes/blob/v1.12.0/pkg/scheduler/core/generic_scheduler.go#L602">PrioritizeNodes</a></a></li>
+    <li><a href="#3-equalprioritymap">3. EqualPriorityMap</a></li>
+    <li><a href="#4-processnode">4. processNode</a></li>
+    <li><a href="#5-prioritymapfunction">5. PriorityMapFunction</a></li>
+    <li><a href="#6-priorityreducefunction">6. PriorityReduceFunction</a></li>
+    <li><a href="#7-summarize-all-scores">7. Summarize all scores</a></li>
+    <li><a href="#8-newselectorspreadpriority">8. NewSelectorSpreadPriority</a>
+      <ul>
+        <li><a href="#8-1-calculatespreadprioritymap-https-github-com-kubernetes-kubernetes-blob-v1-12-0-pkg-scheduler-algorithm-priorities-selector-spreading-go-l66">8.1. <a href="https://github.com/kubernetes/kubernetes/blob/v1.12.0/pkg/scheduler/algorithm/priorities/selector_spreading.go#L66">CalculateSpreadPriorityMap</a></a></li>
+        <li><a href="#8-2-calculatespreadpriorityreduce-https-github-com-kubernetes-kubernetes-blob-v1-12-0-pkg-scheduler-algorithm-priorities-selector-spreading-go-l117">8.2. <a href="https://github.com/kubernetes/kubernetes/blob/v1.12.0/pkg/scheduler/algorithm/priorities/selector_spreading.go#L117">CalculateSpreadPriorityReduce</a></a></li>
+      </ul>
+    </li>
+    <li><a href="#9-总结">9. 总结</a>
+      <ul>
+        <li><a href="#9-1-prioritizenodes">9.1. PrioritizeNodes</a></li>
+        <li><a href="#9-2-newselectorspreadpriority">9.2. NewSelectorSpreadPriority</a>
+          <ul>
+            <li><a href="#9-2-1-calculatespreadprioritymap">9.2.1. CalculateSpreadPriorityMap</a></li>
+            <li><a href="#9-2-2-calculatespreadpriorityreduce">9.2.2. CalculateSpreadPriorityReduce</a></li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</nav></div>
+
+
+
+            
+
+	
+		
+			
+				
+			
+			
+
+
+
+  
+  
+    <div class="taxonomy taxonomy-terms-cloud taxo-tags">
+      
+        <h5 class="taxonomy-title">Tags</h5>
+      
+      <ul class="taxonomy-terms">
+        
+          <li><a class="taxonomy-term" href="https://k8s.huweihuang.com/tags/golang/" data-taxonomy-term="golang"><span class="taxonomy-label">Golang</span><span class="taxonomy-count">40</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://k8s.huweihuang.com/tags/kubernetes/" data-taxonomy-term="kubernetes"><span class="taxonomy-label">Kubernetes</span><span class="taxonomy-count">4</span></a></li>
+        
+      </ul>
+    </div>
+  
+
+		
+			
+				
+			
+			
+
+
+
+  
+  
+
+		
+	
+
+          </aside>
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+  
+
+            <nav aria-label="breadcrumb" class="td-breadcrumbs">
+  <ol class="breadcrumb">
+  <li class="breadcrumb-item">
+    <a href="https://k8s.huweihuang.com/k8s-source-code-analysis/">Kubernetes源码分析</a>
+  </li>
+  <li class="breadcrumb-item">
+    <a href="https://k8s.huweihuang.com/k8s-source-code-analysis/kube-scheduler/">kube-scheduler</a>
+  </li>
+  <li class="breadcrumb-item active" aria-current="page">
+    <a href="https://k8s.huweihuang.com/k8s-source-code-analysis/kube-scheduler/prioritizenodes/">优选策略</a>
+  </li>
+  </ol>
+</nav>
+            
+<div class="td-content">
+	<h1></h1>
+	
+	<header class="article-meta">
+		
+
+  
+    
+      
+
+
+    
+      
+
+
+    
+  
+
+		
+	</header>    
+	<h1 id="kube-scheduler源码分析-五-之-prioritizenodes">kube-scheduler源码分析（五）之 PrioritizeNodes</h1>
+<blockquote>
+<p>以下代码分析基于 <code>kubernetes v1.12.0</code> 版本。</p>
+</blockquote>
+<p>本文主要分析<code>优选策略</code>逻辑，即从预选的节点中选择出最优的节点。优选策略的具体实现函数为<code>PrioritizeNodes</code>。<code>PrioritizeNodes</code>最终返回是一个记录了各个节点分数的列表。</p>
+<h1 id="1-调用入口-https-github-com-kubernetes-kubernetes-blob-v1-12-0-pkg-scheduler-core-generic-scheduler-go-l165">1. <a href="https://github.com/kubernetes/kubernetes/blob/v1.12.0/pkg/scheduler/core/generic_scheduler.go#L165">调用入口</a></h1>
+<p><code>genericScheduler.Schedule</code>中对<code>PrioritizeNodes</code>的调用过程如下：</p>
+<blockquote>
+<p>此部分代码位于pkg/scheduler/core/generic_scheduler.go</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">g</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">genericScheduler</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Schedule</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">v1</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">nodeLister</span> <span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NodeLister</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#ce5c00;font-weight:bold">...</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">trace</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Step</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Prioritizing&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">startPriorityEvalTime</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Now</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// When only one node after predicate, just use it.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">filteredNodes</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#0000cf;font-weight:bold">1</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">metrics</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SchedulingAlgorithmPriorityEvaluationDuration</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Observe</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">metrics</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SinceInMicroseconds</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">startPriorityEvalTime</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">filteredNodes</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">metaPrioritiesInterface</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">g</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">priorityMetaProducer</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">g</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">cachedNodeInfoMap</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">// 执行优选逻辑的操作，返回记录各个节点分数的列表
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">priorityList</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">PrioritizeNodes</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">g</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">cachedNodeInfoMap</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">metaPrioritiesInterface</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">g</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">prioritizers</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">filteredNodes</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">g</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">extenders</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#4e9a06">&#34;&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">metrics</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SchedulingAlgorithmPriorityEvaluationDuration</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Observe</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">metrics</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SinceInMicroseconds</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">startPriorityEvalTime</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">metrics</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SchedulingLatency</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">WithLabelValues</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">metrics</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">PriorityEvaluation</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Observe</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">metrics</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SinceInSeconds</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">startPriorityEvalTime</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#ce5c00;font-weight:bold">...</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>  
+</span></span></code></pre></div><p>核心代码：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 基于预选节点filteredNodes进一步筛选优选的节点，返回记录各个节点分数的列表
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">priorityList</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">PrioritizeNodes</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">g</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">cachedNodeInfoMap</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">metaPrioritiesInterface</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">g</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">prioritizers</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">filteredNodes</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">g</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">extenders</span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><h1 id="2-prioritizenodes-https-github-com-kubernetes-kubernetes-blob-v1-12-0-pkg-scheduler-core-generic-scheduler-go-l602">2. <a href="https://github.com/kubernetes/kubernetes/blob/v1.12.0/pkg/scheduler/core/generic_scheduler.go#L602">PrioritizeNodes</a></h1>
+<p>优选，从满足的节点中选择出最优的节点。<code>PrioritizeNodes</code>最终返回是一个记录了各个节点分数的列表。</p>
+<p>具体操作如下：</p>
+<ul>
+<li>PrioritizeNodes通过并行运行各个优先级函数来对节点进行优先级排序。</li>
+<li>每个优先级函数会给节点打分，打分范围为0-10分。</li>
+<li>0 表示优先级最低的节点，10表示优先级最高的节点。</li>
+<li>每个优先级函数也有各自的权重。</li>
+<li>优先级函数返回的节点分数乘以权重以获得加权分数。</li>
+<li>最后组合（添加）所有分数以获得所有节点的总加权分数。</li>
+</ul>
+<p><strong>PrioritizeNodes主要流程如下：</strong></p>
+<ol>
+<li>如果没有设置优选函数和拓展函数，则全部节点设置相同的分数，直接返回。</li>
+<li>依次给node执行map函数进行打分。</li>
+<li>再对上述map函数的执行结果执行reduce函数计算最终得分。</li>
+<li>最后根据不同优先级函数的权重对得分取加权平均数。</li>
+</ol>
+<p><strong>入参：</strong></p>
+<ul>
+<li>pod</li>
+<li>nodeNameToInfo</li>
+<li>meta interface{},</li>
+<li>priorityConfigs</li>
+<li>nodes</li>
+<li>extenders</li>
+</ul>
+<p><strong>出参：</strong></p>
+<ul>
+<li>HostPriorityList：记录节点分数的列表。</li>
+</ul>
+<p><code>HostPriority</code>定义如下:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// HostPriority represents the priority of scheduling to a particular host, higher priority is better.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">HostPriority</span> <span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// Name of the host
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">Host</span> <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// Score associated with the host
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">Score</span> <span style="color:#204a87;font-weight:bold">int</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p><code>PrioritizeNodes</code>完整代码如下：</p>
+<blockquote>
+<p>此部分代码位于pkg/scheduler/core/generic_scheduler.go</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// PrioritizeNodes prioritizes the nodes by running the individual priority functions in parallel.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Each priority function is expected to set a score of 0-10
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 0 is the lowest priority score (least preferred node) and 10 is the highest
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Each priority function can also have its own weight
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// The node scores returned by the priority function are multiplied by the weights to get weighted scores
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// All scores are finally combined (added) to get the total weighted scores of all nodes
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">PrioritizeNodes</span><span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">pod</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">v1</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Pod</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">nodeNameToInfo</span> <span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">schedulercache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NodeInfo</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">meta</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{},</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">priorityConfigs</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">PriorityConfig</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">nodes</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">v1</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Node</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">extenders</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SchedulerExtender</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriorityList</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// If no priority configs are provided, then the EqualPriority function is applied
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#8f5902;font-style:italic">// This is required to generate the priority list in the required format
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">priorityConfigs</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">extenders</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">result</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriorityList</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">nodes</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">nodes</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">hostPriority</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">EqualPriorityMap</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">meta</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">nodeNameToInfo</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">nodes</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">])</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">result</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87">append</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">result</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">hostPriority</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">result</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">mu</span>   <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">sync</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Mutex</span><span style="color:#000;font-weight:bold">{}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">wg</span>   <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">sync</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">WaitGroup</span><span style="color:#000;font-weight:bold">{}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">errs</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">error</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">appendError</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Lock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Unlock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">errs</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87">append</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">errs</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">results</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">([]</span><span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriorityList</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">priorityConfigs</span><span style="color:#000;font-weight:bold">),</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">priorityConfigs</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">priorityConfig</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">priorityConfigs</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">priorityConfig</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Function</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#8f5902;font-style:italic">// DEPRECATED
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>			<span style="color:#000">wg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">go</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">index</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">config</span> <span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">PriorityConfig</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">wg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Done</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">err</span> <span style="color:#204a87;font-weight:bold">error</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#000">results</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">index</span><span style="color:#000;font-weight:bold">],</span> <span style="color:#000">err</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">config</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Function</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">nodeNameToInfo</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">nodes</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>					<span style="color:#000">appendError</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000;font-weight:bold">}(</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">priorityConfig</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span> <span style="color:#204a87;font-weight:bold">else</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">results</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriorityList</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">nodes</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">processNode</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">index</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">nodeInfo</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">nodeNameToInfo</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">nodes</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">index</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">err</span> <span style="color:#204a87;font-weight:bold">error</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">priorityConfigs</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">priorityConfigs</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Function</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#204a87;font-weight:bold">continue</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">results</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">][</span><span style="color:#000">index</span><span style="color:#000;font-weight:bold">],</span> <span style="color:#000">err</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">priorityConfigs</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Map</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">meta</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">nodeInfo</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#000">appendError</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#204a87;font-weight:bold">return</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">workqueue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Parallelize</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">16</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">nodes</span><span style="color:#000;font-weight:bold">),</span> <span style="color:#000">processNode</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">priorityConfig</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">priorityConfigs</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">priorityConfig</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Reduce</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">continue</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">wg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">go</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">index</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">config</span> <span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">PriorityConfig</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">wg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Done</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">config</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Reduce</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">meta</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">nodeNameToInfo</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">results</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">index</span><span style="color:#000;font-weight:bold">]);</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#000">appendError</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">glog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">10</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">hostPriority</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">results</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">index</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>					<span style="color:#000">glog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Infof</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;%v -&gt; %v: %v, Score: (%d)&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">pod</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">hostPriority</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Host</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">config</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">hostPriority</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Score</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}(</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">priorityConfig</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// Wait for all computations to be finished.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">wg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Wait</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">errs</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriorityList</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#000">errors</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewAggregate</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">errs</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// Summarize all scores.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">result</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriorityList</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">nodes</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">nodes</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">result</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87">append</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">result</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriority</span><span style="color:#000;font-weight:bold">{</span><span style="color:#000">Host</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">nodes</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">Score</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">})</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">j</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">priorityConfigs</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span> <span style="color:#ce5c00;font-weight:bold">+=</span> <span style="color:#000">results</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">j</span><span style="color:#000;font-weight:bold">][</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">priorityConfigs</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">j</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Weight</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">extenders</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> <span style="color:#000">nodes</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">combinedScores</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">nodeNameToInfo</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">extender</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">extenders</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">!</span><span style="color:#000">extender</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">IsInterested</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#204a87;font-weight:bold">continue</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">wg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">go</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ext</span> <span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SchedulerExtender</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">wg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Done</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#000">prioritizedList</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">weight</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">ext</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Prioritize</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">nodes</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>					<span style="color:#8f5902;font-style:italic">// Prioritization errors from extender can be ignored, let k8s/other extenders determine the priorities
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>					<span style="color:#204a87;font-weight:bold">return</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Lock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">prioritizedList</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>					<span style="color:#000">host</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">score</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">prioritizedList</span><span style="color:#000;font-weight:bold">)[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Host</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">prioritizedList</span><span style="color:#000;font-weight:bold">)[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span>
+</span></span><span style="display:flex;"><span>					<span style="color:#000">combinedScores</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">host</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">+=</span> <span style="color:#000">score</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">weight</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Unlock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000;font-weight:bold">}(</span><span style="color:#000">extender</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#8f5902;font-style:italic">// wait for all go routines to finish
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>		<span style="color:#000">wg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Wait</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">result</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span> <span style="color:#ce5c00;font-weight:bold">+=</span> <span style="color:#000">combinedScores</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Host</span><span style="color:#000;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">glog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">10</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">result</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">glog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">10</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Infof</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Host %s =&gt; Score %d&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Host</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">result</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><hr>
+<p>以下对<code>PrioritizeNodes</code>分段进行分析。</p>
+<h1 id="3-equalprioritymap">3. EqualPriorityMap</h1>
+<p>如果没有提供优选函数和拓展函数，则将所有的节点设置为相同的优先级，即节点的score都为1，然后直接返回结果。(但一般情况下优选函数列表都不为空)</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// If no priority configs are provided, then the EqualPriority function is applied
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// This is required to generate the priority list in the required format
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">priorityConfigs</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">extenders</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">result</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriorityList</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">nodes</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">nodes</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">hostPriority</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">EqualPriorityMap</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">meta</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">nodeNameToInfo</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">nodes</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">])</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">result</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87">append</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">result</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">hostPriority</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">result</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>EqualPriorityMap具体实现如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// EqualPriorityMap is a prioritizer function that gives an equal weight of one to all nodes
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">EqualPriorityMap</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">_</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">v1</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">_</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#000">nodeInfo</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">schedulercache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NodeInfo</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriority</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">node</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">nodeInfo</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Node</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">node</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriority</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Errorf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;node not found&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriority</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">Host</span><span style="color:#000;font-weight:bold">:</span>  <span style="color:#000">node</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">Score</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">},</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="4-processnode">4. processNode</h1>
+<p><code>processNode</code>就是基于index拿出node的信息，调用之前注册的各种优选函数（此处是<code>mapFunction</code>），通过优选函数对node和pod进行处理，最后返回一个记录node分数的列表<code>result</code>。<code>processNode</code>同样也使用<code>workqueue.Parallelize</code>来进行并行处理。(<code>processNode</code>类似于预选逻辑<code>findNodesThatFit</code>中使用到的<code>checkNode</code>的作用)</p>
+<p>其中优选函数是通过<code>priorityConfigs</code>来记录，每类优选函数包括<code>PriorityMapFunction</code>和<code>PriorityReduceFunction</code>两种函数。优选函数的注册部分可参考<a href="registerAlgorithmProvider.md">registerAlgorithmProvider</a>。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">processNode</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">index</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">nodeInfo</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">nodeNameToInfo</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">nodes</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">index</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">err</span> <span style="color:#204a87;font-weight:bold">error</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">priorityConfigs</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">priorityConfigs</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Function</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">continue</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">results</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">][</span><span style="color:#000">index</span><span style="color:#000;font-weight:bold">],</span> <span style="color:#000">err</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">priorityConfigs</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Map</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">meta</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">nodeInfo</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">appendError</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">return</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 并行执行processNode
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">workqueue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Parallelize</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">16</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">nodes</span><span style="color:#000;font-weight:bold">),</span> <span style="color:#000">processNode</span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><p><code>priorityConfigs</code>定义如下：</p>
+<p>核心属性：</p>
+<ul>
+<li>Map ：PriorityMapFunction</li>
+<li>Reduce：PriorityReduceFunction</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// PriorityConfig is a config used for a priority function.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">PriorityConfig</span> <span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">Name</span>   <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">Map</span>    <span style="color:#000">PriorityMapFunction</span>   
+</span></span><span style="display:flex;"><span>	<span style="color:#000">Reduce</span> <span style="color:#000">PriorityReduceFunction</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// TODO: Remove it after migrating all functions to
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#8f5902;font-style:italic">// Map-Reduce pattern.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">Function</span> <span style="color:#000">PriorityFunction</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">Weight</span>   <span style="color:#204a87;font-weight:bold">int</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>具体的优选函数处理逻辑待下文分析，本文会以<code>NewSelectorSpreadPriority</code>函数为例。</p>
+<h1 id="5-prioritymapfunction">5. PriorityMapFunction</h1>
+<p><code>PriorityMapFunction</code>是一个计算给定节点的每个节点结果的函数。</p>
+<p><code>PriorityMapFunction</code>定义如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// PriorityMapFunction is a function that computes per-node results for a given node.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// TODO: Figure out the exact API of this method.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// TODO: Change interface{} to a specific type.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">PriorityMapFunction</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">v1</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">meta</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#000">nodeInfo</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">schedulercache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NodeInfo</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriority</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><p>PriorityMapFunction是在<code>processNode</code>中调用的，代码如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">results</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">][</span><span style="color:#000">index</span><span style="color:#000;font-weight:bold">],</span> <span style="color:#000">err</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">priorityConfigs</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Map</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">meta</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">nodeInfo</span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><p>下文会分析<code>NewSelectorSpreadPriority</code>在的map函数<code>CalculateSpreadPriorityMap</code>。</p>
+<h1 id="6-priorityreducefunction">6. PriorityReduceFunction</h1>
+<p><code>PriorityReduceFunction</code>是一个聚合每个节点结果并计算所有节点的最终得分的函数。</p>
+<p><code>PriorityReduceFunction</code>定义如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// PriorityReduceFunction is a function that aggregated per-node results and computes
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// final scores for all nodes.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// TODO: Figure out the exact API of this method.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// TODO: Change interface{} to a specific type.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">PriorityReduceFunction</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">v1</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">meta</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#000">nodeNameToInfo</span> <span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">schedulercache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NodeInfo</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">result</span> <span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriorityList</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span>
+</span></span></code></pre></div><p>PrioritizeNodes中对reduce函数调用部分如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">priorityConfig</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">priorityConfigs</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">priorityConfig</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Reduce</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">continue</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">wg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">go</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">index</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">config</span> <span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">PriorityConfig</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">wg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Done</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">config</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Reduce</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">meta</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">nodeNameToInfo</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">results</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">index</span><span style="color:#000;font-weight:bold">]);</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">appendError</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">glog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">10</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">hostPriority</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">results</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">index</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#000">glog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Infof</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;%v -&gt; %v: %v, Score: (%d)&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">pod</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">hostPriority</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Host</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">config</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">hostPriority</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Score</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}(</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">priorityConfig</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>下文会分析<code>NewSelectorSpreadPriority</code>在的reduce函数<code>CalculateSpreadPriorityReduce</code>。</p>
+<h1 id="7-summarize-all-scores">7. Summarize all scores</h1>
+<p>先等待计算完成再计算加权平均数。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Wait for all computations to be finished.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">wg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Wait</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">errs</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriorityList</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#000">errors</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewAggregate</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">errs</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>计算所有节点的加权平均数。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Summarize all scores.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">result</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriorityList</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">nodes</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">nodes</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">result</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87">append</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">result</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriority</span><span style="color:#000;font-weight:bold">{</span><span style="color:#000">Host</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">nodes</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">Score</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">})</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">j</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">priorityConfigs</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span> <span style="color:#ce5c00;font-weight:bold">+=</span> <span style="color:#000">results</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">j</span><span style="color:#000;font-weight:bold">][</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">priorityConfigs</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">j</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Weight</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>当设置了拓展的计算方式，则增加拓展计算方式的加权平均数。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">extenders</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> <span style="color:#000">nodes</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">combinedScores</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">nodeNameToInfo</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">extender</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">extenders</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">!</span><span style="color:#000">extender</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">IsInterested</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">continue</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">wg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">go</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ext</span> <span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SchedulerExtender</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">wg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Done</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">prioritizedList</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">weight</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">ext</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Prioritize</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">nodes</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#8f5902;font-style:italic">// Prioritization errors from extender can be ignored, let k8s/other extenders determine the priorities
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>				<span style="color:#204a87;font-weight:bold">return</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Lock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">prioritizedList</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#000">host</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">score</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">prioritizedList</span><span style="color:#000;font-weight:bold">)[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Host</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">prioritizedList</span><span style="color:#000;font-weight:bold">)[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#000">combinedScores</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">host</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">+=</span> <span style="color:#000">score</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">weight</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Unlock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}(</span><span style="color:#000">extender</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// wait for all go routines to finish
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">wg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Wait</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">result</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span> <span style="color:#ce5c00;font-weight:bold">+=</span> <span style="color:#000">combinedScores</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Host</span><span style="color:#000;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="8-newselectorspreadpriority">8. NewSelectorSpreadPriority</h1>
+<p>以下以<code>NewSelectorSpreadPriority</code>这个优选函数来做分析，其他重要的优选函数待后续专门分析。</p>
+<p><code>NewSelectorSpreadPriority</code>主要的功能是将属于相同service和rs下的pod尽量分布在不同的node上。</p>
+<p>该函数的注册代码如下：</p>
+<blockquote>
+<p>此部分代码位于pkg/scheduler/algorithmprovider/defaults/defaults.go</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// ServiceSpreadingPriority is a priority config factory that spreads pods by minimizing
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// the number of pods (belonging to the same service) on the same node.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Register the factory so that it&#39;s available, but do not include it as part of the default priorities
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Largely replaced by &#34;SelectorSpreadPriority&#34;, but registered for backward compatibility with 1.0
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">factory</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">RegisterPriorityConfigFactory</span><span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#4e9a06">&#34;ServiceSpreadingPriority&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">factory</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">PriorityConfigFactory</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">MapReduceFunction</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">args</span> <span style="color:#000">factory</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">PluginFactoryArgs</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">PriorityMapFunction</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">PriorityReduceFunction</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">priorities</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewSelectorSpreadPriority</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">args</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ServiceLister</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">EmptyControllerLister</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">EmptyReplicaSetLister</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">EmptyStatefulSetLister</span><span style="color:#000;font-weight:bold">{})</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">Weight</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><p><code>NewSelectorSpreadPriority</code>的具体实现如下：</p>
+<blockquote>
+<p>此部分代码位于pkg/scheduler/algorithm/priorities/selector_spreading.go</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// NewSelectorSpreadPriority creates a SelectorSpread.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">NewSelectorSpreadPriority</span><span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">serviceLister</span> <span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ServiceLister</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">controllerLister</span> <span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ControllerLister</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">replicaSetLister</span> <span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ReplicaSetLister</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">statefulSetLister</span> <span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">StatefulSetLister</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">PriorityMapFunction</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">algorithm</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">PriorityReduceFunction</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">selectorSpread</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">SelectorSpread</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">serviceLister</span><span style="color:#000;font-weight:bold">:</span>     <span style="color:#000">serviceLister</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">controllerLister</span><span style="color:#000;font-weight:bold">:</span>  <span style="color:#000">controllerLister</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">replicaSetLister</span><span style="color:#000;font-weight:bold">:</span>  <span style="color:#000">replicaSetLister</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">statefulSetLister</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">statefulSetLister</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">selectorSpread</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">CalculateSpreadPriorityMap</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">selectorSpread</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">CalculateSpreadPriorityReduce</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p><code>NewSelectorSpreadPriority</code>主要包括map和reduce两种函数，分别对应<code>CalculateSpreadPriorityMap</code>，<code>CalculateSpreadPriorityReduce</code>。</p>
+<h2 id="8-1-calculatespreadprioritymap-https-github-com-kubernetes-kubernetes-blob-v1-12-0-pkg-scheduler-algorithm-priorities-selector-spreading-go-l66">8.1. <a href="https://github.com/kubernetes/kubernetes/blob/v1.12.0/pkg/scheduler/algorithm/priorities/selector_spreading.go#L66">CalculateSpreadPriorityMap</a></h2>
+<p><code>CalculateSpreadPriorityMap</code>的主要作用是将相同service、RC、RS或statefulset的pod分布在不同的节点上。当调度一个pod的时候，先寻找与该pod匹配的service、RS、RC或statefulset，然后寻找与其selector匹配的已存在的pod，寻找存在这类pod最少的节点。</p>
+<p><strong>基本流程如下：</strong></p>
+<ol>
+<li>寻找与该pod对应的service、RS、RC、statefulset匹配的selector。</li>
+<li>遍历当前节点的所有pod，将该节点上已存在的selector匹配到的pod的个数作为该节点的分数（此时，分数大的表示匹配到的pod越多，越不符合被调度的条件，该分数在reduce阶段会被按10分制处理成分数大的越符合被调度的条件）。</li>
+</ol>
+<blockquote>
+<p>此部分代码位于pkg/scheduler/algorithm/priorities/selector_spreading.go</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// CalculateSpreadPriorityMap spreads pods across hosts, considering pods
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// belonging to the same service,RC,RS or StatefulSet.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// When a pod is scheduled, it looks for services, RCs,RSs and StatefulSets that match the pod,
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// then finds existing pods that match those selectors.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// It favors nodes that have fewer existing matching pods.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// i.e. it pushes the scheduler towards a node where there&#39;s the smallest number of
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// pods which match the same service, RC,RSs or StatefulSets selectors as the pod being scheduled.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">s</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">SelectorSpread</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">CalculateSpreadPriorityMap</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">v1</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">meta</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#000">nodeInfo</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">schedulercache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NodeInfo</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriority</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">selectors</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#000">labels</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Selector</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">node</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">nodeInfo</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Node</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">node</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriority</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Errorf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;node not found&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">priorityMeta</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">ok</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">meta</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">priorityMetadata</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">ok</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">selectors</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">priorityMeta</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">podSelectors</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span> <span style="color:#204a87;font-weight:bold">else</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">selectors</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">getSelectors</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">serviceLister</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">controllerLister</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">replicaSetLister</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">statefulSetLister</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">selectors</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriority</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">Host</span><span style="color:#000;font-weight:bold">:</span>  <span style="color:#000">node</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">Score</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#204a87">int</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">},</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">count</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">int</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">nodePod</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">nodeInfo</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Pods</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">pod</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Namespace</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#000">nodePod</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Namespace</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">continue</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#8f5902;font-style:italic">// When we are replacing a failed pod, we often see the previous
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>		<span style="color:#8f5902;font-style:italic">// deleted version while scheduling the replacement.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>		<span style="color:#8f5902;font-style:italic">// Ignore the previous deleted version for spreading purposes
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>		<span style="color:#8f5902;font-style:italic">// (it can still be considered for resource restrictions etc.)
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">nodePod</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">DeletionTimestamp</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">glog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Infof</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;skipping pending-deleted pod: %s/%s&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">nodePod</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Namespace</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">nodePod</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">continue</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">selector</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">selectors</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">selector</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">labels</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Set</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">nodePod</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ObjectMeta</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Labels</span><span style="color:#000;font-weight:bold">))</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#000">count</span><span style="color:#ce5c00;font-weight:bold">++</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#204a87;font-weight:bold">break</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriority</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">Host</span><span style="color:#000;font-weight:bold">:</span>  <span style="color:#000">node</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">Score</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#204a87">int</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">count</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">},</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>以下分段分析：</p>
+<p>先获得selector。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">selectors</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">getSelectors</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">serviceLister</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">controllerLister</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">replicaSetLister</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">statefulSetLister</span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><p>计算节点上匹配selector的pod的个数，作为该节点分数，该分数并不是最终节点的分数，只是中间过渡的记录状态。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">count</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">int</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">nodePod</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">nodeInfo</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Pods</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#ce5c00;font-weight:bold">...</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">selector</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">selectors</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">selector</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Matches</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">labels</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Set</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">nodePod</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ObjectMeta</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Labels</span><span style="color:#000;font-weight:bold">))</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">count</span><span style="color:#ce5c00;font-weight:bold">++</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">break</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="8-2-calculatespreadpriorityreduce-https-github-com-kubernetes-kubernetes-blob-v1-12-0-pkg-scheduler-algorithm-priorities-selector-spreading-go-l117">8.2. <a href="https://github.com/kubernetes/kubernetes/blob/v1.12.0/pkg/scheduler/algorithm/priorities/selector_spreading.go#L117">CalculateSpreadPriorityReduce</a></h2>
+<p><code>CalculateSpreadPriorityReduce</code>根据节点上现有匹配pod的数量计算每个节点的十分制的分数，具有较少现有匹配pod的节点的分数越高，表示节点越可能被调度到。</p>
+<p><strong>基本流程如下：</strong></p>
+<ol>
+<li>记录所有节点中匹配到pod个数最多的节点的分数（即匹配到的pod最多的个数）。</li>
+<li>遍历所有的节点，按比例取十分制的得分，计算方式为：(节点中最多匹配pod的个数-当前节点pod的个数)/节点中最多匹配pod的个数。此时，分数越高表示该节点上匹配到的pod的个数越少，越可能被调度到，即满足把相同selector的pod分散到不同节点的需求。</li>
+</ol>
+<blockquote>
+<p>此部分代码位于pkg/scheduler/algorithm/priorities/selector_spreading.go</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// CalculateSpreadPriorityReduce calculates the source of each node
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// based on the number of existing matching pods on the node
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// where zone information is included on the nodes, it favors nodes
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// in zones with fewer existing matching pods.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">s</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">SelectorSpread</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">CalculateSpreadPriorityReduce</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pod</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">v1</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Pod</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">meta</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#000">nodeNameToInfo</span> <span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">schedulercache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NodeInfo</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">result</span> <span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostPriorityList</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">countsByZone</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#0000cf;font-weight:bold">10</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">maxCountByZone</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">int</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">maxCountByNodeName</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">int</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">result</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#000">maxCountByNodeName</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">maxCountByNodeName</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">zoneID</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">utilnode</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetZoneKey</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">nodeNameToInfo</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Host</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Node</span><span style="color:#000;font-weight:bold">())</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">zoneID</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#4e9a06">&#34;&#34;</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">continue</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">countsByZone</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">zoneID</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">+=</span> <span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">zoneID</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">countsByZone</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">countsByZone</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">zoneID</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#000">maxCountByZone</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">maxCountByZone</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">countsByZone</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">zoneID</span><span style="color:#000;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">haveZones</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">countsByZone</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">maxCountByNodeNameFloat64</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">float64</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">maxCountByNodeName</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">maxCountByZoneFloat64</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">float64</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">maxCountByZone</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">MaxPriorityFloat64</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">float64</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">schedulerapi</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">MaxPriority</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">result</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#8f5902;font-style:italic">// initializing to the default/max node score of maxPriority
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>		<span style="color:#000">fScore</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">MaxPriorityFloat64</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">maxCountByNodeName</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">fScore</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">MaxPriorityFloat64</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87">float64</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">maxCountByNodeName</span><span style="color:#ce5c00;font-weight:bold">-</span><span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">/</span> <span style="color:#000">maxCountByNodeNameFloat64</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#8f5902;font-style:italic">// If there is zone information present, incorporate it
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">haveZones</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">zoneID</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">utilnode</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetZoneKey</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">nodeNameToInfo</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Host</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Node</span><span style="color:#000;font-weight:bold">())</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">zoneID</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#4e9a06">&#34;&#34;</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#000">zoneScore</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">MaxPriorityFloat64</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">maxCountByZone</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>					<span style="color:#000">zoneScore</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">MaxPriorityFloat64</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87">float64</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">maxCountByZone</span><span style="color:#ce5c00;font-weight:bold">-</span><span style="color:#000">countsByZone</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">zoneID</span><span style="color:#000;font-weight:bold">])</span> <span style="color:#ce5c00;font-weight:bold">/</span> <span style="color:#000">maxCountByZoneFloat64</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#000">fScore</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">fScore</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1.0</span> <span style="color:#ce5c00;font-weight:bold">-</span> <span style="color:#000">zoneWeighting</span><span style="color:#000;font-weight:bold">))</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">zoneWeighting</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">zoneScore</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87">int</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">fScore</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">glog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">10</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">glog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Infof</span><span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#4e9a06">&#34;%v -&gt; %v: SelectorSpreadPriority, Score: (%d)&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">pod</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Host</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87">int</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">fScore</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>以下分段分析：</p>
+<p>先获取所有节点中匹配到的pod最多的个数。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">result</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#000">maxCountByNodeName</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">maxCountByNodeName</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">zoneID</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">utilnode</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetZoneKey</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">nodeNameToInfo</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Host</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Node</span><span style="color:#000;font-weight:bold">())</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">zoneID</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#4e9a06">&#34;&#34;</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">continue</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">countsByZone</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">zoneID</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">+=</span> <span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>遍历所有的节点，按比例取十分制的得分。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">result</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// initializing to the default/max node score of maxPriority
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">fScore</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">MaxPriorityFloat64</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">maxCountByNodeName</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">fScore</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">MaxPriorityFloat64</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87">float64</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">maxCountByNodeName</span><span style="color:#ce5c00;font-weight:bold">-</span><span style="color:#000">result</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">].</span><span style="color:#000">Score</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">/</span> <span style="color:#000">maxCountByNodeNameFloat64</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#ce5c00;font-weight:bold">...</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>  
+</span></span></code></pre></div><h1 id="9-总结">9. 总结</h1>
+<p>优选，从满足的节点中选择出最优的节点。<code>PrioritizeNodes</code>最终返回是一个记录了各个节点分数的列表。</p>
+<h2 id="9-1-prioritizenodes">9.1. PrioritizeNodes</h2>
+<p><strong>主要流程如下：</strong></p>
+<ol>
+<li>如果没有设置优选函数和拓展函数，则全部节点设置相同的分数，直接返回。</li>
+<li>依次给node执行map函数进行打分。</li>
+<li>再对上述map函数的执行结果执行reduce函数计算最终得分。</li>
+<li>最后根据不同优先级函数的权重对得分取加权平均数。</li>
+</ol>
+<p>其中每类优选函数会包含map函数和reduce函数两种。</p>
+<h2 id="9-2-newselectorspreadpriority">9.2. NewSelectorSpreadPriority</h2>
+<p>其中以<code>NewSelectorSpreadPriority</code>这个优选函数为例作分析，该函数的功能是将相同service、RS、RC或statefulset下pod尽量分散到不同的节点上。包括map函数和reduce函数两部分，具体如下。</p>
+<h3 id="9-2-1-calculatespreadprioritymap">9.2.1. CalculateSpreadPriorityMap</h3>
+<p><strong>基本流程如下：</strong></p>
+<ol>
+<li>寻找与该pod对应的service、RS、RC、statefulset匹配的selector。</li>
+<li>遍历当前节点的所有pod，将该节点上已存在的selector匹配到的pod的个数作为该节点的分数（此时，分数大的表示匹配到的pod越多，越不符合被调度的条件，该分数在reduce阶段会被按10分制处理成分数大的越符合被调度的条件）。</li>
+</ol>
+<h3 id="9-2-2-calculatespreadpriorityreduce">9.2.2. CalculateSpreadPriorityReduce</h3>
+<p><strong>基本流程如下：</strong></p>
+<ol>
+<li>记录所有节点中匹配到pod个数最多的节点的分数（即匹配到的pod最多的个数）。</li>
+<li>遍历所有的节点，按比例取十分制的得分，计算方式为：(节点中最多匹配pod的个数-当前节点pod的个数)/节点中最多匹配pod的个数。此时，分数越高表示该节点上匹配到的pod的个数越少，越可能被调度到，即满足把相同selector的pod分散到不同节点的需求。</li>
+</ol>
+<p>参考：</p>
+<ul>
+<li><a href="https://github.com/kubernetes/kubernetes/blob/v1.12.0/pkg/scheduler/core/generic_scheduler.go">https://github.com/kubernetes/kubernetes/blob/v1.12.0/pkg/scheduler/core/generic_scheduler.go</a></li>
+<li><a href="https://github.com/kubernetes/kubernetes/blob/v1.12.0/pkg/scheduler/algorithm/priorities/selector_spreading.go">https://github.com/kubernetes/kubernetes/blob/v1.12.0/pkg/scheduler/algorithm/priorities/selector_spreading.go</a></li>
+</ul>
+
+	
+		<style>
+  .feedback--answer {
+    display: inline-block;
+  }
+  .feedback--answer-no {
+    margin-left: 1em;
+  }
+  .feedback--response {
+    display: none;
+    margin-top: 1em;
+  }
+  .feedback--response__visible {
+    display: block;
+  }
+</style>
+<div class="d-print-none">
+<h2 class="feedback--title">Feedback</h2>
+<p class="feedback--question">Was this page helpful?</p>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-yes">Yes</button>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-no">No</button>
+<p class="feedback--response feedback--response-yes">
+  Glad to hear it! Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+<p class="feedback--response feedback--response-no">
+  Sorry to hear that. Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+</div>
+<script>
+  const yesButton = document.querySelector('.feedback--answer-yes');
+  const noButton = document.querySelector('.feedback--answer-no');
+  const yesResponse = document.querySelector('.feedback--response-yes');
+  const noResponse = document.querySelector('.feedback--response-no');
+  const disableButtons = () => {
+    yesButton.disabled = true;
+    noButton.disabled = true;
+  };
+  const sendFeedback = (value) => {
+    if (typeof ga !== 'function') return;
+    const args = {
+      command: 'send',
+      hitType: 'event',
+      category: 'Helpful',
+      action: 'click',
+      label: window.location.pathname,
+      value: value
+    };
+    ga(args.command, args.hitType, args.category, args.action, args.label, args.value);
+  };
+  yesButton.addEventListener('click', () => {
+    yesResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(1);
+  });
+  noButton.addEventListener('click', () => {
+    noResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(0);
+  });
+</script>
+
+		<br />
+	
+	
+	
+</div>
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="User mailing list" aria-label="User mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="User mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Twitter" aria-label="Twitter">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/twitter" aria-label="Twitter">
+      <i class="fab fa-twitter"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Stack Overflow" aria-label="Stack Overflow">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/stack" aria-label="Stack Overflow">
+      <i class="fab fa-stack-overflow"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/k8s.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Slack" aria-label="Slack">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/slack" aria-label="Slack">
+      <i class="fab fa-slack"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Developer mailing list" aria-label="Developer mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="Developer mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2022 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		<p class="mt-2"><a href="/about/">About</a></p>
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+
+
+  </body>
+</html>
