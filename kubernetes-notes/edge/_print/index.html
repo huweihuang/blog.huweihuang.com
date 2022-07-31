@@ -896,6 +896,45 @@ if (!doNotTrack) {
 </span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>    /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
 </span></span></code></pre></div><p>重启kubelet服务</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl daemon-reload <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> systemctl restart kubelet
+</span></span></code></pre></div><h2 id="4-1-yurthub部署脚本">4.1. yurthub部署脚本</h2>
+<p>根据以上部署步骤，整理部署脚本。需要修改脚本内容的<code>master-addr</code>和<code>token</code>字段。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#!/bin/bash
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87">set</span> -e
+</span></span><span style="display:flex;"><span><span style="color:#204a87">set</span> -x
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">### install yurthub ###</span>
+</span></span><span style="display:flex;"><span>mkdir -p /etc/kubernetes/manifests/
+</span></span><span style="display:flex;"><span><span style="color:#204a87">cd</span> /etc/kubernetes/manifests/
+</span></span><span style="display:flex;"><span>wget https://raw.githubusercontent.com/openyurtio/openyurt/master/config/setup/yurthub.yaml 
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">### 修改master和token字段</span>
+</span></span><span style="display:flex;"><span>sed -i <span style="color:#4e9a06">&#39;s|__kubernetes_master_address__|&lt;master-addr&gt;:6443|;
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">s|__bootstrap_token__|&lt;token&gt;|&#39;</span> /etc/kubernetes/manifests/yurthub.yaml
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>mkdir -p /var/lib/openyurt
+</span></span><span style="display:flex;"><span>cat <span style="color:#4e9a06">&lt;&lt; EOF &gt; /var/lib/openyurt/kubelet.conf
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">apiVersion: v1
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">clusters:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">- cluster:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    server: http://127.0.0.1:10261
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  name: default-cluster
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">contexts:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">- context:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    cluster: default-cluster
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    namespace: default
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    user: default-auth
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  name: default-context
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">current-context: default-context
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">kind: Config
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">preferences: {}
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">EOF</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>cp /etc/systemd/system/kubelet.service.d/10-kubeadm.conf /etc/systemd/system/kubelet.service.d/10-kubeadm.conf.bak
+</span></span><span style="display:flex;"><span>sed -i <span style="color:#4e9a06">&#34;s|KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig=\/etc\/kubernetes\/bootstrap-kubelet.conf\ --kubeconfig=\/etc\/kubernetes\/kubelet.conf|KUBELET_KUBECONFIG_ARGS=--kubeconfig=\/var\/lib\/openyurt\/kubelet.conf|g&#34;</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>    /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>systemctl daemon-reload <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> systemctl restart kubelet
 </span></span></code></pre></div><h2 id="5-部署-yurt-tunnel-可选">5. 部署 Yurt-tunnel (可选)</h2>
 <h3 id="5-1-部署云端的-yurt-tunnel-server">5.1.  部署云端的 yurt-tunnel-server</h3>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>wget https://raw.githubusercontent.com/openyurtio/openyurt/master/config/setup/yurt-tunnel-server.yaml

@@ -48,7 +48,7 @@ sudo apt-get update sudo apt-get install \ ca-certificates \ curl \ gnupg \ lsb-
 sudo mkdir -p /etc/apt/keyrings curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg 3、设置软件仓库源
 echo \ &#34;deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.">
 <meta itemprop="dateModified" content="2022-07-23T13:30:10+08:00" />
-<meta itemprop="wordCount" content="283">
+<meta itemprop="wordCount" content="388">
 <meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="安装Containerd"/>
 <meta name="twitter:description" content="1. Ubuntu安装containerd 以下以Ubuntu为例
@@ -916,6 +916,7 @@ if (!doNotTrack) {
       </ul>
     </li>
     <li><a href="#2-离线二进制安装containerd">2. 离线二进制安装containerd</a></li>
+    <li><a href="#3-containerd配置代理">3. Containerd配置代理</a></li>
   </ul>
 </nav></div>
 
@@ -1112,9 +1113,56 @@ if (!doNotTrack) {
 </span></span><span style="display:flex;"><span>wget https://github.com/kubernetes-sigs/cri-tools/releases/download/v<span style="color:#4e9a06">${</span><span style="color:#000">CrictlVersion</span><span style="color:#4e9a06">}</span>/crictl-v<span style="color:#4e9a06">${</span><span style="color:#000">CrictlVersion</span><span style="color:#4e9a06">}</span>-linux-amd64.tar.gz
 </span></span><span style="display:flex;"><span>tar Cxzvf /usr/local/bin crictl-v<span style="color:#4e9a06">${</span><span style="color:#000">CrictlVersion</span><span style="color:#4e9a06">}</span>-linux-amd64.tar.gz
 </span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>cat &gt; /etc/crictl.yaml <span style="color:#4e9a06">&lt;&lt; \EOF
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">runtime-endpoint: unix:///run/containerd/containerd.sock
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">image-endpoint: unix:///run/containerd/containerd.sock
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">timeout: 2
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">debug: false
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">pull-image-on-create: false
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">EOF</span>
+</span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 启动containerd服务</span>
 </span></span><span style="display:flex;"><span>systemctl daemon-reload
+</span></span><span style="display:flex;"><span>systemctl <span style="color:#204a87">enable</span> contaienrd
 </span></span><span style="display:flex;"><span>systemctl restart contaienrd
+</span></span></code></pre></div><h1 id="3-containerd配置代理">3. Containerd配置代理</h1>
+<p>由于节点到k8s官方仓库网络不通，或者设备处于内网，可以通过配置http_proxy代理的方式来拉取镜像。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>vi /lib/systemd/system/containerd.service
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 添加代理环境变量</span>
+</span></span><span style="display:flex;"><span> <span style="color:#ce5c00;font-weight:bold">[</span>Unit<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Description</span><span style="color:#ce5c00;font-weight:bold">=</span>containerd container runtime
+</span></span><span style="display:flex;"><span><span style="color:#000">Documentation</span><span style="color:#ce5c00;font-weight:bold">=</span>https://containerd.io
+</span></span><span style="display:flex;"><span><span style="color:#000">After</span><span style="color:#ce5c00;font-weight:bold">=</span>network.target local-fs.target
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Service<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Environment</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;HTTP_PROXY=http://squid:3128/&#34;</span>   <span style="color:#8f5902;font-style:italic"># 添加环境变量代理</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Environment</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;HTTPS_PROXY=http://squid:3128/&#34;</span>  <span style="color:#8f5902;font-style:italic"># 添加环境变量代理</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">ExecStartPre</span><span style="color:#ce5c00;font-weight:bold">=</span>-/sbin/modprobe overlay
+</span></span><span style="display:flex;"><span><span style="color:#000">ExecStart</span><span style="color:#ce5c00;font-weight:bold">=</span>/usr/local/bin/containerd
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Type</span><span style="color:#ce5c00;font-weight:bold">=</span>notify
+</span></span><span style="display:flex;"><span><span style="color:#000">Delegate</span><span style="color:#ce5c00;font-weight:bold">=</span>yes
+</span></span><span style="display:flex;"><span><span style="color:#000">KillMode</span><span style="color:#ce5c00;font-weight:bold">=</span>process
+</span></span><span style="display:flex;"><span><span style="color:#000">Restart</span><span style="color:#ce5c00;font-weight:bold">=</span>always
+</span></span><span style="display:flex;"><span><span style="color:#000">RestartSec</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">5</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Having non-zero Limit*s causes performance problems due to accounting overhead</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># in the kernel. We recommend using cgroups to do container-local accounting.</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">LimitNPROC</span><span style="color:#ce5c00;font-weight:bold">=</span>infinity
+</span></span><span style="display:flex;"><span><span style="color:#000">LimitCORE</span><span style="color:#ce5c00;font-weight:bold">=</span>infinity
+</span></span><span style="display:flex;"><span><span style="color:#000">LimitNOFILE</span><span style="color:#ce5c00;font-weight:bold">=</span>infinity
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Comment TasksMax if your systemd version does not supports it.</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Only systemd 226 and above support this version.</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">TasksMax</span><span style="color:#ce5c00;font-weight:bold">=</span>infinity
+</span></span><span style="display:flex;"><span><span style="color:#000">OOMScoreAdjust</span><span style="color:#ce5c00;font-weight:bold">=</span>-999
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Install<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">WantedBy</span><span style="color:#ce5c00;font-weight:bold">=</span>multi-user.target
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 重启服务</span>
+</span></span><span style="display:flex;"><span>systemctl daemon-reload
+</span></span><span style="display:flex;"><span>systemctl restart containerd
 </span></span></code></pre></div><p>参考：</p>
 <ul>
 <li>
