@@ -137,5 +137,37 @@ May 13 16:54:26 8b26d7a8 dockerd[44352]: time=&amp;#34;2021-05-13T16:54:26.57480
       </description>
     </item>
     
+    <item>
+      <title>Kubernetes-Notes: runc-v1.1.3-exec-failed</title>
+      <link>https://k8s.huweihuang.com/kubernetes-notes/trouble-shooting/node/runc-1.1.3-exec-failed/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://k8s.huweihuang.com/kubernetes-notes/trouble-shooting/node/runc-1.1.3-exec-failed/</guid>
+      <description>
+        
+        
+        &lt;h2 id=&#34;问题描述&#34;&gt;问题描述&lt;/h2&gt;
+&lt;p&gt;当使用&lt;code&gt;runc 1.1.3&lt;/code&gt;的版本时，如果执行&lt;code&gt;systemctl daemon-reload&lt;/code&gt;后，通过exec进入容器则会触发以下错误，无法进入容器。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;FATA&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;[&lt;/span&gt;0000&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;]&lt;/span&gt; execing &lt;span style=&#34;color:#204a87&#34;&gt;command&lt;/span&gt; in container: Internal error occurred: error executing &lt;span style=&#34;color:#204a87&#34;&gt;command&lt;/span&gt; in container: failed to &lt;span style=&#34;color:#204a87&#34;&gt;exec&lt;/span&gt; in container: failed to start &lt;span style=&#34;color:#204a87&#34;&gt;exec&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;33d05b4f71a2da69c8c77cc3f7e61451814eb150edd15d0a3153b57a862126d4&amp;#34;&lt;/span&gt;: OCI runtime &lt;span style=&#34;color:#204a87&#34;&gt;exec&lt;/span&gt; failed: &lt;span style=&#34;color:#204a87&#34;&gt;exec&lt;/span&gt; failed: unable to start container process: open /dev/pts/0: operation not permitted: unknown
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;原因&#34;&gt;原因&lt;/h2&gt;
+&lt;p&gt;这个是runc 1.1.3版本起存在的一个bug，runc1.1.2的版本不存在，社区在runc 1.1.4的版本中修复了这个bug。由于 runc v1.1.3 中不再添加 &lt;code&gt;DeviceAllow=char-pts rwm&lt;/code&gt; 规则了，当执行 &lt;code&gt;systemctl daemon-reload&lt;/code&gt; 后， 会导致重新应用 systemd 的规则，进而导致这条规则的缺失。&lt;/p&gt;
+&lt;h2 id=&#34;解决方案&#34;&gt;解决方案&lt;/h2&gt;
+&lt;p&gt;升级runc到1.1.4的版本，并且所有通过runc1.1.3创建的pod都需要重建才能生效。&lt;/p&gt;
+&lt;p&gt;参考：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/containerd/containerd/issues/7219#issuecomment-1225358826&#34;&gt;https://github.com/containerd/containerd/issues/7219#issuecomment-1225358826&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/opencontainers/runc/issues/3551&#34;&gt;https://github.com/opencontainers/runc/issues/3551&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/opencontainers/runc/releases/tag/v1.1.4&#34;&gt;Release runc 1.1.4 -- &amp;quot;If you look for perfection, you&#39;ll never be content.&amp;quot; · opencontainers/runc · GitHub&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+
+      </description>
+    </item>
+    
   </channel>
 </rss>

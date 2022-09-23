@@ -204,6 +204,14 @@ if (!doNotTrack) {
 
     
   
+    
+    
+	
+<li>1.4: <a href="#pg-be6ea3f2a598a7462ad23ef96ba1c6c7">runc-v1.1.3-exec-failed</a></li>
+
+
+    
+  
 
     </ul>
     
@@ -228,6 +236,14 @@ if (!doNotTrack) {
     
 	
 <li>4: <a href="#pg-f2cc121604cda28beccb98599cfa50cc">PVC Terminating</a></li>
+
+
+    
+  
+    
+    
+	
+<li>5: <a href="#pg-1fc63b5dc9513028d22327de8b197dcf">ConfigMap多行格式</a></li>
 
 
     
@@ -412,6 +428,42 @@ May 13 16:54:26 8b26d7a8 dockerd[44352]: time=&#34;2021-05-13T16:54:26.574800326
     
 	
   
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-be6ea3f2a598a7462ad23ef96ba1c6c7">1.4 - runc-v1.1.3-exec-failed</h1>
+    
+	<h2 id="问题描述">问题描述</h2>
+<p>当使用<code>runc 1.1.3</code>的版本时，如果执行<code>systemctl daemon-reload</code>后，通过exec进入容器则会触发以下错误，无法进入容器。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>FATA<span style="color:#ce5c00;font-weight:bold">[</span>0000<span style="color:#ce5c00;font-weight:bold">]</span> execing <span style="color:#204a87">command</span> in container: Internal error occurred: error executing <span style="color:#204a87">command</span> in container: failed to <span style="color:#204a87">exec</span> in container: failed to start <span style="color:#204a87">exec</span> <span style="color:#4e9a06">&#34;33d05b4f71a2da69c8c77cc3f7e61451814eb150edd15d0a3153b57a862126d4&#34;</span>: OCI runtime <span style="color:#204a87">exec</span> failed: <span style="color:#204a87">exec</span> failed: unable to start container process: open /dev/pts/0: operation not permitted: unknown
+</span></span></code></pre></div><h2 id="原因">原因</h2>
+<p>这个是runc 1.1.3版本起存在的一个bug，runc1.1.2的版本不存在，社区在runc 1.1.4的版本中修复了这个bug。由于 runc v1.1.3 中不再添加 <code>DeviceAllow=char-pts rwm</code> 规则了，当执行 <code>systemctl daemon-reload</code> 后， 会导致重新应用 systemd 的规则，进而导致这条规则的缺失。</p>
+<h2 id="解决方案">解决方案</h2>
+<p>升级runc到1.1.4的版本，并且所有通过runc1.1.3创建的pod都需要重建才能生效。</p>
+<p>参考：</p>
+<ul>
+<li>
+<p><a href="https://github.com/containerd/containerd/issues/7219#issuecomment-1225358826">https://github.com/containerd/containerd/issues/7219#issuecomment-1225358826</a></p>
+</li>
+<li>
+<p><a href="https://github.com/opencontainers/runc/issues/3551">https://github.com/opencontainers/runc/issues/3551</a></p>
+</li>
+<li>
+<p><a href="https://github.com/opencontainers/runc/releases/tag/v1.1.4">Release runc 1.1.4 -- &quot;If you look for perfection, you'll never be content.&quot; · opencontainers/runc · GitHub</a></p>
+</li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
 
     
 	
@@ -558,6 +610,63 @@ May 13 16:54:26 8b26d7a8 dockerd[44352]: time=&#34;2021-05-13T16:54:26.574800326
 <h1 id="解决方法">解决方法</h1>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl patch pvc <span style="color:#ce5c00;font-weight:bold">{</span>PVC_NAME<span style="color:#ce5c00;font-weight:bold">}</span> -p <span style="color:#4e9a06">&#39;{&#34;metadata&#34;:{&#34;finalizers&#34;:null}}&#39;</span>
 </span></span></code></pre></div>
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-1fc63b5dc9513028d22327de8b197dcf">5 - ConfigMap多行格式</h1>
+    
+	<h2 id="问题">问题</h2>
+<p>configmap出现多行文本无法正常显示换行格式，而是以<code>\n</code>连接文本，查看和编辑时可读性很差。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">data</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">config.yaml</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;# log options\nlog_level: \&#34;info\&#34;\nlog_output: \&#34;stderr\&#34;\ncert_file:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    \&#34;/etc/webhook/certs/cert.pem\&#34;\nkey_file: \&#34;/etc/webhook/certs/key.pem\&#34;\nhttp_listen:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    \&#34;:8080\&#34;\nhttps_listen: \&#34;:8443\&#34;\ningress_publish_service: \nenable_profiling:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    true\nkubernetes:\n  kubeconfig: \&#34;\&#34;\n  resync_interval: \&#34;6h\&#34;\n  app_namespaces:\n
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    \ - \&#34;*\&#34;\n  namespace_selector:\n  - \&#34;\&#34;\n  election_id: \&#34;ingress-apisix-leader\&#34;\n
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    \ ingress_class: \&#34;ph-apisix\&#34;\n  ingress_version: \&#34;networking/v1\&#34;\n  watch_endpointslices:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    false\n  apisix_route_version: \&#34;apisix.apache.org/v2beta3\&#34;\n  enable_gateway_api:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    false\napisix:\n  default_cluster_base_url: http://apisix-admin.apisix.svc.cluster.local:9180/apisix/admin\n
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    \ default_cluster_admin_key: \&#34;edd1c9f034335f136f87ad84b625c8f1\&#34;\n  default_cluster_name:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    \&#34;default\&#34;&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">ConfigMap</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h2 id="解决方案">解决方案</h2>
+<p>如果要保持多行输入和输出的格式，则需要符合以下情况：</p>
+<ul>
+<li>文本不要以空格结尾</li>
+<li>不要换行前再带个空格</li>
+<li>不要在文本中添加不可见特殊字符</li>
+</ul>
+<p>将文本拷贝并格式化yaml文本。可使用在线格式化工具：<a href="https://verytoolz.com/yaml-formatter.html">YAML在线格式化</a>。</p>
+<p>将格式化的文本拷贝到configmap文件，并检查上述三个问题。一般是因以<code>空格结尾</code>导致，搜索空格并去除行末的空格。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">data</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">config.yaml</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000;font-weight:bold">|-</span><span style="color:#8f5902;font-style:italic">
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    # log options
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    log_level: &#34;info&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    log_output: &#34;stderr&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    cert_file: &#34;/etc/webhook/certs/cert.pem&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    key_file: &#34;/etc/webhook/certs/key.pem&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    http_listen: &#34;:8080&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    https_listen: &#34;:8443&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    ingress_publish_service:
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    enable_profiling: true</span><span style="color:#f8f8f8;text-decoration:underline">    
+</span></span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="https://kennylong.io/fix-yaml-multi-line-format/">https://kennylong.io/fix-yaml-multi-line-format/</a></li>
+</ul>
+
 </div>
 
 
