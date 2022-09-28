@@ -1365,7 +1365,10 @@ yum localinstall -y flannel-0.2.0-10.el7.x86_64.rpm
 </span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  }
 </span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">}&#39;</span>
 </span></span></code></pre></div><h3 id="3-2-分开创建路由和upstream">3.2. 分开创建路由和upstream</h3>
-<p>创建路由</p>
+<blockquote>
+<p>推荐使用分开创建路由和upstream。</p>
+</blockquote>
+<p>创建upstream</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>curl <span style="color:#4e9a06">&#34;http://127.0.0.1:9180/apisix/admin/upstreams/1&#34;</span> -H <span style="color:#4e9a06">&#34;X-API-KEY: edd1c9f034335f136f87ad84b625c8f1&#34;</span> -X PUT -d <span style="color:#4e9a06">&#39;
 </span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">{
 </span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  &#34;type&#34;: &#34;roundrobin&#34;,
@@ -1373,14 +1376,18 @@ yum localinstall -y flannel-0.2.0-10.el7.x86_64.rpm
 </span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    &#34;httpbin.org:80&#34;: 1
 </span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  }
 </span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">}&#39;</span>
-</span></span></code></pre></div><p>绑定upstream</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>curl <span style="color:#4e9a06">&#34;http://127.0.0.1:9080/apisix/admin/routes/1&#34;</span> -H <span style="color:#4e9a06">&#34;X-API-KEY: edd1c9f034335f136f87ad84b625c8f1&#34;</span> -X PUT -d <span style="color:#4e9a06">&#39;
+</span></span></code></pre></div><p>创建路由绑定upstream</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>curl <span style="color:#4e9a06">&#34;http://127.0.0.1:9180/apisix/admin/routes/1&#34;</span> -H <span style="color:#4e9a06">&#34;X-API-KEY: edd1c9f034335f136f87ad84b625c8f1&#34;</span> -X PUT -d <span style="color:#4e9a06">&#39;
 </span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">{
-</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  &#34;uri&#34;: &#34;/get&#34;,
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  &#34;uris&#34;: [&#34;/get&#34;,&#34;/list&#34;],
 </span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  &#34;host&#34;: &#34;httpbin.org&#34;,
 </span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  &#34;upstream_id&#34;: &#34;1&#34;
 </span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">}&#39;</span>
-</span></span></code></pre></div><h2 id="4-验证路由规则">4. 验证路由规则</h2>
+</span></span></code></pre></div><p>删除upstream</p>
+<p>DELETE /apisix/admin/upstreams/{id}</p>
+<p>删除route</p>
+<p>DELETE /apisix/admin/routes/{id}</p>
+<h2 id="4-验证路由规则">4. 验证路由规则</h2>
 <p>基于上述的方式，apisix-ingress-controller会调用apisix admin的接口自动创建<code>routes</code>和<code>upstreams</code>两个信息存入etcd，通过业务域名访问apisix就可以访问到具体的pod。</p>
 <p><strong>服务调用</strong></p>
 <p>将业务域名解析到apisix的IP上（如果是物理机部署可以是VIP，或者k8s部署的clusterIP）。</p>
