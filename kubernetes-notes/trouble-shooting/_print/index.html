@@ -212,6 +212,14 @@ if (!doNotTrack) {
 
     
   
+    
+    
+	
+<li>1.5: <a href="#pg-a78e18cade1826f4b4c0178fa69df716">increase the mlock limit</a></li>
+
+
+    
+  
 
     </ul>
     
@@ -457,6 +465,103 @@ May 13 16:54:26 8b26d7a8 dockerd[44352]: time=&#34;2021-05-13T16:54:26.574800326
 </li>
 </ul>
 
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-a78e18cade1826f4b4c0178fa69df716">1.5 - increase the mlock limit</h1>
+    
+	<h2 id="问题描述">问题描述</h2>
+<p>容器启动报错：increase the mlock limit，原因是ulimit mlock值比较小，需要将ulimit值调大。</p>
+<p>报错如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>runtime: mlock of signal stack failed: <span style="color:#0000cf;font-weight:bold">12</span>
+</span></span><span style="display:flex;"><span>runtime: increase the mlock limit <span style="color:#ce5c00;font-weight:bold">(</span><span style="color:#204a87">ulimit</span> -l<span style="color:#ce5c00;font-weight:bold">)</span> or
+</span></span><span style="display:flex;"><span>runtime: update your kernel to 5.3.15+, 5.4.2+, or 5.5+
+</span></span><span style="display:flex;"><span>fatal error: mlock failed
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>runtime stack:
+</span></span><span style="display:flex;"><span>runtime.throw<span style="color:#ce5c00;font-weight:bold">(</span>0x1a7729f, 0xc<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/panic.go:1112 +0x72
+</span></span><span style="display:flex;"><span>runtime.mlockGsignal<span style="color:#ce5c00;font-weight:bold">(</span>0xc000702300<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/os_linux_x86.go:72 +0x107
+</span></span><span style="display:flex;"><span>runtime.mpreinit<span style="color:#ce5c00;font-weight:bold">(</span>0xc000588380<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/os_linux.go:341 +0x78
+</span></span><span style="display:flex;"><span>runtime.mcommoninit<span style="color:#ce5c00;font-weight:bold">(</span>0xc000588380<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:630 +0x108
+</span></span><span style="display:flex;"><span>runtime.allocm<span style="color:#ce5c00;font-weight:bold">(</span>0xc000072000, 0x1adcb70, 0x0<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:1390 +0x14e
+</span></span><span style="display:flex;"><span>runtime.newm<span style="color:#ce5c00;font-weight:bold">(</span>0x1adcb70, 0xc000072000<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:1704 +0x39
+</span></span><span style="display:flex;"><span>runtime.startm<span style="color:#ce5c00;font-weight:bold">(</span>0x0, 0xc000267e01<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:1869 +0x12a
+</span></span><span style="display:flex;"><span>runtime.wakep<span style="color:#ce5c00;font-weight:bold">(</span>...<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:1953
+</span></span><span style="display:flex;"><span>runtime.resetspinning<span style="color:#ce5c00;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:2415 +0x93
+</span></span><span style="display:flex;"><span>runtime.schedule<span style="color:#ce5c00;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:2527 +0x2de
+</span></span><span style="display:flex;"><span>runtime.mstart1<span style="color:#ce5c00;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:1104 +0x8e
+</span></span><span style="display:flex;"><span>runtime.mstart<span style="color:#ce5c00;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:1062 +0x6e
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>goroutine <span style="color:#0000cf;font-weight:bold">1</span> <span style="color:#ce5c00;font-weight:bold">[</span>runnable, locked to thread<span style="color:#ce5c00;font-weight:bold">]</span>:
+</span></span><span style="display:flex;"><span>github.com/xdg/stringprep.init<span style="color:#ce5c00;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    /root/go/pkg/mod/github.com/xdg/stringprep@v1.0.3/tables.go:443 +0x19087
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>goroutine <span style="color:#0000cf;font-weight:bold">43</span> <span style="color:#ce5c00;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">select</span><span style="color:#ce5c00;font-weight:bold">]</span>:
+</span></span><span style="display:flex;"><span>go.opencensus.io/stats/view.<span style="color:#ce5c00;font-weight:bold">(</span>*worker<span style="color:#ce5c00;font-weight:bold">)</span>.start<span style="color:#ce5c00;font-weight:bold">(</span>0xc00067e800<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /root/go/pkg/mod/go.opencensus.io@v0.23.0/stats/view/worker.go:276 +0x100
+</span></span><span style="display:flex;"><span>created by go.opencensus.io/stats/view.init.0
+</span></span><span style="display:flex;"><span>    /root/go/pkg/mod/go.opencensus.io@v0.23.0/stats/view/worker.go:34 +0x68
+</span></span></code></pre></div><h2 id="原因">原因</h2>
+<p>宿主机的ulimit值比较小，需要将内存的ulimit值调大。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ <span style="color:#204a87">ulimit</span> -l
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">64</span>
+</span></span></code></pre></div><h2 id="解决方案">解决方案</h2>
+<p>vi /lib/systemd/system/containerd.service。在containerd.service文件中增加<code>LimitMEMLOCK=infinity</code> 参数。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Unit<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Description</span><span style="color:#ce5c00;font-weight:bold">=</span>containerd container runtime
+</span></span><span style="display:flex;"><span><span style="color:#000">Documentation</span><span style="color:#ce5c00;font-weight:bold">=</span>https://containerd.io
+</span></span><span style="display:flex;"><span><span style="color:#000">After</span><span style="color:#ce5c00;font-weight:bold">=</span>network.target local-fs.target
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Service<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">ExecStartPre</span><span style="color:#ce5c00;font-weight:bold">=</span>-/sbin/modprobe overlay
+</span></span><span style="display:flex;"><span><span style="color:#000">ExecStart</span><span style="color:#ce5c00;font-weight:bold">=</span>/usr/local/bin/containerd
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Type</span><span style="color:#ce5c00;font-weight:bold">=</span>notify
+</span></span><span style="display:flex;"><span><span style="color:#000">Delegate</span><span style="color:#ce5c00;font-weight:bold">=</span>yes
+</span></span><span style="display:flex;"><span><span style="color:#000">KillMode</span><span style="color:#ce5c00;font-weight:bold">=</span>process
+</span></span><span style="display:flex;"><span><span style="color:#000">Restart</span><span style="color:#ce5c00;font-weight:bold">=</span>always
+</span></span><span style="display:flex;"><span><span style="color:#000">RestartSec</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">5</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Having non-zero Limit*s causes performance problems due to accounting overhead</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># in the kernel. We recommend using cgroups to do container-local accounting.</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">LimitMEMLOCK</span><span style="color:#ce5c00;font-weight:bold">=</span>infinity
+</span></span><span style="display:flex;"><span><span style="color:#000">LimitNPROC</span><span style="color:#ce5c00;font-weight:bold">=</span>infinity
+</span></span><span style="display:flex;"><span><span style="color:#000">LimitCORE</span><span style="color:#ce5c00;font-weight:bold">=</span>infinity
+</span></span><span style="display:flex;"><span><span style="color:#000">LimitNOFILE</span><span style="color:#ce5c00;font-weight:bold">=</span>infinity
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Comment TasksMax if your systemd version does not supports it.</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Only systemd 226 and above support this version.</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">TasksMax</span><span style="color:#ce5c00;font-weight:bold">=</span>infinity
+</span></span><span style="display:flex;"><span><span style="color:#000">OOMScoreAdjust</span><span style="color:#ce5c00;font-weight:bold">=</span>-999
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Install<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">WantedBy</span><span style="color:#ce5c00;font-weight:bold">=</span>multi-user.target
+</span></span></code></pre></div><p>重启containerd</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl daemon-reload
+</span></span><span style="display:flex;"><span>systemctl restart containerd
+</span></span><span style="display:flex;"><span>systemctl status containerd
+</span></span></code></pre></div>
 </div>
 
 

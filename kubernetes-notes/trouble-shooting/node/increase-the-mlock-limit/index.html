@@ -4,8 +4,6 @@
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="generator" content="Hugo 0.101.0" />
-<link rel="alternate" type="text/html" href="https://k8s.huweihuang.com/kubernetes-notes/network/gateway/_print/">
-<link rel="alternate" type="application/rss&#43;xml" href="https://k8s.huweihuang.com/kubernetes-notes/network/gateway/index.xml">
 <meta name="robots" content="index, follow">
 
 
@@ -20,17 +18,32 @@
 <link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
 <link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
 
-<title>k8s网关 | HUWEIHUAHG</title>
-<meta name="description" content="">
-<meta property="og:title" content="k8s网关" />
-<meta property="og:description" content="Kubernetes学习笔记" />
-<meta property="og:type" content="website" />
-<meta property="og:url" content="https://k8s.huweihuang.com/kubernetes-notes/network/gateway/" /><meta property="og:site_name" content="HUWEIHUAHG" />
+<title>increase the mlock limit | HUWEIHUAHG</title>
+<meta name="description" content="问题描述
+容器启动报错：increase the mlock limit，原因是ulimit mlock值比较小，需要将ulimit值调大。
+报错如下：
+runtime: mlock of signal stack failed: 12
+runtime: increase the mlock …">
+<meta property="og:title" content="increase the mlock limit" />
+<meta property="og:description" content="问题描述 容器启动报错：increase the mlock limit，原因是ulimit mlock值比较小，需要将ulimit值调大。
+报错如下：
+runtime: mlock of signal stack failed: 12 runtime: increase the mlock limit (ulimit -l) or runtime: update your kernel to 5.3.15&#43;, 5.4.2&#43;, or 5.5&#43; fatal error: mlock failed runtime stack: runtime.throw(0x1a7729f, 0xc) /usr/local/go/src/runtime/panic.go:1112 &#43;0x72 runtime.mlockGsignal(0xc000702300) /usr/local/go/src/runtime/os_linux_x86.go:72 &#43;0x107 runtime.mpreinit(0xc000588380) /usr/local/go/src/runtime/os_linux.go:341 &#43;0x78 runtime.mcommoninit(0xc000588380) /usr/local/go/src/runtime/proc.go:630 &#43;0x108 runtime.allocm(0xc000072000, 0x1adcb70, 0x0) /usr/local/go/src/runtime/proc.go:1390 &#43;0x14e runtime.newm(0x1adcb70, 0xc000072000) /usr/local/go/src/runtime/proc.go:1704 &#43;0x39 runtime.startm(0x0, 0xc000267e01) /usr/local/go/src/runtime/proc.go:1869 &#43;0x12a runtime.wakep(...) /usr/local/go/src/runtime/proc.go:1953 runtime.resetspinning() /usr/local/go/src/runtime/proc.go:2415 &#43;0x93 runtime.schedule() /usr/local/go/src/runtime/proc.go:2527 &#43;0x2de runtime." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://k8s.huweihuang.com/kubernetes-notes/trouble-shooting/node/increase-the-mlock-limit/" /><meta property="article:section" content="kubernetes-notes" />
 
-<meta itemprop="name" content="k8s网关">
-<meta itemprop="description" content="Kubernetes学习笔记"><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="k8s网关"/>
-<meta name="twitter:description" content="Kubernetes学习笔记"/>
+<meta property="og:site_name" content="HUWEIHUAHG" />
+
+<meta itemprop="name" content="increase the mlock limit">
+<meta itemprop="description" content="问题描述 容器启动报错：increase the mlock limit，原因是ulimit mlock值比较小，需要将ulimit值调大。
+报错如下：
+runtime: mlock of signal stack failed: 12 runtime: increase the mlock limit (ulimit -l) or runtime: update your kernel to 5.3.15&#43;, 5.4.2&#43;, or 5.5&#43; fatal error: mlock failed runtime stack: runtime.throw(0x1a7729f, 0xc) /usr/local/go/src/runtime/panic.go:1112 &#43;0x72 runtime.mlockGsignal(0xc000702300) /usr/local/go/src/runtime/os_linux_x86.go:72 &#43;0x107 runtime.mpreinit(0xc000588380) /usr/local/go/src/runtime/os_linux.go:341 &#43;0x78 runtime.mcommoninit(0xc000588380) /usr/local/go/src/runtime/proc.go:630 &#43;0x108 runtime.allocm(0xc000072000, 0x1adcb70, 0x0) /usr/local/go/src/runtime/proc.go:1390 &#43;0x14e runtime.newm(0x1adcb70, 0xc000072000) /usr/local/go/src/runtime/proc.go:1704 &#43;0x39 runtime.startm(0x0, 0xc000267e01) /usr/local/go/src/runtime/proc.go:1869 &#43;0x12a runtime.wakep(...) /usr/local/go/src/runtime/proc.go:1953 runtime.resetspinning() /usr/local/go/src/runtime/proc.go:2415 &#43;0x93 runtime.schedule() /usr/local/go/src/runtime/proc.go:2527 &#43;0x2de runtime.">
+
+<meta itemprop="wordCount" content="183">
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="increase the mlock limit"/>
+<meta name="twitter:description" content="问题描述 容器启动报错：increase the mlock limit，原因是ulimit mlock值比较小，需要将ulimit值调大。
+报错如下：
+runtime: mlock of signal stack failed: 12 runtime: increase the mlock limit (ulimit -l) or runtime: update your kernel to 5.3.15&#43;, 5.4.2&#43;, or 5.5&#43; fatal error: mlock failed runtime stack: runtime.throw(0x1a7729f, 0xc) /usr/local/go/src/runtime/panic.go:1112 &#43;0x72 runtime.mlockGsignal(0xc000702300) /usr/local/go/src/runtime/os_linux_x86.go:72 &#43;0x107 runtime.mpreinit(0xc000588380) /usr/local/go/src/runtime/os_linux.go:341 &#43;0x78 runtime.mcommoninit(0xc000588380) /usr/local/go/src/runtime/proc.go:630 &#43;0x108 runtime.allocm(0xc000072000, 0x1adcb70, 0x0) /usr/local/go/src/runtime/proc.go:1390 &#43;0x14e runtime.newm(0x1adcb70, 0xc000072000) /usr/local/go/src/runtime/proc.go:1704 &#43;0x39 runtime.startm(0x0, 0xc000267e01) /usr/local/go/src/runtime/proc.go:1869 &#43;0x12a runtime.wakep(...) /usr/local/go/src/runtime/proc.go:1953 runtime.resetspinning() /usr/local/go/src/runtime/proc.go:2415 &#43;0x93 runtime.schedule() /usr/local/go/src/runtime/proc.go:2527 &#43;0x2de runtime."/>
 
 
 
@@ -62,7 +75,7 @@ if (!doNotTrack) {
 <script async src='https://www.google-analytics.com/analytics.js'></script>
 
   </head>
-  <body class="td-section">
+  <body class="td-page">
     <header>
       
 <nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
@@ -332,8 +345,8 @@ if (!doNotTrack) {
   </ul>
 </li>
   </ul>
-</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-kubernetes-notes-network-li">
-  <input type="checkbox" id="m-kubernetes-notes-network-check" checked/>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-network-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-check"/>
   <label for="m-kubernetes-notes-network-check"><a href="/kubernetes-notes/network/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-network"><span class="">容器网络</span></a></label>
   
   <ul class="ul-2 foldable">
@@ -373,7 +386,7 @@ if (!doNotTrack) {
   </ul>
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-network-gateway-li">
   <input type="checkbox" id="m-kubernetes-notes-network-gateway-check"/>
-  <label for="m-kubernetes-notes-network-gateway-check"><a href="/kubernetes-notes/network/gateway/" class="align-left pl-0  active td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-network-gateway"><span class="td-sidebar-nav-active-item">k8s网关</span></a></label>
+  <label for="m-kubernetes-notes-network-gateway-check"><a href="/kubernetes-notes/network/gateway/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-network-gateway"><span class="">k8s网关</span></a></label>
   
   <ul class="ul-3 foldable">
     <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-network-gateway-install-li">
@@ -588,13 +601,13 @@ if (!doNotTrack) {
   </ul>
 </li>
   </ul>
-</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-trouble-shooting-li">
-  <input type="checkbox" id="m-kubernetes-notes-trouble-shooting-check"/>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-kubernetes-notes-trouble-shooting-li">
+  <input type="checkbox" id="m-kubernetes-notes-trouble-shooting-check" checked/>
   <label for="m-kubernetes-notes-trouble-shooting-check"><a href="/kubernetes-notes/trouble-shooting/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-trouble-shooting"><span class="">问题排查</span></a></label>
   
   <ul class="ul-2 foldable">
-    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-trouble-shooting-node-li">
-  <input type="checkbox" id="m-kubernetes-notes-trouble-shooting-node-check"/>
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-kubernetes-notes-trouble-shooting-node-li">
+  <input type="checkbox" id="m-kubernetes-notes-trouble-shooting-node-check" checked/>
   <label for="m-kubernetes-notes-trouble-shooting-node-check"><a href="/kubernetes-notes/trouble-shooting/node/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-trouble-shooting-node"><span class="">节点问题</span></a></label>
   
   <ul class="ul-3 foldable">
@@ -616,7 +629,7 @@ if (!doNotTrack) {
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-trouble-shooting-node-increase-the-mlock-limit-li">
   <input type="checkbox" id="m-kubernetes-notes-trouble-shooting-node-increase-the-mlock-limit-check"/>
-  <label for="m-kubernetes-notes-trouble-shooting-node-increase-the-mlock-limit-check"><a href="/kubernetes-notes/trouble-shooting/node/increase-the-mlock-limit/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-trouble-shooting-node-increase-the-mlock-limit"><span class="">increase the mlock limit</span></a></label>
+  <label for="m-kubernetes-notes-trouble-shooting-node-increase-the-mlock-limit-check"><a href="/kubernetes-notes/trouble-shooting/node/increase-the-mlock-limit/" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-trouble-shooting-node-increase-the-mlock-limit"><span class="td-sidebar-nav-active-item">increase the mlock limit</span></a></label>
   
 </li>
   </ul>
@@ -919,17 +932,29 @@ if (!doNotTrack) {
           <aside class="d-none d-xl-block col-xl-2 td-sidebar-toc d-print-none">
             
 <div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
-<a href="https://github.com/huweihuang/k8s.huweihuang.com/tree/master/content/zh-cn/kubernetes-notes/network/gateway/_index.md" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa fa-file-alt fa-fw"></i> 查看页面源码</a>
-  <a href="https://github.com/huweihuang/k8s.huweihuang.com/edit/master/content/zh-cn/kubernetes-notes/network/gateway/_index.md" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 编辑此页</a>
-  <a href="https://github.com/huweihuang/k8s.huweihuang.com/new/master/content/zh-cn/kubernetes-notes/network/gateway/_index.md?filename=change-me.md&amp;value=---%0Atitle%3A&#43;%22Long&#43;Page&#43;Title%22%0AlinkTitle%3A&#43;%22Short&#43;Nav&#43;Title%22%0Aweight%3A&#43;100%0Adescription%3A&#43;%3E-%0A&#43;&#43;&#43;&#43;&#43;Page&#43;description&#43;for&#43;heading&#43;and&#43;indexes.%0A---%0A%0A%23%23&#43;Heading%0A%0AEdit&#43;this&#43;template&#43;to&#43;create&#43;your&#43;new&#43;page.%0A%0A%2A&#43;Give&#43;it&#43;a&#43;good&#43;name%2C&#43;ending&#43;in&#43;%60.md%60&#43;-&#43;e.g.&#43;%60getting-started.md%60%0A%2A&#43;Edit&#43;the&#43;%22front&#43;matter%22&#43;section&#43;at&#43;the&#43;top&#43;of&#43;the&#43;page&#43;%28weight&#43;controls&#43;how&#43;its&#43;ordered&#43;amongst&#43;other&#43;pages&#43;in&#43;the&#43;same&#43;directory%3B&#43;lowest&#43;number&#43;first%29.%0A%2A&#43;Add&#43;a&#43;good&#43;commit&#43;message&#43;at&#43;the&#43;bottom&#43;of&#43;the&#43;page&#43;%28%3C80&#43;characters%3B&#43;use&#43;the&#43;extended&#43;description&#43;field&#43;for&#43;more&#43;detail%29.%0A%2A&#43;Create&#43;a&#43;new&#43;branch&#43;so&#43;you&#43;can&#43;preview&#43;your&#43;new&#43;file&#43;and&#43;request&#43;a&#43;review&#43;via&#43;Pull&#43;Request.%0A" class="td-page-meta--child" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 添加子页面</a>
-  <a href="https://github.com/huweihuang/k8s.huweihuang.com/issues/new?title=k8s%e7%bd%91%e5%85%b3" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
+<a href="https://github.com/huweihuang/k8s.huweihuang.com/tree/master/content/zh-cn/kubernetes-notes/trouble-shooting/node/increase-the-mlock-limit.md" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa fa-file-alt fa-fw"></i> 查看页面源码</a>
+  <a href="https://github.com/huweihuang/k8s.huweihuang.com/edit/master/content/zh-cn/kubernetes-notes/trouble-shooting/node/increase-the-mlock-limit.md" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 编辑此页</a>
+  <a href="https://github.com/huweihuang/k8s.huweihuang.com/new/master/content/zh-cn/kubernetes-notes/trouble-shooting/node/increase-the-mlock-limit.md?filename=change-me.md&amp;value=---%0Atitle%3A&#43;%22Long&#43;Page&#43;Title%22%0AlinkTitle%3A&#43;%22Short&#43;Nav&#43;Title%22%0Aweight%3A&#43;100%0Adescription%3A&#43;%3E-%0A&#43;&#43;&#43;&#43;&#43;Page&#43;description&#43;for&#43;heading&#43;and&#43;indexes.%0A---%0A%0A%23%23&#43;Heading%0A%0AEdit&#43;this&#43;template&#43;to&#43;create&#43;your&#43;new&#43;page.%0A%0A%2A&#43;Give&#43;it&#43;a&#43;good&#43;name%2C&#43;ending&#43;in&#43;%60.md%60&#43;-&#43;e.g.&#43;%60getting-started.md%60%0A%2A&#43;Edit&#43;the&#43;%22front&#43;matter%22&#43;section&#43;at&#43;the&#43;top&#43;of&#43;the&#43;page&#43;%28weight&#43;controls&#43;how&#43;its&#43;ordered&#43;amongst&#43;other&#43;pages&#43;in&#43;the&#43;same&#43;directory%3B&#43;lowest&#43;number&#43;first%29.%0A%2A&#43;Add&#43;a&#43;good&#43;commit&#43;message&#43;at&#43;the&#43;bottom&#43;of&#43;the&#43;page&#43;%28%3C80&#43;characters%3B&#43;use&#43;the&#43;extended&#43;description&#43;field&#43;for&#43;more&#43;detail%29.%0A%2A&#43;Create&#43;a&#43;new&#43;branch&#43;so&#43;you&#43;can&#43;preview&#43;your&#43;new&#43;file&#43;and&#43;request&#43;a&#43;review&#43;via&#43;Pull&#43;Request.%0A" class="td-page-meta--child" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 添加子页面</a>
+  <a href="https://github.com/huweihuang/k8s.huweihuang.com/issues/new?title=increase%20the%20mlock%20limit" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
   <a href="https://github.com/huweihuang/k8s.huweihuang.com/issues/new" class="td-page-meta--project-issue" target="_blank" rel="noopener"><i class="fas fa-tasks fa-fw"></i> 提交项目问题</a>
-  <a id="print" href="https://k8s.huweihuang.com/kubernetes-notes/network/gateway/_print/"><i class="fa fa-print fa-fw"></i> 整节打印</a>
+  <a id="print" href="https://k8s.huweihuang.com/kubernetes-notes/trouble-shooting/node/_print/"><i class="fa fa-print fa-fw"></i> 整节打印</a>
 
 </div>
 
             
 
+
+<div class="td-toc"><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#问题描述">问题描述</a></li>
+        <li><a href="#原因">原因</a></li>
+        <li><a href="#解决方案">解决方案</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></div>
 
 
 
@@ -985,17 +1010,20 @@ if (!doNotTrack) {
     <a href="https://k8s.huweihuang.com/kubernetes-notes/">Kubernetes学习笔记</a>
   </li>
   <li class="breadcrumb-item">
-    <a href="https://k8s.huweihuang.com/kubernetes-notes/network/">容器网络</a>
+    <a href="https://k8s.huweihuang.com/kubernetes-notes/trouble-shooting/">问题排查</a>
+  </li>
+  <li class="breadcrumb-item">
+    <a href="https://k8s.huweihuang.com/kubernetes-notes/trouble-shooting/node/">节点问题</a>
   </li>
   <li class="breadcrumb-item active" aria-current="page">
-    <a href="https://k8s.huweihuang.com/kubernetes-notes/network/gateway/">k8s网关</a>
+    <a href="https://k8s.huweihuang.com/kubernetes-notes/trouble-shooting/node/increase-the-mlock-limit/">increase the mlock limit</a>
   </li>
   </ol>
 </nav>
             
 <div class="td-content">
-	<h1>k8s网关</h1>
-  
+	<h1>increase the mlock limit</h1>
+	
 	<header class="article-meta">
 		
 
@@ -1012,54 +1040,88 @@ if (!doNotTrack) {
   
 
 		
-	</header>
-	
-        <div class="section-index">
-    
-    
-    
-    
-    
-    
-    
-    
-    <hr class="panel-line">
-        
-            
-            <div class="entry">
-                <h5>
-                    <a href="/kubernetes-notes/network/gateway/install/">安装APISIX</a>
-                </h5>
-                <p></p>
-            </div>
-        
-            
-            <div class="entry">
-                <h5>
-                    <a href="/kubernetes-notes/network/gateway/apisix-ingress-controller-usage/">创建路由</a>
-                </h5>
-                <p></p>
-            </div>
-        
-            
-            <div class="entry">
-                <h5>
-                    <a href="/kubernetes-notes/network/gateway/ingress-controller-design/">ingress-controller原理</a>
-                </h5>
-                <p></p>
-            </div>
-        
-            
-            <div class="entry">
-                <h5>
-                    <a href="/kubernetes-notes/network/gateway/apisix-config/">APISIX配置</a>
-                </h5>
-                <p></p>
-            </div>
-        
-    
-</div>
-
+	</header>    
+	<h2 id="问题描述">问题描述</h2>
+<p>容器启动报错：increase the mlock limit，原因是ulimit mlock值比较小，需要将ulimit值调大。</p>
+<p>报错如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>runtime: mlock of signal stack failed: <span style="color:#0000cf;font-weight:bold">12</span>
+</span></span><span style="display:flex;"><span>runtime: increase the mlock limit <span style="color:#ce5c00;font-weight:bold">(</span><span style="color:#204a87">ulimit</span> -l<span style="color:#ce5c00;font-weight:bold">)</span> or
+</span></span><span style="display:flex;"><span>runtime: update your kernel to 5.3.15+, 5.4.2+, or 5.5+
+</span></span><span style="display:flex;"><span>fatal error: mlock failed
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>runtime stack:
+</span></span><span style="display:flex;"><span>runtime.throw<span style="color:#ce5c00;font-weight:bold">(</span>0x1a7729f, 0xc<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/panic.go:1112 +0x72
+</span></span><span style="display:flex;"><span>runtime.mlockGsignal<span style="color:#ce5c00;font-weight:bold">(</span>0xc000702300<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/os_linux_x86.go:72 +0x107
+</span></span><span style="display:flex;"><span>runtime.mpreinit<span style="color:#ce5c00;font-weight:bold">(</span>0xc000588380<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/os_linux.go:341 +0x78
+</span></span><span style="display:flex;"><span>runtime.mcommoninit<span style="color:#ce5c00;font-weight:bold">(</span>0xc000588380<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:630 +0x108
+</span></span><span style="display:flex;"><span>runtime.allocm<span style="color:#ce5c00;font-weight:bold">(</span>0xc000072000, 0x1adcb70, 0x0<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:1390 +0x14e
+</span></span><span style="display:flex;"><span>runtime.newm<span style="color:#ce5c00;font-weight:bold">(</span>0x1adcb70, 0xc000072000<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:1704 +0x39
+</span></span><span style="display:flex;"><span>runtime.startm<span style="color:#ce5c00;font-weight:bold">(</span>0x0, 0xc000267e01<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:1869 +0x12a
+</span></span><span style="display:flex;"><span>runtime.wakep<span style="color:#ce5c00;font-weight:bold">(</span>...<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:1953
+</span></span><span style="display:flex;"><span>runtime.resetspinning<span style="color:#ce5c00;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:2415 +0x93
+</span></span><span style="display:flex;"><span>runtime.schedule<span style="color:#ce5c00;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:2527 +0x2de
+</span></span><span style="display:flex;"><span>runtime.mstart1<span style="color:#ce5c00;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:1104 +0x8e
+</span></span><span style="display:flex;"><span>runtime.mstart<span style="color:#ce5c00;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    /usr/local/go/src/runtime/proc.go:1062 +0x6e
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>goroutine <span style="color:#0000cf;font-weight:bold">1</span> <span style="color:#ce5c00;font-weight:bold">[</span>runnable, locked to thread<span style="color:#ce5c00;font-weight:bold">]</span>:
+</span></span><span style="display:flex;"><span>github.com/xdg/stringprep.init<span style="color:#ce5c00;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    /root/go/pkg/mod/github.com/xdg/stringprep@v1.0.3/tables.go:443 +0x19087
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>goroutine <span style="color:#0000cf;font-weight:bold">43</span> <span style="color:#ce5c00;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">select</span><span style="color:#ce5c00;font-weight:bold">]</span>:
+</span></span><span style="display:flex;"><span>go.opencensus.io/stats/view.<span style="color:#ce5c00;font-weight:bold">(</span>*worker<span style="color:#ce5c00;font-weight:bold">)</span>.start<span style="color:#ce5c00;font-weight:bold">(</span>0xc00067e800<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    /root/go/pkg/mod/go.opencensus.io@v0.23.0/stats/view/worker.go:276 +0x100
+</span></span><span style="display:flex;"><span>created by go.opencensus.io/stats/view.init.0
+</span></span><span style="display:flex;"><span>    /root/go/pkg/mod/go.opencensus.io@v0.23.0/stats/view/worker.go:34 +0x68
+</span></span></code></pre></div><h2 id="原因">原因</h2>
+<p>宿主机的ulimit值比较小，需要将内存的ulimit值调大。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ <span style="color:#204a87">ulimit</span> -l
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">64</span>
+</span></span></code></pre></div><h2 id="解决方案">解决方案</h2>
+<p>vi /lib/systemd/system/containerd.service。在containerd.service文件中增加<code>LimitMEMLOCK=infinity</code> 参数。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Unit<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Description</span><span style="color:#ce5c00;font-weight:bold">=</span>containerd container runtime
+</span></span><span style="display:flex;"><span><span style="color:#000">Documentation</span><span style="color:#ce5c00;font-weight:bold">=</span>https://containerd.io
+</span></span><span style="display:flex;"><span><span style="color:#000">After</span><span style="color:#ce5c00;font-weight:bold">=</span>network.target local-fs.target
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Service<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">ExecStartPre</span><span style="color:#ce5c00;font-weight:bold">=</span>-/sbin/modprobe overlay
+</span></span><span style="display:flex;"><span><span style="color:#000">ExecStart</span><span style="color:#ce5c00;font-weight:bold">=</span>/usr/local/bin/containerd
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Type</span><span style="color:#ce5c00;font-weight:bold">=</span>notify
+</span></span><span style="display:flex;"><span><span style="color:#000">Delegate</span><span style="color:#ce5c00;font-weight:bold">=</span>yes
+</span></span><span style="display:flex;"><span><span style="color:#000">KillMode</span><span style="color:#ce5c00;font-weight:bold">=</span>process
+</span></span><span style="display:flex;"><span><span style="color:#000">Restart</span><span style="color:#ce5c00;font-weight:bold">=</span>always
+</span></span><span style="display:flex;"><span><span style="color:#000">RestartSec</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">5</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Having non-zero Limit*s causes performance problems due to accounting overhead</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># in the kernel. We recommend using cgroups to do container-local accounting.</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">LimitMEMLOCK</span><span style="color:#ce5c00;font-weight:bold">=</span>infinity
+</span></span><span style="display:flex;"><span><span style="color:#000">LimitNPROC</span><span style="color:#ce5c00;font-weight:bold">=</span>infinity
+</span></span><span style="display:flex;"><span><span style="color:#000">LimitCORE</span><span style="color:#ce5c00;font-weight:bold">=</span>infinity
+</span></span><span style="display:flex;"><span><span style="color:#000">LimitNOFILE</span><span style="color:#ce5c00;font-weight:bold">=</span>infinity
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Comment TasksMax if your systemd version does not supports it.</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Only systemd 226 and above support this version.</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">TasksMax</span><span style="color:#ce5c00;font-weight:bold">=</span>infinity
+</span></span><span style="display:flex;"><span><span style="color:#000">OOMScoreAdjust</span><span style="color:#ce5c00;font-weight:bold">=</span>-999
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Install<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">WantedBy</span><span style="color:#ce5c00;font-weight:bold">=</span>multi-user.target
+</span></span></code></pre></div><p>重启containerd</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl daemon-reload
+</span></span><span style="display:flex;"><span>systemctl restart containerd
+</span></span><span style="display:flex;"><span>systemctl status containerd
+</span></span></code></pre></div>
 	
 		<style>
   .feedback--answer {
@@ -1124,11 +1186,9 @@ if (!doNotTrack) {
 		<br />
 	
 	
-	<div class="text-muted mt-5 pt-3 border-top">
-  最后修改 September 23, 2022: <a href="https://github.com/huweihuang/k8s.huweihuang.com/commit/3c2bc5796a07e2f79ba6d69fadadde6a7d542d6c">add k8s rbac (3c2bc57)</a>
+	
 </div>
 
-</div>
 
           </main>
         </div>
