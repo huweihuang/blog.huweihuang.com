@@ -1,0 +1,150 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>HUWEIHUAHG – 多集群</title>
+    <link>https://k8s.huweihuang.com/tags/%E5%A4%9A%E9%9B%86%E7%BE%A4/</link>
+    <description>Recent content in 多集群 on HUWEIHUAHG</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Sat, 10 Jul 2021 10:50:57 +0000</lastBuildDate>
+    
+	  <atom:link href="https://k8s.huweihuang.com/tags/%E5%A4%9A%E9%9B%86%E7%BE%A4/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+      
+        
+      
+    
+    
+    <item>
+      <title>Kubernetes-Notes: k8s多集群管理的思考</title>
+      <link>https://k8s.huweihuang.com/kubernetes-notes/multi-cluster/k8s-multi-cluster-thinking/</link>
+      <pubDate>Sat, 10 Jul 2021 10:50:57 +0000</pubDate>
+      
+      <guid>https://k8s.huweihuang.com/kubernetes-notes/multi-cluster/k8s-multi-cluster-thinking/</guid>
+      <description>
+        
+        
+        &lt;h1 id=&#34;k8s多集群的思考&#34;&gt;k8s多集群的思考&lt;/h1&gt;
+&lt;h1 id=&#34;1-为什么需要多集群&#34;&gt;1. 为什么需要多集群&lt;/h1&gt;
+&lt;p&gt;&lt;strong&gt;1、k8s单集群的承载能力有限。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Kubernetes v1.21 支持的最大节点数为 5000。 更具体地说，Kubernetes旨在适应满足以下&lt;em&gt;所有&lt;/em&gt;标准的配置：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;每个节点的 Pod 数量不超过 100&lt;/li&gt;
+&lt;li&gt;节点数不超过 5000&lt;/li&gt;
+&lt;li&gt;Pod 总数不超过 150000&lt;/li&gt;
+&lt;li&gt;容器总数不超过 300000&lt;/li&gt;
+&lt;/ul&gt;
+&lt;blockquote&gt;
+&lt;p&gt;参考：https://kubernetes.io/zh/docs/setup/best-practices/cluster-large/&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;且当节点数量较大时，会出现调度延迟，etcd读写延迟，apiserver负载高等问题，影响服务的正常创建。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;2、分散集群服务风险。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;全部服务都放在一个k8s集群中，当该集群出现异常，短期无法恢复的情况下，则影响全部服务和影响部署。为了避免机房等故障导致单集群异常，建议将k8s的master在分散在延迟较低的不同可用区部署，且在不同region部署多个k8s集群来进行集群级别的容灾。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;3、当前混合云的使用方式和架构&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;当前部分公司会存在自建机房+不同云厂商的公有云从而来实现混部云的运营模式，那么自然会引入多集群管理的问题。&lt;/p&gt;
+&lt;h1 id=&#34;2-多集群部署需要解决哪些问题&#34;&gt;2. 多集群部署需要解决哪些问题&lt;/h1&gt;
+&lt;p&gt;目标：&lt;strong&gt;让用户像使用单集群一样来使用多集群&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;扩展集群的边界，服务的边界从单台物理机多个进程，发展到通过k8s集群来管理多台的物理机，再发展到管理多个的k8s集群。&lt;strong&gt;服务的边界从物理机发展到集群&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;而多集群管理需要解决以下问题：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;多集群服务的分发部署（deployment、daemonset等）&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;跨集群自动迁移与调度（当某个集群异常，服务可以在其他集群自动部署）&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;多集群服务发现，网络通信及负载均衡（service，ingress等）&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;而多集群服务的网络通信可以由Service mesh等来解决，本文不做重点讨论。&lt;/p&gt;
+&lt;p&gt;以上几个问题，可以先从k8s管理节点的思维进行分析&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;物理机视角&lt;/th&gt;
+&lt;th&gt;单集群视角&lt;/th&gt;
+&lt;th&gt;多集群视角&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;进程的边界&lt;/td&gt;
+&lt;td&gt;物理机&lt;/td&gt;
+&lt;td&gt;k8s集群&lt;/td&gt;
+&lt;td&gt;多集群&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;调度单元&lt;/td&gt;
+&lt;td&gt;进程或线程&lt;/td&gt;
+&lt;td&gt;容器或pod&lt;/td&gt;
+&lt;td&gt;工作负载（deployment）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;服务的集合&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;工作负载（deployment）&lt;/td&gt;
+&lt;td&gt;不同集群工作负载的集合体（workloadGroup）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;服务发现&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;service&lt;/td&gt;
+&lt;td&gt;不同集群service的集合体&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;服务迁移&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;工作负载（deployment）控制器&lt;/td&gt;
+&lt;td&gt;不同集群工作负载的集合体控制器&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;服务调度&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;nodename或者node selector&lt;/td&gt;
+&lt;td&gt;clustername或cluster selector&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;pod的反亲和（相同deployment下的pod不调度在相同节点）&lt;/td&gt;
+&lt;td&gt;workload反亲和（相同workloadGroup分散在不同集群）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2 id=&#34;2-1-多集群工作负载的分发&#34;&gt;2.1. 多集群工作负载的分发&lt;/h2&gt;
+&lt;p&gt;单集群中k8s的调度单元是pod，即一个pod只能跑在一个节点上，一个节点可以运行多个pod，而不同节点上的一组pod是通过一个workload来控制和分发。类似这个逻辑，那么在多集群的视角下，多集群的调度单元是一个集群的workload，一个workload只能跑在一个集群中，一个集群可以运行多个workload。&lt;/p&gt;
+&lt;p&gt;那么就需要有一个控制器来管理不同k8s集群的相同workload。例如 workloadGroup。而该workloadGroup在不侵入k8s原生API的情况下，主要包含两个部分。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;workloadGroup:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;资源模板（Resource Template&lt;/strong&gt;）：服务的描述（workload）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;分发策略（Propagaion Policy）&lt;/strong&gt;：服务分发的集群（即多个workload应该被分发到哪些集群运行）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;workload描述的是什么服务运行在什么节点，workloadGroup描述的是什么服务运行在什么集群。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;实现workloadGroup有两种方式&lt;/strong&gt;：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;一种是自定义API将workloadGroup中的Resource Template和Propagaion Policy合成在一个自定义的对象中，由用户直接指定该workloadGroup信息，从而将不同的workload分发到不同的集群中。&lt;/li&gt;
+&lt;li&gt;另一种方式是通过一个k8s载体来记录一个具体的workload对象，再由用户指定Propagaion Policy关联该workload对象，从而让控制器自动根据用户指定的Propagaion Policy将workload分发到不同的集群中。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;2-2-跨集群自动迁移与调度&#34;&gt;2.2. 跨集群自动迁移与调度&lt;/h2&gt;
+&lt;p&gt;单集群中k8s中通过workload中的nodeselector或者nodename以及亲和性来控制pod运行在哪个节点上。而多集群的视角下，则需要有一个控制器来实现集群级别的调度逻辑，例如clustername，cluster selector，cluster AntiAffinity，从而来自动控制workloadGroup下的workload分散在什么集群上。&lt;/p&gt;
+&lt;h1 id=&#34;3-目前的多集群方案&#34;&gt;3. 目前的多集群方案&lt;/h1&gt;
+&lt;h2 id=&#34;3-1-kubefed-federation-v2&#34;&gt;3.1. Kubefed[Federation v2]&lt;/h2&gt;
+&lt;p&gt;简介&lt;/p&gt;
+&lt;p&gt;基本思想&lt;/p&gt;
+&lt;h2 id=&#34;3-2-virtual-kubelet&#34;&gt;3.2. virtual kubelet&lt;/h2&gt;
+&lt;p&gt;简介&lt;/p&gt;
+&lt;p&gt;基本思想&lt;/p&gt;
+&lt;h2 id=&#34;3-3-karmada&#34;&gt;3.3.  Karmada&lt;/h2&gt;
+&lt;p&gt;简介&lt;/p&gt;
+&lt;p&gt;基本思想&lt;/p&gt;
+&lt;p&gt;参考：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://kubernetes.io/zh/docs/setup/best-practices/cluster-large/&#34;&gt;https://kubernetes.io/zh/docs/setup/best-practices/cluster-large/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://caicloud.io/blog/57392eca8241681100000003&#34;&gt;CoreOS 是如何将 Kubernetes 的性能提高 10 倍的?&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://juejin.cn/post/6844903950836056077&#34;&gt;当 K8s 集群达到万级规模，阿里巴巴如何解决系统各组件性能问题？&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/kubernetes-sigs/kubefed&#34;&gt;https://github.com/kubernetes-sigs/kubefed&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://jimmysong.io/kubernetes-handbook/practice/federation.html&#34;&gt;https://jimmysong.io/kubernetes-handbook/practice/federation.html&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://kubernetes.io/blog/2018/12/12/kubernetes-federation-evolution/&#34;&gt;https://kubernetes.io/blog/2018/12/12/kubernetes-federation-evolution/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://zhuanlan.zhihu.com/p/355193315&#34;&gt;https://zhuanlan.zhihu.com/p/355193315&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+      </description>
+    </item>
+    
+  </channel>
+</rss>

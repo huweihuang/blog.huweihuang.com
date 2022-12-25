@@ -206,7 +206,7 @@ if (!doNotTrack) {
     
     
 	
-<li>1.2.1: <a href="#pg-aca9a0997212b2f4813435f23c188a3d"></a></li>
+<li>1.2.1: <a href="#pg-aca9a0997212b2f4813435f23c188a3d">Kubeedge之cloudcore 源码分析</a></li>
 
 
     
@@ -214,7 +214,7 @@ if (!doNotTrack) {
     
     
 	
-<li>1.2.2: <a href="#pg-46c48a2a09bc26250f3bd1939c76797f"></a></li>
+<li>1.2.2: <a href="#pg-46c48a2a09bc26250f3bd1939c76797f">Kubeedge之edgecore 源码分析</a></li>
 
 
     
@@ -246,6 +246,14 @@ if (!doNotTrack) {
     
 	
 <li>2.1: <a href="#pg-168a4f39638381fbf3c73746ce7bf5de">OpenYurt部署</a></li>
+
+
+    
+  
+    
+    
+	
+<li>2.2: <a href="#pg-7f94c71d7e452edb45aebaf5597df77f"></a></li>
 
 
     
@@ -389,7 +397,7 @@ if (!doNotTrack) {
 
 <div class="td-content" style="">
     
-	<h1 id="pg-aca9a0997212b2f4813435f23c188a3d">1.2.1 - </h1>
+	<h1 id="pg-aca9a0997212b2f4813435f23c188a3d">1.2.1 - Kubeedge之cloudcore 源码分析</h1>
     
 	<h1 id="kubeedge源码分析之cloudcore">kubeedge源码分析之cloudcore</h1>
 <blockquote>
@@ -627,7 +635,7 @@ if (!doNotTrack) {
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-46c48a2a09bc26250f3bd1939c76797f">1.2.2 - </h1>
+	<h1 id="pg-46c48a2a09bc26250f3bd1939c76797f">1.2.2 - Kubeedge之edgecore 源码分析</h1>
     
 	<h1 id="kubeedge源码分析之edgecore">kubeedge源码分析之edgecore</h1>
 <blockquote>
@@ -950,6 +958,65 @@ if (!doNotTrack) {
 <li><a href="https://openyurt.io/zh/docs/installation/manually-setup">https://openyurt.io/zh/docs/installation/manually-setup</a></li>
 <li><a href="https://openyurt.io/zh/docs/installation/openyurt-prepare">https://openyurt.io/zh/docs/installation/openyurt-prepare</a></li>
 </ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-7f94c71d7e452edb45aebaf5597df77f">2.2 - </h1>
+    
+	<p>安装openyurt，为了适配边缘场景，需要对k8s组件进行调整。其中包括：</p>
+<ul>
+<li>
+<p>kube-apiserver</p>
+</li>
+<li>
+<p>kube-controller-manager</p>
+</li>
+<li>
+<p>kube-proxy</p>
+</li>
+<li>
+<p>CoreDNS</p>
+</li>
+</ul>
+<h1 id="kube-apiserver">kube-apiserver</h1>
+<p>为了实现云边通信，即用户可以正常使用kubectl exec/logs的功能来登录或查看边缘容器的信息。需要将kube-apiserver访问kubelet的地址调整为hostname优先。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#000">$ vi /etc/kubernetes/manifests/kube-apiserver.yaml</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Pod</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#000">...</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">dnsPolicy</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;None&#34;</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># 1. dnsPolicy修改为None</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">dnsConfig</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#8f5902;font-style:italic"># 2. 增加dnsConfig配置</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">nameservers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#0000cf;font-weight:bold">1.2.3.4</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># 使用yurt-tunnel-dns service的clusterIP替换</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">searches</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#000">kube-system.svc.cluster.local</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#000">svc.cluster.local</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#000">cluster.local</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">options</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">ndots</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">value</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;5&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">command</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">kube-apiserver</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#000">...</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- --<span style="color:#000">kubelet-preferred-address-types=Hostname,InternalIP,ExternalIP</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># 3. 把Hostname放在第一位</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#000">...</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h1 id="kube-controller-manager">kube-controller-manager</h1>
+<h1 id="coredns">CoreDNS</h1>
+<h1 id="kube-proxy">kube-proxy</h1>
 
 </div>
 
