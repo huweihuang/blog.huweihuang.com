@@ -130,7 +130,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.39d3500e68ed953063aa87fe07c722b9.json"
+  data-offline-search-index-json-src="/offline-search-index.0f78c8f3be928ce21c34467d03ed112b.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -184,7 +184,7 @@ if (!doNotTrack) {
     
     
 	
-<li>2: <a href="#pg-7f94c71d7e452edb45aebaf5597df77f"></a></li>
+<li>2: <a href="#pg-7f94c71d7e452edb45aebaf5597df77f">OpenYurt 安装相关Kubernetes配置调整</a></li>
 
 
     
@@ -248,21 +248,55 @@ if (!doNotTrack) {
 </span></span><span style="display:flex;"><span>kubectl label node us-west-1.192.168.0.88 openyurt.io/is-edge-worker<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87">true</span>
 </span></span></code></pre></div><h3 id="1-2-给边缘节点开启自治模式">1.2. 给边缘节点开启自治模式</h3>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl annotate node us-west-1.192.168.0.88 node.beta.openyurt.io/autonomy<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87">true</span>
-</span></span></code></pre></div><h2 id="2-部署-yurt-controller-manager-cloud">2. 部署 Yurt-controller-manager(cloud)</h2>
-<p><code>yurt-controller-manager</code>用来避免节点与apiserver失联时，自治边缘节点pod被驱逐。</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>wget https://raw.githubusercontent.com/openyurtio/openyurt/master/config/setup/yurt-controller-manager.yaml
-</span></span><span style="display:flex;"><span>kubectl apply -f yurt-controller-manager.yaml
-</span></span></code></pre></div><blockquote>
-<p>yaml文件位于https://github.com/openyurtio/openyurt/tree/master/config/setup</p>
-</blockquote>
-<h3 id="禁用默认的-nodelifecycle-控制器">禁用默认的 <code>nodelifecycle</code> 控制器</h3>
-<p><code>nodelifecycle</code>控制器主要用来根据node的status及lease的更新时间来决定是否要<code>驱逐节点上的pod</code>。为了让 <code>yurt-controller-mamanger</code> 能够正常工作，因此需要禁用controller的驱逐功能。</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>vim /etc/kubernetes/manifests/kube-controller-manager.yaml
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 在--controllers=*,bootstrapsigner,tokencleaner后面添加,-nodelifecycle </span>
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 即参数为： --controllers=*,bootstrapsigner,tokencleaner,-nodelifecycle</span>
+</span></span></code></pre></div><h2 id="2-安装准备">2. 安装准备</h2>
+<h3 id="2-1-调整k8s组件的配置">2.1. 调整k8s组件的配置</h3>
+<p>参考<a href="update-k8s-for-openyurt.md">调整k8s组件的配置</a></p>
+<h3 id="2-2-部署tunnel-dns">2.2. 部署tunnel-dns</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>wget https://raw.githubusercontent.com/openyurtio/openyurt/master/config/setup/yurt-tunnel-dns.yaml
+</span></span><span style="display:flex;"><span>kubectl apply -f yurt-tunnel-dns.yaml
+</span></span></code></pre></div><p>获取clusterIP，作为kube-apiserver的专用nameserver地址。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl -n kube-system get svc yurt-tunnel-dns -o<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#000">jsonpath</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;{.spec.clusterIP}&#39;</span>
+</span></span></code></pre></div><h2 id="3-部署openyurt控制面">3. 部署openyurt控制面</h2>
+<p>通过helm来部署控制面，所有helm charts都可以在<a href="https://github.com/openyurtio/openyurt-helm">openyurt-helm 仓库</a>中找到。</p>
+<p>快捷安装可参考脚本：<a href="https://github.com/huweihuang/kubeadm-scripts/blob/main/openyurt/cloud/helm-install-openyurt.sh">helm-install-openyurt.sh</a></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>helm repo add openyurt https://openyurtio.github.io/openyurt-helm
+</span></span></code></pre></div><h3 id="3-1-yurt-app-manager">3.1. yurt-app-manager</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>helm upgrade --install yurt-app-manager -n kube-system openyurt/yurt-app-manager
+</span></span></code></pre></div><h3 id="3-2-openyurt">3.2. openyurt</h3>
+<p>在<code>openyurt/openyurt</code>中的组件包括：</p>
+<ul>
+<li><a href="https://openyurt.io/zh/docs/core-concepts/yurt-controller-manager">yurt-controller-manager</a>: 防止apiserver在断开连接时驱逐运行在边缘节点上的pod</li>
+<li><a href="https://openyurt.io/zh/docs/core-concepts/yurttunnel">yurt-tunnel-server</a>: 在云端构建云边隧道</li>
+<li><a href="https://openyurt.io/zh/docs/core-concepts/yurttunnel">yurt-tunnel-agent</a>: 在边缘侧构建云边隧道</li>
+</ul>
+<p>由于yurt-tunnel-server默认使用host模式，因此可能存在边缘端的agent无法访问云端的tunnel-server，需要为tunnel-server配置一个可访问的地址。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 下载并解压</span>
+</span></span><span style="display:flex;"><span>helm pull openyurt/openyurt --untar
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果kube-controller-manager是以static pod部署，修改yaml文件后会自动重启。</span>
-</span></span></code></pre></div><h2 id="3-部署-yurthub-edge">3. 部署 Yurthub(edge)</h2>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 修改tunnel相关配置</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">cd</span> openyurt 
+</span></span><span style="display:flex;"><span>vi values.yaml
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 示例：</span>
+</span></span><span style="display:flex;"><span>yurtTunnelServer:
+</span></span><span style="display:flex;"><span>  replicaCount: <span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span>  tolerations: <span style="color:#ce5c00;font-weight:bold">[]</span>
+</span></span><span style="display:flex;"><span>  parameters:
+</span></span><span style="display:flex;"><span>    certDnsNames: <span style="color:#4e9a06">&#34;&lt;tunnel server的域名&gt;&#34;</span>
+</span></span><span style="display:flex;"><span>    tunnelAgentConnectPort: &lt;tunnel server端口，默认为10262&gt;
+</span></span><span style="display:flex;"><span>    certIps: <span style="color:#4e9a06">&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>yurtTunnelAgent:
+</span></span><span style="display:flex;"><span>  replicaCount: <span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span>  tolerations: <span style="color:#ce5c00;font-weight:bold">[]</span>
+</span></span><span style="display:flex;"><span>  parameters:
+</span></span><span style="display:flex;"><span>    tunnelserverAddr: <span style="color:#4e9a06">&#34;&lt;tunnel server的地址，包括端口&gt;&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># install</span>
+</span></span><span style="display:flex;"><span>helm install openyurt ./openyurt
+</span></span></code></pre></div><h2 id="4-部署-yurthub-edge">4. 部署 Yurthub(edge)</h2>
 <p>在 <code>yurt-controller-manager</code> 启动并正常运行后，以静态 pod 的方式部署 <code>Yurthub</code>。</p>
 <ol>
 <li>为 yurthub 创建全局配置(即RBAC, configmap)</li>
@@ -282,7 +316,7 @@ if (!doNotTrack) {
 </span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 假设 apiserver 的地址是 1.2.3.4:6443，bootstrap token 是 07401b.f395accd246ae52d</span>
 </span></span><span style="display:flex;"><span>sed -i <span style="color:#4e9a06">&#39;s|__kubernetes_master_address__|1.2.3.4:6443|;
 </span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">s|__bootstrap_token__|07401b.f395accd246ae52d|&#39;</span> /etc/kubernetes/manifests/yurthub.yaml
-</span></span></code></pre></div><h2 id="4-重置-kubelet">4. 重置 Kubelet</h2>
+</span></span></code></pre></div><h2 id="5-重置-kubelet">5. 重置 Kubelet</h2>
 <p>重置 kubelet 服务，让它通过 yurthub 访问apiserver。为 kubelet 服务创建一个新的 kubeconfig 文件来访问apiserver。</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>mkdir -p /var/lib/openyurt
 </span></span><span style="display:flex;"><span>cat <span style="color:#4e9a06">&lt;&lt; EOF &gt; /var/lib/openyurt/kubelet.conf
@@ -306,7 +340,7 @@ if (!doNotTrack) {
 </span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>    /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
 </span></span></code></pre></div><p>重启kubelet服务</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl daemon-reload <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> systemctl restart kubelet
-</span></span></code></pre></div><h3 id="4-1-yurthub部署脚本">4.1. yurthub部署脚本</h3>
+</span></span></code></pre></div><h2 id="6-yurthub部署脚本">6. yurthub部署脚本</h2>
 <p>根据以上部署步骤，整理部署脚本。需要修改脚本内容的<code>master-addr</code>和<code>token</code>字段。</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#!/bin/bash
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87">set</span> -e
@@ -345,20 +379,11 @@ if (!doNotTrack) {
 </span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>    /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span>systemctl daemon-reload <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> systemctl restart kubelet
-</span></span></code></pre></div><h2 id="5-部署-yurt-tunnel-可选">5. 部署 Yurt-tunnel (可选)</h2>
-<h3 id="5-1-部署云端的-yurt-tunnel-server">5.1.  部署云端的 yurt-tunnel-server</h3>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>wget https://raw.githubusercontent.com/openyurtio/openyurt/master/config/setup/yurt-tunnel-server.yaml
-</span></span><span style="display:flex;"><span>kubectl apply -f yurt-tunnel-server.yaml
-</span></span></code></pre></div><h3 id="5-2-部署边缘的yurt-tunnel-agent">5.2. 部署边缘的yurt-tunnel-agent</h3>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>wget https://raw.githubusercontent.com/openyurtio/openyurt/master/config/setup/yurt-tunnel-agent.yaml
-</span></span><span style="display:flex;"><span>kubectl apply -f yurt-tunnel-agent.yaml
-</span></span></code></pre></div><blockquote>
-<p>由于yurt-tunnel-server默认使用host模式，因此可能存在边缘端的agent无法访问云端的tunnel-server，需要为tunnel-server配置一个可访问的地址。</p>
-</blockquote>
-<p>参考：</p>
+</span></span></code></pre></div><p>参考：</p>
 <ul>
 <li><a href="https://openyurt.io/zh/docs/installation/manually-setup">https://openyurt.io/zh/docs/installation/manually-setup</a></li>
 <li><a href="https://openyurt.io/zh/docs/installation/openyurt-prepare">https://openyurt.io/zh/docs/installation/openyurt-prepare</a></li>
+<li><a href="https://openyurt.io/zh/docs/installation/yurtadm-join/#2-%E5%9C%A8%E5%AD%98%E9%87%8F%E7%9A%84k8s%E8%8A%82%E7%82%B9%E4%B8%8A%E5%AE%89%E8%A3%85openyurt-node%E7%BB%84%E4%BB%B6">https://openyurt.io/zh/docs/installation/yurtadm-join/#2-%E5%9C%A8%E5%AD%98%E9%87%8F%E7%9A%84k8s%E8%8A%82%E7%82%B9%E4%B8%8A%E5%AE%89%E8%A3%85openyurt-node%E7%BB%84%E4%BB%B6</a></li>
 </ul>
 
 </div>
@@ -375,7 +400,7 @@ if (!doNotTrack) {
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-7f94c71d7e452edb45aebaf5597df77f">2 - </h1>
+	<h1 id="pg-7f94c71d7e452edb45aebaf5597df77f">2 - OpenYurt 安装相关Kubernetes配置调整</h1>
     
 	<p>安装openyurt，为了适配边缘场景，需要对k8s组件进行调整。其中包括：</p>
 <ul>
@@ -392,7 +417,7 @@ if (!doNotTrack) {
 <p>CoreDNS</p>
 </li>
 </ul>
-<h1 id="kube-apiserver">kube-apiserver</h1>
+<h1 id="1-kube-apiserver">1. kube-apiserver</h1>
 <p>为了实现云边通信，即用户可以正常使用kubectl exec/logs的功能来登录或查看边缘容器的信息。需要将kube-apiserver访问kubelet的地址调整为hostname优先。</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#000">$ vi /etc/kubernetes/manifests/kube-apiserver.yaml</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
@@ -416,9 +441,48 @@ if (!doNotTrack) {
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#000">...</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- --<span style="color:#000">kubelet-preferred-address-types=Hostname,InternalIP,ExternalIP</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># 3. 把Hostname放在第一位</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#000">...</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span></code></pre></div><h1 id="kube-controller-manager">kube-controller-manager</h1>
-<h1 id="coredns">CoreDNS</h1>
-<h1 id="kube-proxy">kube-proxy</h1>
+</span></span></span></code></pre></div><h1 id="2-kube-controller-manager">2. kube-controller-manager</h1>
+<p>禁用默认的 <code>nodelifecycle</code> 控制器，当节点断连时不驱逐pod。</p>
+<p><code>nodelifecycle</code>控制器主要用来根据node的status及lease的更新时间来决定是否要<code>驱逐节点上的pod</code>。为了让 <code>yurt-controller-mamanger</code> 能够正常工作，因此需要禁用controller的驱逐功能。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>vim /etc/kubernetes/manifests/kube-controller-manager.yaml
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 在--controllers=*,bootstrapsigner,tokencleaner后面添加,-nodelifecycle </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 即参数为： --controllers=*,bootstrapsigner,tokencleaner,-nodelifecycle</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果kube-controller-manager是以static pod部署，修改yaml文件后会自动重启。</span>
+</span></span></code></pre></div><h1 id="3-coredns">3. CoreDNS</h1>
+<p>将coredns从deployment部署改为daemonset部署。</p>
+<p>将deployment的coredns副本数调整为0。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl scale --replicas<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">0</span> deployment/coredns -n kube-system
+</span></span></code></pre></div><p>创建daemonset的coredns。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>wget https://raw.githubusercontent.com/huweihuang/kubeadm-scripts/main/openyurt/yurt-tunnel/coredns.ds.yaml
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>kubectl apply -f 
+</span></span></code></pre></div><p>支持流量拓扑：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 利用openyurt实现endpoint过滤</span>
+</span></span><span style="display:flex;"><span>kubectl annotate svc kube-dns -n kube-system openyurt.io/topologyKeys<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;openyurt.io/nodepool&#39;</span>
+</span></span></code></pre></div><h1 id="4-kube-proxy">4. kube-proxy</h1>
+<p>云边端场景下，边缘节点间很有可能无法互通，因此需要endpoints基于nodepool进行拓扑。直接将kube-proxy的kubeconfig配置删除，将apiserver请求经过yurthub即可解决服务拓扑问题。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl edit cm -n kube-system kube-proxy
+</span></span></code></pre></div><p>示例：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">data</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">config.conf</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000;font-weight:bold">|-</span><span style="color:#8f5902;font-style:italic">
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    apiVersion: kubeproxy.config.k8s.io/v1alpha1
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    bindAddress: 0.0.0.0
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    bindAddressHardFail: false
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    clientConnection:
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      acceptContentTypes: &#34;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      burst: 0
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      contentType: &#34;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      #kubeconfig: /var/lib/kube-proxy/kubeconfig.conf &lt;-- 删除这个配置
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      qps: 0
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    clusterCIDR: 100.64.0.0/10
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    configSyncPeriod: 0s</span><span style="color:#f8f8f8;text-decoration:underline">    
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#000">// 省略</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="https://openyurt.io/zh/docs/installation/openyurt-prepare/">https://openyurt.io/zh/docs/installation/openyurt-prepare/</a></li>
+</ul>
 
 </div>
 
