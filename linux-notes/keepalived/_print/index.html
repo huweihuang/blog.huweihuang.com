@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<link rel="canonical" type="text/html" href="https://blog.huweihuang.com/linux-notes/keepalived/">
+<link rel="alternate" type="application/rss&#43;xml" href="https://blog.huweihuang.com/linux-notes/keepalived/index.xml">
+<meta name="robots" content="noindex, nofollow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>Keepalived | 胡伟煌</title>
+<meta name="description" content="">
+<meta property="og:title" content="Keepalived" />
+<meta property="og:description" content="Kubernetes学习笔记" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://blog.huweihuang.com/linux-notes/keepalived/" /><meta property="og:site_name" content="胡伟煌" />
+
+<meta itemprop="name" content="Keepalived">
+<meta itemprop="description" content="Kubernetes学习笔记"><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Keepalived"/>
+<meta name="twitter:description" content="Kubernetes学习笔记"/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" as="style">
+<link href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-114718458-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-section">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">胡伟煌</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/kubernetes-notes/" ><span>Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/k8s-source-code-analysis/" ><span>Kubernetes源码分析</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/golang-notes/" ><span>Golang学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/linux-notes/" ><span class="active">Linux学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/about/" ><span>About</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.f043f65e6bd084162569d168aa0d2ea7.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+
+
+
+
+<div class="td-content">
+<div class="pageinfo pageinfo-primary d-print-none">
+<p>
+这是本节的多页打印视图。
+<a href="#" onclick="print();return false;">点击此处打印</a>.
+</p><p>
+<a href="/linux-notes/keepalived/">返回本页常规视图</a>.
+</p>
+</div>
+
+
+
+<h1 class="title">Keepalived</h1>
+
+
+
+
+
+    <ul>
+    
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>1: <a href="#pg-295f28cbefbc44466b8fbb62852e0e33">Keepalived简介</a></li>
+
+
+    
+  
+    
+    
+	
+<li>2: <a href="#pg-a0c0ae349d3e1054e9789f4f459ccd1c">Keepalived安装与配置</a></li>
+
+
+    
+  
+    
+    
+	
+<li>3: <a href="#pg-e553bc1d8197e89a121a1338faed792d">Keepalived相关操作</a></li>
+
+
+    
+  
+    
+    
+	
+<li>4: <a href="#pg-c60c32f3a5275e8f405771d11c5a360f">Keepalived配置详解</a></li>
+
+
+    
+  
+
+    </ul>
+
+
+<div class="content">
+      
+</div>
+</div>
+
+
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-295f28cbefbc44466b8fbb62852e0e33">1 - Keepalived简介</h1>
+    
+	<h1 id="1-keepalived简介">1. Keepalived简介</h1>
+<h2 id="1-1-概述">1.1. 概述</h2>
+<p>Keepalived一个基于VRRP协议来实现的LVS服务高可用方案，可以利用其来避免单点故障。一个LVS服务会有2台服务器运行Keepalived，一台为主服务器（MASTER），一台为备份服务器（BACKUP），但是对外表现为一个虚拟IP，主服务器会发送特定的消息给备份服务器，当备份服务器收不到这个消息的时候，即主服务器宕机的时候， 备份服务器就会接管虚拟IP，继续提供服务，从而保证了高可用性。</p>
+<h2 id="1-2-keepalived的作用">1.2. keepalived的作用</h2>
+<p>Keepalived的作用是检测服务器的状态，如果有一台web服务器死机，或工作出现故障，Keepalived将检测到，并将有故障的服务器从系统中剔除，同时使用其他服务器代替该服务器的工作，当服务器工作正常后Keepalived自动将服务器加入到服务器群中。</p>
+<h1 id="2-如何实现keepalived">2. 如何实现Keepalived</h1>
+<h2 id="2-1-基于vrrp协议的理解">2.1. 基于VRRP协议的理解</h2>
+<p>Keepalived是以VRRP协议为实现基础的，VRRP全称<code>Virtual Router Redundancy Protocol</code>，即<code>虚拟路由冗余协议</code>。</p>
+<p>虚拟路由冗余协议，可以认为是实现路由器高可用的协议，即将N台提供相同功能的路由器组成一个路由器组，这个组里面有一个master和多个backup，master上面有一个对外提供服务的vip（该路由器所在局域网内其他机器的默认路由为该vip），master会发组播，当backup收不到vrrp包时就认为master宕掉了，这时就需要根据VRRP的优先级来选举一个backup当master。这样的话就可以保证路由器的高可用了。</p>
+<p>keepalived主要有三个模块，分别是core、check和vrrp。core模块为keepalived的核心，负责主进程的启动、维护以及全局配置文件的加载和解析。check负责健康检查，包括常见的各种检查方式。vrrp模块是来实现VRRP协议的。</p>
+<h2 id="2-2-基于tcp-ip协议的理解">2.2. 基于TCP/IP协议的理解</h2>
+<p>Layer3,4&amp;7工作在IP/TCP协议栈的IP层，TCP层，及应用层,原理分别如下：</p>
+<p><strong>Layer3：</strong></p>
+<p>Keepalived使用Layer3的方式工作式时，Keepalived会定期向服务器群中的服务器发送一个ICMP的数据包（既我们平时用的Ping程序）,如果发现某台服务的IP地址没有激活，Keepalived便报告这台服务器失效，并将它从服务器群中剔除，这种情况的典型例子是某台服务器被非法关机。Layer3的方式是以服务器的IP地址是否有效作为服务器工作正常与否的标准。</p>
+<p><strong>Layer4:</strong></p>
+<p>如果您理解了Layer3的方式，Layer4就容易了。Layer4主要以TCP端口的状态来决定服务器工作正常与否。如web server的服务端口一般是80，如果Keepalived检测到80端口没有启动，则Keepalived将把这台服务器从服务器群中剔除。</p>
+<p><strong>Layer7：</strong></p>
+<p>Layer7就是工作在具体的应用层了，比Layer3,Layer4要复杂一点，在网络上占用的带宽也要大一些。Keepalived将根据用户的设定检查服务器程序的运行是否正常，如果与用户的设定不相符，则Keepalived将把服务器从服务器群中剔除。</p>
+<h1 id="3-keepalived选举策略">3. Keepalived选举策略</h1>
+<h2 id="3-1-选举策略">3.1. 选举策略</h2>
+<p>首先，每个节点有一个初始优先级，由配置文件中的priority配置项指定，MASTER节点的priority应比BAKCUP高。运行过程中keepalived根据vrrp_script的weight设定，增加或减小节点优先级。规则如下：</p>
+<ol>
+<li>“weight”值为正时,脚本检测成功时”weight”值会加到”priority”上,检测失败是不加</li>
+</ol>
+<ul>
+<li>
+<p>主失败:
+主priority&lt;备priority+weight之和时会切换</p>
+</li>
+<li>
+<p>主成功:
+主priority+weight之和&gt;备priority+weight之和时,主依然为主,即不发生切换</p>
+</li>
+</ul>
+<ol start="2">
+<li>“weight”为负数时,脚本检测成功时”weight”不影响”priority”,检测失败时,Master节点的权值将是“priority“值与“weight”值之差</li>
+</ol>
+<ul>
+<li>
+<p>主失败:
+主priotity-abs(weight) &lt; 备priority时会发生切换</p>
+</li>
+<li>
+<p>主成功:
+主priority &gt; 备priority 不切换</p>
+</li>
+</ul>
+<ol start="3">
+<li>当两个节点的优先级相同时，以节点发送VRRP通告的IP作为比较对象，IP较大者为MASTER。</li>
+</ol>
+<h2 id="3-2-priority和weight的设定">3.2. priority和weight的设定</h2>
+<ol>
+<li>
+<p>主从的优先级初始值priority和变化量weight设置非常关键，配错的话会导致无法进行主从切换。比如，当MASTER初始值定得太高，即使script脚本执行失败，也比BACKUP的priority + weight大，就没法进行VIP漂移了。</p>
+</li>
+<li>
+<p>所以priority和weight值的设定应遵循: abs(MASTER priority - BAKCUP priority) &lt; abs(weight)。一般情况下，初始值MASTER的priority值应该比较BACKUP大，但不能超过weight的绝对值。 另外，当网络中不支持多播(例如某些云环境)，或者出现网络分区的情况，keepalived BACKUP节点收不到MASTER的VRRP通告，就会出现脑裂(split brain)现象，此时集群中会存在多个MASTER节点。</p>
+</li>
+</ol>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-a0c0ae349d3e1054e9789f4f459ccd1c">2 - Keepalived安装与配置</h1>
+    
+	<h1 id="1-keepalived的安装">1. Keepalived的安装</h1>
+<h2 id="1-1-yum-install方式">1.1. yum install方式</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>yum install -y keepalived
+</span></span></code></pre></div><h2 id="1-2-安装包编译方式">1.2. 安装包编译方式</h2>
+<p>更多安装包参考：http://www.keepalived.org/download.html</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>wget http://www.keepalived.org/software/keepalived-2.0.7.tar.gz
+</span></span><span style="display:flex;"><span>tar zxvf keepalived-2.0.7.tar.gz
+</span></span><span style="display:flex;"><span><span style="color:#204a87">cd</span> keepalived-2.0.7
+</span></span><span style="display:flex;"><span>./configure --bindir<span style="color:#ce5c00;font-weight:bold">=</span>/usr/bin --sbindir<span style="color:#ce5c00;font-weight:bold">=</span>/usr/sbin --sysconfdir<span style="color:#ce5c00;font-weight:bold">=</span>/etc --mandir<span style="color:#ce5c00;font-weight:bold">=</span>/usr/share
+</span></span><span style="display:flex;"><span>make <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> make install
+</span></span></code></pre></div><h1 id="2-常用配置">2. 常用配置</h1>
+<p>keepalived配置文件路径：<code>/etc/keepalived/keepalived</code>。</p>
+<h2 id="2-1-master-主机配置">2.1. MASTER（主机配置）</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>global_defs <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    router_id proxy-keepalived
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>vrrp_script check_nginx <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    script <span style="color:#4e9a06">&#34;/etc/keepalived/scripts/check_nginx.sh&#34;</span> 
+</span></span><span style="display:flex;"><span>    interval <span style="color:#0000cf;font-weight:bold">3</span>  
+</span></span><span style="display:flex;"><span>    weight <span style="color:#0000cf;font-weight:bold">2</span>   
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>vrrp_instance VI_1 <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    state BACKUP
+</span></span><span style="display:flex;"><span>    interface eth2
+</span></span><span style="display:flex;"><span>    virtual_router_id <span style="color:#0000cf;font-weight:bold">15</span>
+</span></span><span style="display:flex;"><span>    priority <span style="color:#0000cf;font-weight:bold">100</span>
+</span></span><span style="display:flex;"><span>    advert_int <span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span>    authentication <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        auth_type PASS
+</span></span><span style="display:flex;"><span>        auth_pass xxx
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    track_script <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        check_nginx 
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    virtual_ipaddress <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        180.101.115.139
+</span></span><span style="display:flex;"><span>        218.98.38.29
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>	nopreempt
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	notify_master <span style="color:#4e9a06">&#34;/etc/keepalived/keepalived_notify.sh master&#34;</span>
+</span></span><span style="display:flex;"><span>	notify_backup <span style="color:#4e9a06">&#34;/etc/keepalived/keepalived_notify.sh backup&#34;</span>
+</span></span><span style="display:flex;"><span>	notify_fault <span style="color:#4e9a06">&#34;/etc/keepalived/keepalived_notify.sh fault&#34;</span>
+</span></span><span style="display:flex;"><span>	notify_stop <span style="color:#4e9a06">&#34;/etc/keepalived/keepalived_notify.sh stop&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-2-backup-备机配置">2.2. BACKUP（备机配置）</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>global_defs <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    router_id proxy-keepalived
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>vrrp_script check_nginx <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    script <span style="color:#4e9a06">&#34;/etc/keepalived/scripts/check_nginx.sh&#34;</span> 
+</span></span><span style="display:flex;"><span>    interval <span style="color:#0000cf;font-weight:bold">3</span>  
+</span></span><span style="display:flex;"><span>    weight <span style="color:#0000cf;font-weight:bold">2</span>   
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>vrrp_instance VI_1 <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    state BACKUP 
+</span></span><span style="display:flex;"><span>    interface eth2
+</span></span><span style="display:flex;"><span>    virtual_router_id <span style="color:#0000cf;font-weight:bold">15</span>
+</span></span><span style="display:flex;"><span>    priority <span style="color:#0000cf;font-weight:bold">99</span>
+</span></span><span style="display:flex;"><span>    advert_int <span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span>    authentication <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        auth_type PASS
+</span></span><span style="display:flex;"><span>        auth_pass xxx
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    track_script <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        check_nginx 
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    virtual_ipaddress <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        180.101.115.139
+</span></span><span style="display:flex;"><span>        218.98.38.29
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>	nopreempt
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	notify_master <span style="color:#4e9a06">&#34;/etc/keepalived/keepalived_notify.sh master&#34;</span>
+</span></span><span style="display:flex;"><span>	notify_backup <span style="color:#4e9a06">&#34;/etc/keepalived/keepalived_notify.sh backup&#34;</span>
+</span></span><span style="display:flex;"><span>	notify_fault <span style="color:#4e9a06">&#34;/etc/keepalived/keepalived_notify.sh fault&#34;</span>
+</span></span><span style="display:flex;"><span>	notify_stop <span style="color:#4e9a06">&#34;/etc/keepalived/keepalived_notify.sh stop&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="3-注意事项">3. 注意事项</h1>
+<p>1、指定Nginx健康检测脚本：/etc/keepalived/scripts/check_nginx.sh</p>
+<p>2、主备配置差别主要为（建议这么配置）：</p>
+<blockquote>
+<p>以下两种方式的配置，当其中一台机器keepalived挂掉后会自动VIP切到另一台机器，当挂掉机器keepalived恢复后不会抢占VIP，该方式可以避免机器恢复再次切VIP所带来的影响。</p>
+</blockquote>
+<ul>
+<li>
+<p>主机:(state BACKUP;priority 100)</p>
+</li>
+<li>
+<p>备机：(state BACKUP;priority 99)</p>
+</li>
+<li>
+<p>非抢占：nopreempt</p>
+<p>或者：</p>
+</li>
+<li>
+<p>主机:(state MASTER;priority 100)</p>
+</li>
+<li>
+<p>备机：(state BACKUP;priority 100)</p>
+</li>
+<li>
+<p>默认抢占</p>
+</li>
+</ul>
+<p>3、指定VIP</p>
+<pre tabindex="0"><code>    virtual_ipaddress {
+        180.101.115.139
+        218.98.38.29
+    }
+</code></pre><p>4、可以指定为非抢占：nopreempt，即priority高不会抢占已经绑定VIP的机器。</p>
+<p>5、制定绑定IP的网卡： interface eth2</p>
+<p>6、可以指定keepalived状态变化通知</p>
+<pre tabindex="0"><code>	notify_master &#34;/etc/keepalived/keepalived_notify.sh master&#34;
+	notify_backup &#34;/etc/keepalived/keepalived_notify.sh backup&#34;
+	notify_fault &#34;/etc/keepalived/keepalived_notify.sh fault&#34;
+	notify_stop &#34;/etc/keepalived/keepalived_notify.sh stop&#34;
+</code></pre><p>7、virtual_router_id 15值，主备值一致，但建议不应与集群中其他Nginx机器上的相同，如果同一个网段配置的virtual_router_id 重复则会报错，选择一个不重复的0~255之间的值，可以用以下命令查看已存在的vrid。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>tcpdump -nn -i any net 224.0.0.0/8
+</span></span></code></pre></div><h1 id="4-常用脚本">4. 常用脚本</h1>
+<h2 id="4-1-nginx健康检测脚本">4.1. Nginx健康检测脚本</h2>
+<p>在Nginx配置目录下（/etc/nginx/conf.d/）增加health.conf的配置文件,该配置文件用于配置Nginx health的接口。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>server <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    listen       <span style="color:#0000cf;font-weight:bold">80</span>  default_server<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>    server_name  localhost<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>    default_type text/html<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#0000cf;font-weight:bold">200</span> <span style="color:#4e9a06">&#39;Health&#39;</span><span style="color:#000;font-weight:bold">;</span>  
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><p>Nginx健康检测脚本：/etc/keepalived/scripts/check_nginx.sh</p>
+<h3 id="4-1-1-检查接口调用是否为200">4.1.1. 检查接口调用是否为200</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#!/bin/sh
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87">set</span> -x
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#000">timeout</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">30</span> <span style="color:#8f5902;font-style:italic">#指定默认30秒没返回200则为非健康，该值可根据实际调整</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#ce5c00;font-weight:bold">[</span> -n <span style="color:#4e9a06">${</span><span style="color:#000">timeout</span><span style="color:#4e9a06">}</span> <span style="color:#ce5c00;font-weight:bold">]</span><span style="color:#000;font-weight:bold">;</span><span style="color:#204a87;font-weight:bold">then</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">httpcode</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">`</span>curl -sL -w %<span style="color:#ce5c00;font-weight:bold">{</span>http_code<span style="color:#ce5c00;font-weight:bold">}</span> -m <span style="color:#4e9a06">${</span><span style="color:#000">timeout</span><span style="color:#4e9a06">}</span> http://localhost -o /dev/null<span style="color:#4e9a06">`</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">else</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">httpcode</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">`</span>curl -sL -w %<span style="color:#ce5c00;font-weight:bold">{</span>http_code<span style="color:#ce5c00;font-weight:bold">}</span>  http://localhost -o /dev/null<span style="color:#4e9a06">`</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">fi</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#ce5c00;font-weight:bold">[</span> <span style="color:#4e9a06">${</span><span style="color:#000">httpcode</span><span style="color:#4e9a06">}</span> -ne <span style="color:#0000cf;font-weight:bold">200</span> <span style="color:#ce5c00;font-weight:bold">]</span><span style="color:#000;font-weight:bold">;</span><span style="color:#204a87;font-weight:bold">then</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87">echo</span> <span style="color:#4e9a06">`</span>date<span style="color:#4e9a06">`</span><span style="color:#4e9a06">&#39;:  nginx is not healthy, return http_code is &#39;</span><span style="color:#4e9a06">${</span><span style="color:#000">httpcode</span><span style="color:#4e9a06">}</span> &gt;&gt; /etc/keeperalived/keepalived.log
+</span></span><span style="display:flex;"><span>        killall keepalived
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87">exit</span> <span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">else</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87">exit</span> <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">fi</span>
+</span></span></code></pre></div><h3 id="4-1-2-检查nginx进程是否运行">4.1.2. 检查Nginx进程是否运行</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#!/bin/sh
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#ce5c00;font-weight:bold">[</span> <span style="color:#4e9a06">`</span>ps -C nginx --no-header <span style="color:#000;font-weight:bold">|</span>wc -l<span style="color:#4e9a06">`</span> -eq <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#ce5c00;font-weight:bold">]</span><span style="color:#000;font-weight:bold">;</span><span style="color:#204a87;font-weight:bold">then</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87">echo</span> <span style="color:#4e9a06">&#34;</span><span style="color:#204a87;font-weight:bold">$(</span>date<span style="color:#204a87;font-weight:bold">)</span><span style="color:#4e9a06"> nginx pid not found&#34;</span>&gt;&gt;/etc/keepalived/keepalived.log
+</span></span><span style="display:flex;"><span>        killall keepalived
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">fi</span>
+</span></span></code></pre></div><h2 id="4-2-keepalived状态通知脚本">4.2. Keepalived状态通知脚本</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#!/bin/bash
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87">set</span> -x
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#000">warn_receiver</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#000">$1</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">ip</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">$(</span>ifconfig bond0<span style="color:#000;font-weight:bold">|</span>grep inet <span style="color:#000;font-weight:bold">|</span>awk <span style="color:#4e9a06">&#39;{print $2}&#39;</span><span style="color:#204a87;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">warningInfo</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;</span><span style="color:#4e9a06">${</span><span style="color:#000">ip</span><span style="color:#4e9a06">}</span><span style="color:#4e9a06">_keepalived_changed_status_to_</span><span style="color:#000">$1</span><span style="color:#4e9a06">&#34;</span>
+</span></span><span style="display:flex;"><span>warn-report --user admin --key<span style="color:#ce5c00;font-weight:bold">=</span>xxxx --target<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">warn_receiver</span><span style="color:#4e9a06">}</span> <span style="color:#4e9a06">${</span><span style="color:#000">warningInfo</span><span style="color:#4e9a06">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> <span style="color:#204a87;font-weight:bold">$(</span>date<span style="color:#204a87;font-weight:bold">)</span>  <span style="color:#000">$1</span> &gt;&gt; /etc/keepalived/status
+</span></span></code></pre></div><p><strong>说明：</strong></p>
+<ol>
+<li>ip获取本机IP，本例中IP获取是bond0的IP，不同机器网卡名称不同需要修改为对应网卡名称。</li>
+<li>告警工具根据自己指定。</li>
+</ol>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-e553bc1d8197e89a121a1338faed792d">3 - Keepalived相关操作</h1>
+    
+	<h1 id="1-常用命令">1. 常用命令</h1>
+<h2 id="1-1-查看当前vip在哪个节点上">1.1. 查看当前VIP在哪个节点上</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看VIP是否在筛选结果中</span>
+</span></span><span style="display:flex;"><span>ip addr show<span style="color:#000;font-weight:bold">|</span>grep <span style="color:#4e9a06">&#34;scope global&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 或者 </span>
+</span></span><span style="display:flex;"><span>ip addr show<span style="color:#000;font-weight:bold">|</span>grep <span style="color:#ce5c00;font-weight:bold">{</span>vip<span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="1-2-查看keepalived的日志">1.2. 查看keepalived的日志</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>tail /var/log/messages
+</span></span></code></pre></div><h2 id="1-3-抓包命令">1.3. 抓包命令</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 抓包</span>
+</span></span><span style="display:flex;"><span>tcpdump -nn vrrp
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 可以用这条命令来查看该网络中所存在的vrid</span>
+</span></span><span style="display:flex;"><span>tcpdump -nn -i any net 224.0.0.0/8
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># tcpdump -nn -i any net 224.0.0.0/8</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># tcpdump -nn vrrp</span>
+</span></span><span style="display:flex;"><span>tcpdump: verbose output suppressed, use -v or -vv <span style="color:#204a87;font-weight:bold">for</span> full protocol decode
+</span></span><span style="display:flex;"><span>listening on eth0, link-type EN10MB <span style="color:#ce5c00;font-weight:bold">(</span>Ethernet<span style="color:#ce5c00;font-weight:bold">)</span>, capture size <span style="color:#0000cf;font-weight:bold">262144</span> bytes
+</span></span><span style="display:flex;"><span>14:40:00.576387 IP 192.168.98.57 &gt; 224.0.0.18: VRRPv2, Advertisement, vrid 9, prio 99, authtype simple, intvl 1s, length <span style="color:#0000cf;font-weight:bold">20</span>
+</span></span><span style="display:flex;"><span>14:40:01.577605 IP 192.168.98.57 &gt; 224.0.0.18: VRRPv2, Advertisement, vrid 9, prio 99, authtype simple, intvl 1s, length <span style="color:#0000cf;font-weight:bold">20</span>
+</span></span><span style="display:flex;"><span>14:40:02.578429 IP 192.168.98.57 &gt; 224.0.0.18: VRRPv2, Advertisement, vrid 9, prio 99, authtype simple, intvl 1s, length <span style="color:#0000cf;font-weight:bold">20</span>
+</span></span><span style="display:flex;"><span>14:40:03.579605 IP 192.168.98.57 &gt; 224.0.0.18: VRRPv2, Advertisement, vrid 9, prio 99, authtype simple, intvl 1s, length <span style="color:#0000cf;font-weight:bold">20</span>
+</span></span><span style="display:flex;"><span>14:40:04.580443 IP 192.168.98.57 &gt; 224.0.0.18: VRRPv2, Advertisement, vrid 9, prio 99, authtype simple, intvl 1s, length <span style="color:#0000cf;font-weight:bold">20</span>
+</span></span></code></pre></div><h2 id="1-4-vip操作">1.4. VIP操作</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 解绑VIP</span>
+</span></span><span style="display:flex;"><span>ip addr del  dev 
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 绑定VIP</span>
+</span></span><span style="display:flex;"><span>ip addr add  dev 
+</span></span></code></pre></div><h2 id="1-5-keepalived-切-vip">1.5. keepalived 切 VIP</h2>
+<p>例如将 A 机器上的 VIP 迁移到B 机器上。</p>
+<h3 id="1-5-1-停止keepalived服务">1.5.1. 停止keepalived服务</h3>
+<p>停止被迁移的机器（A机器）的keepalived服务。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl stop keepalived
+</span></span></code></pre></div><h3 id="1-5-2-查看日志">1.5.2. 查看日志</h3>
+<p>解绑 A机器 VIP的日志</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">19</span> 14:28:09 localhost systemd: Stopping LVS and VRRP High Availability Monitor...
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">19</span> 14:28:09 localhost Keepalived<span style="color:#ce5c00;font-weight:bold">[</span>45705<span style="color:#ce5c00;font-weight:bold">]</span>: Stopping
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">19</span> 14:28:09 localhost Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>45707<span style="color:#ce5c00;font-weight:bold">]</span>: VRRP_Instance<span style="color:#ce5c00;font-weight:bold">(</span>twemproxy<span style="color:#ce5c00;font-weight:bold">)</span> sent <span style="color:#0000cf;font-weight:bold">0</span> priority
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">19</span> 14:28:09 localhost Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>45707<span style="color:#ce5c00;font-weight:bold">]</span>: VRRP_Instance<span style="color:#ce5c00;font-weight:bold">(</span>twemproxy<span style="color:#ce5c00;font-weight:bold">)</span> removing protocol VIPs.
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">19</span> 14:28:09 localhost Keepalived_healthcheckers<span style="color:#ce5c00;font-weight:bold">[</span>45706<span style="color:#ce5c00;font-weight:bold">]</span>: Stopped
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">19</span> 14:28:10 localhost Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>45707<span style="color:#ce5c00;font-weight:bold">]</span>: Stopped
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">19</span> 14:28:10 localhost Keepalived<span style="color:#ce5c00;font-weight:bold">[</span>45705<span style="color:#ce5c00;font-weight:bold">]</span>: Stopped Keepalived v1.3.5 <span style="color:#ce5c00;font-weight:bold">(</span>03/19,2017<span style="color:#ce5c00;font-weight:bold">)</span>, git commit v1.3.5-6-g6fa32f2
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">19</span> 14:28:10 localhost systemd: Stopped LVS and VRRP High Availability Monitor.
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">19</span> 14:28:10 localhost ntpd<span style="color:#ce5c00;font-weight:bold">[</span>1186<span style="color:#ce5c00;font-weight:bold">]</span>: Deleting interface <span style="color:#8f5902;font-style:italic">#10 bond0, 192.168.99.9#123, interface stats: received=0, sent=0, dropped=0, active_time=6755768 secs</span>
+</span></span></code></pre></div><p>绑定 B 机器 VIP的日志</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:25 localhost systemd: Starting LVS and VRRP High Availability Monitor...
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost Keepalived<span style="color:#ce5c00;font-weight:bold">[</span>34566<span style="color:#ce5c00;font-weight:bold">]</span>: Starting Keepalived v1.3.5 <span style="color:#ce5c00;font-weight:bold">(</span>03/19,2017<span style="color:#ce5c00;font-weight:bold">)</span>, git commit v1.3.5-6-g6fa32f2
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost Keepalived<span style="color:#ce5c00;font-weight:bold">[</span>34566<span style="color:#ce5c00;font-weight:bold">]</span>: Opening file <span style="color:#4e9a06">&#39;/etc/keepalived/keepalived.conf&#39;</span>.
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost Keepalived<span style="color:#ce5c00;font-weight:bold">[</span>34568<span style="color:#ce5c00;font-weight:bold">]</span>: Starting Healthcheck child process, <span style="color:#000">pid</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">34569</span>
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost Keepalived<span style="color:#ce5c00;font-weight:bold">[</span>34568<span style="color:#ce5c00;font-weight:bold">]</span>: Starting VRRP child process, <span style="color:#000">pid</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">34570</span>
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>34570<span style="color:#ce5c00;font-weight:bold">]</span>: Registering Kernel netlink reflector
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>34570<span style="color:#ce5c00;font-weight:bold">]</span>: Registering Kernel netlink <span style="color:#204a87">command</span> channel
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>34570<span style="color:#ce5c00;font-weight:bold">]</span>: Registering gratuitous ARP shared channel
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>34570<span style="color:#ce5c00;font-weight:bold">]</span>: Opening file <span style="color:#4e9a06">&#39;/etc/keepalived/keepalived.conf&#39;</span>.
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>34570<span style="color:#ce5c00;font-weight:bold">]</span>: Truncating auth_pass to <span style="color:#0000cf;font-weight:bold">8</span> characters
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>34570<span style="color:#ce5c00;font-weight:bold">]</span>: VRRP_Instance<span style="color:#ce5c00;font-weight:bold">(</span>twemproxy<span style="color:#ce5c00;font-weight:bold">)</span> removing protocol VIPs.
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>34570<span style="color:#ce5c00;font-weight:bold">]</span>: Using LinkWatch kernel netlink reflector...
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>34570<span style="color:#ce5c00;font-weight:bold">]</span>: VRRP_Instance<span style="color:#ce5c00;font-weight:bold">(</span>twemproxy<span style="color:#ce5c00;font-weight:bold">)</span> Entering BACKUP STATE
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>34570<span style="color:#ce5c00;font-weight:bold">]</span>: VRRP sockpool: <span style="color:#ce5c00;font-weight:bold">[</span>ifindex<span style="color:#ce5c00;font-weight:bold">(</span>4<span style="color:#ce5c00;font-weight:bold">)</span>, proto<span style="color:#ce5c00;font-weight:bold">(</span>112<span style="color:#ce5c00;font-weight:bold">)</span>, unicast<span style="color:#ce5c00;font-weight:bold">(</span>0<span style="color:#ce5c00;font-weight:bold">)</span>, fd<span style="color:#ce5c00;font-weight:bold">(</span>10,11<span style="color:#ce5c00;font-weight:bold">)]</span>
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost systemd: Started LVS and VRRP High Availability Monitor.
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost kernel: IPVS: Registered protocols <span style="color:#ce5c00;font-weight:bold">(</span>TCP, UDP, SCTP, AH, ESP<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost kernel: IPVS: Connection <span style="color:#204a87">hash</span> table configured <span style="color:#ce5c00;font-weight:bold">(</span><span style="color:#000">size</span><span style="color:#ce5c00;font-weight:bold">=</span>4096, <span style="color:#000">memory</span><span style="color:#ce5c00;font-weight:bold">=</span>64Kbytes<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost kernel: IPVS: Creating netns <span style="color:#000">size</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">2192</span> <span style="color:#000">id</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost kernel: IPVS: Creating netns <span style="color:#000">size</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">2192</span> <span style="color:#000">id</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost kernel: IPVS: ipvs loaded.
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">17</span> 17:20:26 localhost Keepalived_healthcheckers<span style="color:#ce5c00;font-weight:bold">[</span>34569<span style="color:#ce5c00;font-weight:bold">]</span>: Opening file <span style="color:#4e9a06">&#39;/etc/keepalived/keepalived.conf&#39;</span>.
+</span></span></code></pre></div><h1 id="2-指定keepalived的输出日志文件">2. 指定keepalived的输出日志文件</h1>
+<h2 id="2-1-修改-etc-sysconfig-keepalived">2.1. 修改 <code>/etc/sysconfig/keepalived</code></h2>
+<p>将<code>KEEPALIVED_OPTIONS=&quot;-D&quot;</code>改为<code>KEEPALIVED_OPTIONS=&quot;-D -d -S 0&quot;</code>。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Options for keepalived. See `keepalived --help&#39; output and keepalived(8) and</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># keepalived.conf(5) man pages for a list of all options. Here are the most</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># common ones :</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># --vrrp               -P    Only run with VRRP subsystem.</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># --check              -C    Only run with Health-checker subsystem.</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># --dont-release-vrrp  -V    Dont remove VRRP VIPs &amp; VROUTEs on daemon stop.</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># --dont-release-ipvs  -I    Dont remove IPVS topology on daemon stop.</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># --dump-conf          -d    Dump the configuration data.</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># --log-detail         -D    Detailed log messages.</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># --log-facility       -S    0-7 Set local syslog facility (default=LOG_DAEMON)</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#000">KEEPALIVED_OPTIONS</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;-D -d -S 0&#34;</span>
+</span></span></code></pre></div><h2 id="2-2-修改rsyslog的配置-etc-rsyslog-conf">2.2. 修改rsyslog的配置 /etc/rsyslog.conf</h2>
+<p>在/etc/rsyslog.conf  添加 keepalived的日志路径</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>vi /etc/rsyslog.conf
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># keepalived log</span>
+</span></span><span style="display:flex;"><span>local0.*                                                /etc/keepalived/keepalived.log
+</span></span></code></pre></div><h2 id="2-3-重启rsyslog和keepalived">2.3. 重启rsyslog和keepalived</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 重启rsyslog</span>
+</span></span><span style="display:flex;"><span>systemctl restart rsyslog
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#  重启keepalived</span>
+</span></span><span style="display:flex;"><span>systemctl restart keepalived
+</span></span></code></pre></div><h1 id="3-troubleshooting">3. Troubleshooting</h1>
+<h2 id="3-1-virtual-router-id-同网段重复">3.1. virtual_router_id 同网段重复</h2>
+<p>日志报错如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">09</span> 21:28:28 k8s4 Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>8548<span style="color:#ce5c00;font-weight:bold">]</span>: bogus VRRP packet received on eth0 !!!
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">09</span> 21:28:28 k8s4 Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>8548<span style="color:#ce5c00;font-weight:bold">]</span>: VRRP_Instance<span style="color:#ce5c00;font-weight:bold">(</span>VI-kube-master<span style="color:#ce5c00;font-weight:bold">)</span> ignoring received advertisment...
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">09</span> 21:28:43 k8s4 Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>8548<span style="color:#ce5c00;font-weight:bold">]</span>: ip address associated with VRID not present in received packet : 192.168.1.10
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">09</span> 21:28:43 k8s4 Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>8548<span style="color:#ce5c00;font-weight:bold">]</span>: one or more VIP associated with VRID mismatch actual MASTER advert
+</span></span></code></pre></div><p>解决方法:</p>
+<p>同一网段内LB节点配置的 <code>virtual_router_id</code> 值有重复了，选择一个不重复的0~255之间的值，可以用以下命令查看已存在的vrid。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>tcpdump -nn -i any net 224.0.0.0/8
+</span></span></code></pre></div><h2 id="3-2-operation-not-permitted">3.2. Operation not permitted</h2>
+<p>问题：</p>
+<p>两台主备机器都绑定了VIP，查看日志如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">28</span> 14:28:37 node Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>1686<span style="color:#ce5c00;font-weight:bold">]</span>: <span style="color:#ce5c00;font-weight:bold">(</span>VI_1<span style="color:#ce5c00;font-weight:bold">)</span>: send advert error <span style="color:#0000cf;font-weight:bold">1</span> <span style="color:#ce5c00;font-weight:bold">(</span>Operation not permitted<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>Sep <span style="color:#0000cf;font-weight:bold">28</span> 14:28:39 node Keepalived_vrrp<span style="color:#ce5c00;font-weight:bold">[</span>1686<span style="color:#ce5c00;font-weight:bold">]</span>: <span style="color:#ce5c00;font-weight:bold">(</span>VI_1<span style="color:#ce5c00;font-weight:bold">)</span>: send advert error <span style="color:#0000cf;font-weight:bold">1</span> <span style="color:#ce5c00;font-weight:bold">(</span>Operation not permitted<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span></code></pre></div><p>原因：</p>
+<p>由于iptables vrrp协议没有放通，导致keepalived直接无法互相探测选主。</p>
+<p>解决方法：</p>
+<p>添加iptabels vrrp协议规则</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>iptables -A INPUT -p vrrp -j ACCEPT
+</span></span><span style="display:flex;"><span>iptables -A OUTPUT -p vrrp -j ACCEPT
+</span></span></code></pre></div><p>持久化iptables规则，添加规则到文件中/etc/sysconfig/iptables</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># vi /etc/sysconfig/iptables</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>-A INPUT -p vrrp -j ACCEPT
+</span></span><span style="display:flex;"><span>-A OUTPUT -p vrrp -j ACCEPT
+</span></span></code></pre></div>
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-c60c32f3a5275e8f405771d11c5a360f">4 - Keepalived配置详解</h1>
+    
+	<h1 id="详细配置说明">详细配置说明</h1>
+<p>keepalived只有一个配置文件<code>/etc/keepalived/keepalived.conf</code>。</p>
+<p>里面主要包括以下几个配置区域，分别是:</p>
+<ul>
+<li>global_defs</li>
+<li>static_ipaddress</li>
+<li>static_routes</li>
+<li>vrrp_script</li>
+<li>vrrp_instance</li>
+<li>virtual_server</li>
+</ul>
+<h2 id="1-global-defs区域">1. global_defs区域</h2>
+<p>主要是配置故障发生时的通知对象以及机器标识。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>global_defs <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    notification_email <span style="color:#ce5c00;font-weight:bold">{</span>        <span style="color:#8f5902;font-style:italic"># notification_email 故障发生时给谁发邮件通知</span>
+</span></span><span style="display:flex;"><span>        a@abc.com
+</span></span><span style="display:flex;"><span>        b@abc.com
+</span></span><span style="display:flex;"><span>        ...
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    notification_email_from alert@abc.com  <span style="color:#8f5902;font-style:italic"># notification_email_from 通知邮件从哪个地址发出</span>
+</span></span><span style="display:flex;"><span>    smtp_server smtp.abc.com    <span style="color:#8f5902;font-style:italic"># smpt_server 通知邮件的smtp地址</span>
+</span></span><span style="display:flex;"><span>    smtp_connect_timeout <span style="color:#0000cf;font-weight:bold">30</span>     <span style="color:#8f5902;font-style:italic"># smtp_connect_timeout 连接smtp服务器的超时时间</span>
+</span></span><span style="display:flex;"><span>    enable_traps                <span style="color:#8f5902;font-style:italic"># enable_traps 开启SNMP陷阱（Simple Network Management Protocol）</span>
+</span></span><span style="display:flex;"><span>    router_id host163 <span style="color:#8f5902;font-style:italic"># router_id 标识本节点的字条串，通常为hostname，但不一定非得是hostname。故障发生时，邮件通知会用到。</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-static-ipaddress和static-routes区域-可忽略">2. static_ipaddress和static_routes区域[可忽略]</h2>
+<p>static_ipaddress和static_routes区域配置的是是本节点的IP和路由信息。如果你的机器上已经配置了IP和路由，那么这两个区域可以不用配置。其实，一般情况下你的机器都会有IP地址和路由信息的，因此没必要再在这两个区域配置。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>static_ipaddress <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    10.210.214.163/24 brd 10.210.214.255 dev eth0
+</span></span><span style="display:flex;"><span>    ...
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>static_routes <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    10.0.0.0/8 via 10.210.214.1 dev eth0
+</span></span><span style="display:flex;"><span>    ...
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="3-vrrp-script区域">3. vrrp_script区域</h2>
+<p>用来做健康检查的，当时检查失败时会将vrrp_instance的priority减少相应的值。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>vrrp_script chk_http_port <span style="color:#ce5c00;font-weight:bold">{</span>   
+</span></span><span style="display:flex;"><span>    script <span style="color:#4e9a06">&#34;&lt;/dev/tcp/127.0.0.1/80&#34;</span>       <span style="color:#8f5902;font-style:italic">#一句指令或者一个脚本文件，需返回0(成功)或非0(失败)，keepalived以此为依据判断其监控的服务状态。</span>
+</span></span><span style="display:flex;"><span>    interval 1    <span style="color:#8f5902;font-style:italic">#健康检查周期</span>
+</span></span><span style="display:flex;"><span>    weight -10   <span style="color:#8f5902;font-style:italic"># 优先级变化幅度，如果script中的指令执行失败，那么相应的vrrp_instance的优先级会减少10个点。</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="4-vrrp-instance和vrrp-sync-group区域">4. vrrp_instance和vrrp_sync_group区域</h2>
+<p>vrrp_instance用来定义对外提供服务的VIP区域及其相关属性。</p>
+<p>vrrp_rsync_group用来定义vrrp_intance组，使得这个组内成员动作一致。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>vrrp_sync_group VG_1 <span style="color:#ce5c00;font-weight:bold">{</span>  <span style="color:#8f5902;font-style:italic">#监控多个网段的实例</span>
+</span></span><span style="display:flex;"><span>    group <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        inside_network   <span style="color:#8f5902;font-style:italic"># name of vrrp_instance (below)</span>
+</span></span><span style="display:flex;"><span>        outside_network  <span style="color:#8f5902;font-style:italic"># One for each moveable IP.</span>
+</span></span><span style="display:flex;"><span>        ...
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    notify_master /path/to_master.sh      <span style="color:#8f5902;font-style:italic"># notify_master表示切换为主机执行的脚本</span>
+</span></span><span style="display:flex;"><span>    notify_backup /path/to_backup.sh      <span style="color:#8f5902;font-style:italic"># notify_backup表示切换为备机师的脚本</span>
+</span></span><span style="display:flex;"><span>    notify_fault <span style="color:#4e9a06">&#34;/path/fault.sh VG_1&#34;</span>    <span style="color:#8f5902;font-style:italic"># notify_fault表示出错时执行的脚本</span>
+</span></span><span style="display:flex;"><span>    notify /path/notify.sh  <span style="color:#8f5902;font-style:italic"># notify表示任何一状态切换时都会调用该脚本，且在以上三个脚本执行完成之后进行调用</span>
+</span></span><span style="display:flex;"><span>    smtp_alert  <span style="color:#8f5902;font-style:italic"># smtp_alert 表示是否开启邮件通知（用全局区域的邮件设置来发通知）</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>vrrp_instance VI_1 <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    state MASTER <span style="color:#8f5902;font-style:italic"># state MASTER或BACKUP，当其他节点keepalived启动时会将priority比较大的节点选举为MASTER，因此该项其实没有实质用途。</span>
+</span></span><span style="display:flex;"><span>    interface eth0  <span style="color:#8f5902;font-style:italic"># interface 节点固有IP（非VIP）的网卡，用来发VRRP包</span>
+</span></span><span style="display:flex;"><span>    use_vmac    dont_track_primary <span style="color:#8f5902;font-style:italic"># use_vmac 是否使用VRRP的虚拟MAC地址，dont_track_primary 忽略VRRP网卡错误（默认未设置）</span>
+</span></span><span style="display:flex;"><span>    track_interface <span style="color:#ce5c00;font-weight:bold">{</span><span style="color:#8f5902;font-style:italic"># track_interface 监控以下网卡，如果任何一个不通就会切换到FALT状态。（可选项）</span>
+</span></span><span style="display:flex;"><span>        eth0
+</span></span><span style="display:flex;"><span>        eth1
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">#mcast_src_ip 修改vrrp组播包的源地址，默认源地址为master的IP</span>
+</span></span><span style="display:flex;"><span>    mcast_src_ip    lvs_sync_daemon_interface eth1 <span style="color:#8f5902;font-style:italic">#lvs_sync_daemon_interface 绑定lvs syncd的网卡</span>
+</span></span><span style="display:flex;"><span>    garp_master_delay 10  <span style="color:#8f5902;font-style:italic"># garp_master_delay 当切为主状态后多久更新ARP缓存，默认5秒</span>
+</span></span><span style="display:flex;"><span>    virtual_router_id <span style="color:#0000cf;font-weight:bold">1</span>   <span style="color:#8f5902;font-style:italic"># virtual_router_id 取值在0-255之间，用来区分多个instance的VRRP组播， 同一网段中virtual_router_id的值不能重复，否则会出错</span>
+</span></span><span style="display:flex;"><span>    priority 100 <span style="color:#8f5902;font-style:italic">#priority用来选举master的，根据服务是否可用，以weight的幅度来调整节点的priority，从而选取priority高的为master，该项取值范围是1-255（在此范围之外会被识别成默认值100）</span>
+</span></span><span style="display:flex;"><span>    advert_int 1 <span style="color:#8f5902;font-style:italic"># advert_int 发VRRP包的时间间隔，即多久进行一次master选举（可以认为是健康查检时间间隔）</span>
+</span></span><span style="display:flex;"><span>    authentication <span style="color:#ce5c00;font-weight:bold">{</span> <span style="color:#8f5902;font-style:italic"># authentication 认证区域，认证类型有PASS和HA（IPSEC），推荐使用PASS（密码只识别前8位）</span>
+</span></span><span style="display:flex;"><span>        auth_type PASS  <span style="color:#8f5902;font-style:italic">#认证方式</span>
+</span></span><span style="display:flex;"><span>        auth_pass 12345678  <span style="color:#8f5902;font-style:italic">#认证密码</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    virtual_ipaddress <span style="color:#ce5c00;font-weight:bold">{</span> <span style="color:#8f5902;font-style:italic"># 设置vip</span>
+</span></span><span style="display:flex;"><span>        10.210.214.253/24 brd 10.210.214.255 dev eth0
+</span></span><span style="display:flex;"><span>        192.168.1.11/24 brd 192.168.1.255 dev eth1
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    virtual_routes <span style="color:#ce5c00;font-weight:bold">{</span> <span style="color:#8f5902;font-style:italic"># virtual_routes 虚拟路由，当IP漂过来之后需要添加的路由信息</span>
+</span></span><span style="display:flex;"><span>        172.16.0.0/12 via 10.210.214.1
+</span></span><span style="display:flex;"><span>        192.168.1.0/24 via 192.168.1.1 dev eth1
+</span></span><span style="display:flex;"><span>        default via 202.102.152.1
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    track_script <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        chk_http_port
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    nopreempt <span style="color:#8f5902;font-style:italic"># nopreempt 允许一个priority比较低的节点作为master，即使有priority更高的节点启动</span>
+</span></span><span style="display:flex;"><span>    preempt_delay 300 <span style="color:#8f5902;font-style:italic"># preempt_delay master启动多久之后进行接管资源（VIP/Route信息等），并提是没有nopreempt选项</span>
+</span></span><span style="display:flex;"><span>    debug
+</span></span><span style="display:flex;"><span>    notify_master<span style="color:#000;font-weight:bold">|</span>    notify_backup<span style="color:#000;font-weight:bold">|</span>    notify_fault<span style="color:#000;font-weight:bold">|</span>    notify<span style="color:#000;font-weight:bold">|</span>    smtp_alert
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="5-virtual-server-group和virtual-server区域">5. virtual_server_group和virtual_server区域</h2>
+<p>virtual_server_group一般在超大型的LVS中用到，一般LVS用不到这东西。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>virtual_server IP Port <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    delay_loop    <span style="color:#8f5902;font-style:italic"># delay_loop 延迟轮询时间（单位秒）</span>
+</span></span><span style="display:flex;"><span>    lb_algo rr<span style="color:#000;font-weight:bold">|</span>wrr<span style="color:#000;font-weight:bold">|</span>lc<span style="color:#000;font-weight:bold">|</span>wlc<span style="color:#000;font-weight:bold">|</span>lblc<span style="color:#000;font-weight:bold">|</span>sh<span style="color:#000;font-weight:bold">|</span>dh  <span style="color:#8f5902;font-style:italic"># lb_algo 后端调试算法（load balancing algorithm）</span>
+</span></span><span style="display:flex;"><span>    lb_kind NAT<span style="color:#000;font-weight:bold">|</span>DR<span style="color:#000;font-weight:bold">|</span>TUN  <span style="color:#8f5902;font-style:italic"># lb_kind LVS调度类型NAT/DR/TUN</span>
+</span></span><span style="display:flex;"><span>    persistence_timeout    <span style="color:#8f5902;font-style:italic">#会话保持时间</span>
+</span></span><span style="display:flex;"><span>    persistence_granularity  <span style="color:#8f5902;font-style:italic">#lvs会话保持粒度 </span>
+</span></span><span style="display:flex;"><span>    protocol TCP  <span style="color:#8f5902;font-style:italic">#使用的协议</span>
+</span></span><span style="display:flex;"><span>    ha_suspend
+</span></span><span style="display:flex;"><span>    virtualhost    <span style="color:#8f5902;font-style:italic"># virtualhost 用来给HTTP_GET和SSL_GET配置请求header的</span>
+</span></span><span style="display:flex;"><span>    alpha 
+</span></span><span style="display:flex;"><span>    omega
+</span></span><span style="display:flex;"><span>    quorum   
+</span></span><span style="display:flex;"><span>    hysteresis   
+</span></span><span style="display:flex;"><span>    quorum_up<span style="color:#000;font-weight:bold">|</span>   
+</span></span><span style="display:flex;"><span>    quorum_down<span style="color:#000;font-weight:bold">|</span>   
+</span></span><span style="display:flex;"><span>    sorry_server  <span style="color:#8f5902;font-style:italic">#备用机，所有realserver失效后启用 </span>
+</span></span><span style="display:flex;"><span>    real_server<span style="color:#ce5c00;font-weight:bold">{</span>   <span style="color:#8f5902;font-style:italic"># real_server 真正提供服务的服务器</span>
+</span></span><span style="display:flex;"><span>        weight 1 <span style="color:#8f5902;font-style:italic"># 默认为1,0为失效       </span>
+</span></span><span style="display:flex;"><span>        inhibit_on_failure <span style="color:#8f5902;font-style:italic">#在服务器健康检查失效时，将其设为0，而不是直接从ipvs中删除</span>
+</span></span><span style="display:flex;"><span>        notify_up<span style="color:#000;font-weight:bold">|</span>       <span style="color:#8f5902;font-style:italic"># real server宕掉时执行的脚本</span>
+</span></span><span style="display:flex;"><span>        notify_down<span style="color:#000;font-weight:bold">|</span>     <span style="color:#8f5902;font-style:italic"># real server启动时执行的脚本</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#8f5902;font-style:italic"># HTTP_GET|SSL_GET|TCP_CHECK|SMTP_CHECK|MISC_CHECK</span>
+</span></span><span style="display:flex;"><span>        TCP_CHECK <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            connect_timeout 3 <span style="color:#8f5902;font-style:italic">#连接超时时间</span>
+</span></span><span style="display:flex;"><span>            nb_get_retry 3 <span style="color:#8f5902;font-style:italic">#重连次数</span>
+</span></span><span style="display:flex;"><span>            delay_before_retry 3 <span style="color:#8f5902;font-style:italic">#重连间隔时间</span>
+</span></span><span style="display:flex;"><span>            connect_port 23  <span style="color:#8f5902;font-style:italic">#健康检查的端口的端口</span>
+</span></span><span style="display:flex;"><span>            bindto  
+</span></span><span style="display:flex;"><span>        <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>        HTTP_GET<span style="color:#000;font-weight:bold">|</span>SSL_GET <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            url <span style="color:#ce5c00;font-weight:bold">{</span><span style="color:#8f5902;font-style:italic"># 检查url，可以指定多个</span>
+</span></span><span style="display:flex;"><span>                path          <span style="color:#8f5902;font-style:italic"># path 请求real serserver上的路径  </span>
+</span></span><span style="display:flex;"><span>                digest        <span style="color:#8f5902;font-style:italic"># 用genhash算出的摘要信息       </span>
+</span></span><span style="display:flex;"><span>                status_code   <span style="color:#8f5902;font-style:italic"># 检查的http状态码       </span>
+</span></span><span style="display:flex;"><span>                <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>            connect_port         <span style="color:#8f5902;font-style:italic"># connect_port 健康检查，如果端口通则认为服务器正常     </span>
+</span></span><span style="display:flex;"><span>            connect_timeout      <span style="color:#8f5902;font-style:italic"># 超时时长       </span>
+</span></span><span style="display:flex;"><span>            nb_get_retry         <span style="color:#8f5902;font-style:italic"># 重试次数</span>
+</span></span><span style="display:flex;"><span>            delay_before_retry   <span style="color:#8f5902;font-style:italic">#  下次重试的时间延迟  </span>
+</span></span><span style="display:flex;"><span>         <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>       
+</span></span><span style="display:flex;"><span>         SMTP_CHECK <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            host <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>              connect_ip
+</span></span><span style="display:flex;"><span>              connect_port <span style="color:#8f5902;font-style:italic">#默认检查25端口</span>
+</span></span><span style="display:flex;"><span>              bindto
+</span></span><span style="display:flex;"><span>            <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>            connect_timeout <span style="color:#0000cf;font-weight:bold">5</span>
+</span></span><span style="display:flex;"><span>            retry <span style="color:#0000cf;font-weight:bold">3</span>
+</span></span><span style="display:flex;"><span>            delay_before_retry <span style="color:#0000cf;font-weight:bold">2</span>
+</span></span><span style="display:flex;"><span>            helo_name <span style="color:#000;font-weight:bold">|</span> <span style="color:#8f5902;font-style:italic">#smtp helo请求命令参数，可选</span>
+</span></span><span style="display:flex;"><span>         <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>         
+</span></span><span style="display:flex;"><span>         MISC_CHECK <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            misc_path <span style="color:#000;font-weight:bold">|</span> <span style="color:#8f5902;font-style:italic">#外部脚本路径</span>
+</span></span><span style="display:flex;"><span>            misc_timeout <span style="color:#8f5902;font-style:italic">#脚本执行超时时间</span>
+</span></span><span style="display:flex;"><span>            misc_dynamic <span style="color:#8f5902;font-style:italic">#如设置该项，则退出状态码会用来动态调整服务器的权重，返回0 正常，不修改；返回1，</span>
+</span></span><span style="display:flex;"><span> <span style="color:#8f5902;font-style:italic">#检查失败，权重改为0；返回2-255，正常，权重设置为：返回状态码-2</span>
+</span></span><span style="display:flex;"><span>          <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div>
+</div>
+
+
+
+    
+	
+  
+
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="User mailing list" aria-label="User mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="User mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Twitter" aria-label="Twitter">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/twitter" aria-label="Twitter">
+      <i class="fab fa-twitter"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Stack Overflow" aria-label="Stack Overflow">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/stack" aria-label="Stack Overflow">
+      <i class="fab fa-stack-overflow"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/blog.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Slack" aria-label="Slack">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/slack" aria-label="Slack">
+      <i class="fab fa-slack"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Developer mailing list" aria-label="Developer mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="Developer mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2022 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		<p class="mt-2"><a href="/about/">About</a></p>
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+  </body>
+</html>

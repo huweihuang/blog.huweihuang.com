@@ -1,0 +1,1066 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<link rel="canonical" type="text/html" href="https://blog.huweihuang.com/linux-notes/nginx/">
+<link rel="alternate" type="application/rss&#43;xml" href="https://blog.huweihuang.com/linux-notes/nginx/index.xml">
+<meta name="robots" content="noindex, nofollow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>Nginx | 胡伟煌</title>
+<meta name="description" content="">
+<meta property="og:title" content="Nginx" />
+<meta property="og:description" content="Kubernetes学习笔记" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://blog.huweihuang.com/linux-notes/nginx/" /><meta property="og:site_name" content="胡伟煌" />
+
+<meta itemprop="name" content="Nginx">
+<meta itemprop="description" content="Kubernetes学习笔记"><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Nginx"/>
+<meta name="twitter:description" content="Kubernetes学习笔记"/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" as="style">
+<link href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-114718458-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-section">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">胡伟煌</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/kubernetes-notes/" ><span>Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/k8s-source-code-analysis/" ><span>Kubernetes源码分析</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/golang-notes/" ><span>Golang学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/linux-notes/" ><span class="active">Linux学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/about/" ><span>About</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.f043f65e6bd084162569d168aa0d2ea7.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+
+
+
+
+<div class="td-content">
+<div class="pageinfo pageinfo-primary d-print-none">
+<p>
+这是本节的多页打印视图。
+<a href="#" onclick="print();return false;">点击此处打印</a>.
+</p><p>
+<a href="/linux-notes/nginx/">返回本页常规视图</a>.
+</p>
+</div>
+
+
+
+<h1 class="title">Nginx</h1>
+
+
+
+
+
+    <ul>
+    
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>1: <a href="#pg-2b21d9995de5be0bc344a9f01ba118e4">Nginx的部署与配置</a></li>
+
+
+    
+  
+    
+    
+	
+<li>2: <a href="#pg-3bd1e1c86d00c1b0ad09142914f775f6">Nginx作为反向代理</a></li>
+
+
+    
+  
+    
+    
+	
+<li>3: <a href="#pg-fd3c37bc56a35cbed876a7ec53b56dc6">Nginx http服务器</a></li>
+
+
+    
+  
+
+    </ul>
+
+
+<div class="content">
+      
+</div>
+</div>
+
+
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-2b21d9995de5be0bc344a9f01ba118e4">1 - Nginx的部署与配置</h1>
+    
+	<h1 id="1-部署">1. 部署</h1>
+<h2 id="1-1-使用安装包的方式">1.1. 使用安装包的方式</h2>
+<p>rpm -ivh nginx-xxx.rpm</p>
+<h2 id="1-2-使用源代码安装">1.2. 使用源代码安装</h2>
+<h3 id="1-2-1-下载源码包">1.2.1. 下载源码包</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>wget http://blob.wae.haplat.net/nginx/nginx-1.9.13.tar.gz
+</span></span></code></pre></div><h2 id="1-2-2-创建临时目录并解压源码包">1.2.2. 创建临时目录并解压源码包</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>mkdir <span style="color:#000">$HOME</span>/build
+</span></span><span style="display:flex;"><span><span style="color:#204a87">cd</span> <span style="color:#000">$HOME</span>/build <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> tar zxvf nginx-&lt;version-number&gt;.tar.gz
+</span></span></code></pre></div><h3 id="1-2-3-编译并安装">1.2.3. 编译并安装</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span> <span style="color:#204a87">cd</span> <span style="color:#000">$HOME</span>/build/nginx-&lt;version-number&gt;
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>./configure <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>--prefix<span style="color:#ce5c00;font-weight:bold">=</span>/etc/nginx <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>--sbin-path<span style="color:#ce5c00;font-weight:bold">=</span>/usr/sbin/nginx <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>--conf-path<span style="color:#ce5c00;font-weight:bold">=</span>/etc/nginx/nginx.conf <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>...
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#&lt;更多配置项见以下说明&gt;</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>make <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> make install
+</span></span></code></pre></div><h3 id="1-2-4-配置项">1.2.4. 配置项</h3>
+<h4 id="1-2-4-1-通用配置项">1.2.4.1. 通用配置项</h4>
+<table>
+<thead>
+<tr>
+<th>配置选项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>--prefix=<path></td>
+<td>nginx安装的根路径，所有其他的路径都要依赖与该选项</td>
+</tr>
+<tr>
+<td>--sbin-path=<path></td>
+<td>nginx二进制文件的路径，如果没有指定则会依赖于--prefix</td>
+</tr>
+<tr>
+<td>--conf-path=<path></td>
+<td>如果在命令行中没有指定配置文件，则通过该配置项去查找配置文件</td>
+</tr>
+<tr>
+<td>--error-log-path=<path></td>
+<td>指定错误文件的路径</td>
+</tr>
+<tr>
+<td>--pid-path=<path></td>
+<td>指定的文件将会写入nginx master进程的pid，通常在/var/run下</td>
+</tr>
+<tr>
+<td>--lock-path=<path></td>
+<td>共享存储器互斥锁文件的路径</td>
+</tr>
+<tr>
+<td>--user=<user></td>
+<td>worker进程运行的用户</td>
+</tr>
+<tr>
+<td>--group=<group></td>
+<td>worker进程运行的组</td>
+</tr>
+<tr>
+<td>--with-file-aio</td>
+<td>启动异步I/O</td>
+</tr>
+<tr>
+<td>--with-debug</td>
+<td>启用调试日志，生产环境不推荐配置</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1-2-4-2-优化配置项">1.2.4.2. 优化配置项</h4>
+<table>
+<thead>
+<tr>
+<th>配置选项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>--with-cc=<path></td>
+<td>如果想设置一个不在默认PATH下的C编译器</td>
+</tr>
+<tr>
+<td>--with-cpp=<path></td>
+<td>设置C预处理器的相应路径</td>
+</tr>
+<tr>
+<td>--with-cc-opt=<options></td>
+<td>指定必要的include文件路径</td>
+</tr>
+<tr>
+<td>--with-ld-opt=<options></td>
+<td>包含连接器库的路径和运行路径</td>
+</tr>
+<tr>
+<td>--with-cpu-opt=<cpu></td>
+<td>通过该选项为特定的CPU构建nginx</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1-2-4-3-http模块的配置项">1.2.4.3. http模块的配置项</h4>
+<table>
+<thead>
+<tr>
+<th>配置选项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>--without-http-cache</td>
+<td>在使用upstream模块时，nginx能够配置本地缓存内容，该选项可以禁用缓存</td>
+</tr>
+<tr>
+<td>--with-http_perl_module</td>
+<td>nginx配置能够扩展使用perl代码。该项启用这个模块，但会降低性能</td>
+</tr>
+<tr>
+<td>--with-perl_modules_path=<path></td>
+<td>对于额外嵌入的perl模块，该选项指定该perl解析器的路径</td>
+</tr>
+<tr>
+<td>--with-perl=<path></td>
+<td>如果在默认的路径中找不到perl则指定perl（5.6版本以上）的路径</td>
+</tr>
+<tr>
+<td>--http-log-path=<path></td>
+<td>http访问日志的默认路径</td>
+</tr>
+<tr>
+<td>--http-client-body-temp-path=<path></td>
+<td>从客户端收到请求后，该项用于作为请求体临时存放的目录</td>
+</tr>
+<tr>
+<td>--http-proxy-temp-path=<path></td>
+<td>在使用代理后，通过该项设置存放临时文件路径</td>
+</tr>
+<tr>
+<td>--http-fastcgi-temp-path=<path></td>
+<td>设置FastCGI临时文件的目录</td>
+</tr>
+<tr>
+<td>--http-uwsgi-temp-path=<path></td>
+<td>设置uWSGI临时文件的目录</td>
+</tr>
+<tr>
+<td>--http-scgi-temp-path=<path></td>
+<td>设置SCGI临时文件的目录</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1-2-4-4-其他模块额外配置项">1.2.4.4. 其他模块额外配置项</h4>
+<p>默认没有安装这些模块，可以通过--with-<module-name>_module来启用相应的模块功能。</p>
+<table>
+<thead>
+<tr>
+<th>配置选项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>--with-http_ssl_module</td>
+<td>如果需要对流量进行加密，可以使用该选项，再URLs中开始部分将会是https(需要OpenSSL库)</td>
+</tr>
+<tr>
+<td>--with-http_realip_module</td>
+<td>如果nginx在七层负载均衡器或者其他设备之后，它们将Http头中的客户端IP地址传递，则需要启用该模块，再多个客户处于一个IP地址的情况下使用</td>
+</tr>
+<tr>
+<td>--with-http_addition_module</td>
+<td>该模块作为输出过滤器，使能够在请求经过一个location前或后时在该location本身添加内容</td>
+</tr>
+<tr>
+<td>--with-http_xslt_module</td>
+<td>该模块用于处理XML响应转换，基于一个或多个XSLT格式</td>
+</tr>
+<tr>
+<td>--with-http_image_filter_module</td>
+<td>该模块被作为图像过滤器使用，在将图像投递到客户之前进行处理（需要libgd库）</td>
+</tr>
+<tr>
+<td>--with-http_geoip_module</td>
+<td>使用该模块，能够设置各种变量以便在配置文件中的区段使用，基于地理位置查找客户端IP地址</td>
+</tr>
+<tr>
+<td>--with-http_sub_module</td>
+<td>该模块实现替代过滤，在响应中用一个字符串替代另一个字符串</td>
+</tr>
+<tr>
+<td>--with-heep_dav_module</td>
+<td>启用这个模块将激活使用WebDAV的配置指令。</td>
+</tr>
+<tr>
+<td>--with-http_flv_module</td>
+<td>如果需要提供Flash流媒体视频文件，那么该模块将会提供伪流媒体</td>
+</tr>
+<tr>
+<td>--with-http_mp4_module</td>
+<td>这个模块支持H.264/AAC文件伪流媒体</td>
+</tr>
+<tr>
+<td>--with-http_gzip_static_module</td>
+<td>当被调用的资源没有.gz结尾格式的文件时，如果想支持发送预压缩版本的静态文件，那么使用该模块</td>
+</tr>
+<tr>
+<td>--with-http_gunzip_module</td>
+<td>对于不支持gzip编码的客户，该模块用于为客户解压缩预压缩内容</td>
+</tr>
+<tr>
+<td>--with-http_random_index_module</td>
+<td>如果你想提供从一个目录中随机选择文件的索引文件，那么该模块需要激活</td>
+</tr>
+<tr>
+<td>--with-http_secure_link_module</td>
+<td>该模块提供一种机制，它会将一个哈希值链接到一个URL中，因此只有那些使用正确密码能够计算链接</td>
+</tr>
+<tr>
+<td>--with-http_stub_status_module</td>
+<td>启用这个模块后会收集Nginx自身的状态信息。输出的状态信息可以使用RRDtool或类似的东西绘制成图</td>
+</tr>
+</tbody>
+</table>
+<h1 id="2-配置">2. 配置</h1>
+<p>配置文件一般为/etc/nginx/nginx.conf或/usr/local/nginx/conf/nginx.conf。</p>
+<h2 id="2-1-基本配置格式">2.1. 基本配置格式</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>&lt;section&gt;<span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    &lt;directive&gt; &lt;parameters&gt;<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><p>每一个指令行由分号结束，大括号{}表示一个新的上下文。</p>
+<h2 id="2-2-nginx全局配置参数">2.2. Nginx全局配置参数</h2>
+<p>全局配置指令</p>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>配置项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>main模块</td>
+<td>user</td>
+<td>配置worker进程的用户和组，如果忽略group，则group等于指定的用户的所属组</td>
+</tr>
+<tr>
+<td>worker_processes</td>
+<td>指定worker进程的启动数量，可将其设置为可用的CPU内核数，若为auto为自动检测</td>
+<td></td>
+</tr>
+<tr>
+<td>error_log</td>
+<td>所有错误的写入文件，第二个参数指定错误的级别（debug，info，notice，warn，error，crit，alert，emerg）</td>
+<td></td>
+</tr>
+<tr>
+<td>pid</td>
+<td>设置主进程IP的文件</td>
+<td></td>
+</tr>
+<tr>
+<td>events模块</td>
+<td>use</td>
+<td>用于设置使用什么样的连接方法</td>
+</tr>
+<tr>
+<td>worker_connections</td>
+<td>用于配置一个工作进程能够接受的并发连接最大数。包括客户连接和向上游服务器的连接。</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="2-3-使用include文件">2.3. 使用include文件</h2>
+<p>include文件可以在任何地方以增强配置文件的可读性，使用include文件要确保被包含文件自身正确的nginx语法，即配置指令和块，然后指定这些文件的路径。</p>
+<p>include /etc/nginx/mime.types;</p>
+<p>若使用通配符则表示通配的多个文件，若没有给定全路径则依据主配置文件路径进行搜索。</p>
+<p>include /etc/nginx/conf.d/*.conf</p>
+<p>测试配置文件(包括include的配置文件)语法：</p>
+<p>nginx -t -c {path-to-nginx.conf}</p>
+<h2 id="2-4-配置说明">2.4. 配置说明</h2>
+<h3 id="2-4-1-main模块">2.4.1. main模块</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#main模块类似main函数包含其他子模块，非模块配置项(包括模块内)分号结尾，子模块配置花括号结尾</span>
+</span></span><span style="display:flex;"><span>user nobady<span style="color:#000;font-weight:bold">;</span>   <span style="color:#8f5902;font-style:italic">#一般按默认设置</span>
+</span></span><span style="display:flex;"><span>pid /var/run/nginx.pid<span style="color:#000;font-weight:bold">;</span>   <span style="color:#8f5902;font-style:italic">#进程标识符存放路径，一般按默认设置</span>
+</span></span><span style="display:flex;"><span>worker_processes auto<span style="color:#000;font-weight:bold">;</span>   <span style="color:#8f5902;font-style:italic">#nginx对外提供web服务时的worder进程数，可将其设置为可用的CPU内核数，auto为自动检测</span>
+</span></span><span style="display:flex;"><span>worker_rlimit_nofile 100000<span style="color:#000;font-weight:bold">;</span>  <span style="color:#8f5902;font-style:italic"># 更改worker进程的最大打开文件数限制</span>
+</span></span><span style="display:flex;"><span>error_log logs/error.log  info<span style="color:#000;font-weight:bold">;</span>   <span style="color:#8f5902;font-style:italic">#错误日志存放路径</span>
+</span></span><span style="display:flex;"><span>keepalive_timeout 60<span style="color:#000;font-weight:bold">;</span>  <span style="color:#8f5902;font-style:italic">#keepalive_timeout 60;</span>
+</span></span><span style="display:flex;"><span>events<span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">#见events模块</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>http<span style="color:#ce5c00;font-weight:bold">{</span>  <span style="color:#8f5902;font-style:italic">#见http模块</span>
+</span></span><span style="display:flex;"><span>  server<span style="color:#ce5c00;font-weight:bold">{</span> 
+</span></span><span style="display:flex;"><span>    ...
+</span></span><span style="display:flex;"><span>    location /<span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>     
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>mail<span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">#见mail模块</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="2-4-2-events模块">2.4.2. events模块</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>events <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  worker_connections 2048<span style="color:#000;font-weight:bold">;</span>    <span style="color:#8f5902;font-style:italic">#设置可由一个worker进程同时打开的最大连接数</span>
+</span></span><span style="display:flex;"><span>  multi_accept on<span style="color:#000;font-weight:bold">;</span>   <span style="color:#8f5902;font-style:italic">#告诉nginx收到一个新连接通知后接受尽可能多的连接</span>
+</span></span><span style="display:flex;"><span>  use epoll<span style="color:#000;font-weight:bold">;</span> <span style="color:#8f5902;font-style:italic">#设置用于复用客户端线程的轮询方法。Linux 2.6+：使用epoll；*BSD：使用kqueue。</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="2-4-3-http模块">2.4.3. http模块</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>http <span style="color:#ce5c00;font-weight:bold">{</span>  <span style="color:#8f5902;font-style:italic">#http模块</span>
+</span></span><span style="display:flex;"><span>    server <span style="color:#ce5c00;font-weight:bold">{</span>  <span style="color:#8f5902;font-style:italic">#server模块，http服务上的虚拟主机， server 当做对应一个域名进行的配置</span>
+</span></span><span style="display:flex;"><span>        listen          80<span style="color:#000;font-weight:bold">;</span>  <span style="color:#8f5902;font-style:italic">#配置监听端口</span>
+</span></span><span style="display:flex;"><span>        server_name     www.linuxidc.com<span style="color:#000;font-weight:bold">;</span> <span style="color:#8f5902;font-style:italic">#配置访问域名</span>
+</span></span><span style="display:flex;"><span>        access_log      logs/linuxidc.access.log main<span style="color:#000;font-weight:bold">;</span>  <span style="color:#8f5902;font-style:italic">#指定日志文件的存放路径</span>
+</span></span><span style="display:flex;"><span>        index index.html<span style="color:#000;font-weight:bold">;</span>    <span style="color:#8f5902;font-style:italic">#默认访问页面</span>
+</span></span><span style="display:flex;"><span>        root  /var/www/androidj.com/htdocs<span style="color:#000;font-weight:bold">;</span>  <span style="color:#8f5902;font-style:italic"># root 是指将本地的一个文件夹作为所有 url 请求的根路径</span>
+</span></span><span style="display:flex;"><span>        upstream backend <span style="color:#ce5c00;font-weight:bold">{</span>   <span style="color:#8f5902;font-style:italic">#反向代理的后端机器，实现负载均衡</span>
+</span></span><span style="display:flex;"><span>            ip_hash<span style="color:#000;font-weight:bold">;</span>    <span style="color:#8f5902;font-style:italic">#指明了我们均衡的方式是按照用户的 ip 地址进行分配</span>
+</span></span><span style="display:flex;"><span>            server backend1.example.com<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>            server backend2.example.com<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>            server backend3.example.com<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>            server backend4.example.com<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        location / <span style="color:#ce5c00;font-weight:bold">{</span>  <span style="color:#8f5902;font-style:italic">#location 是在一个域名下对更精细的路径进行配置</span>
+</span></span><span style="display:flex;"><span>            proxy_pass http://backend<span style="color:#000;font-weight:bold">;</span>  <span style="color:#8f5902;font-style:italic">#反向代理到后端机器</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>    server <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        listen          80<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>        server_name     www.Androidj.com<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>        access_log      logs/androidj.access.log main<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>        location / <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            index index.html<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>            root  /var/www/androidj.com/htdocs<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="2-4-4-mail模块">2.4.4. mail模块</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>mail <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    auth_http  127.0.0.1:80/auth.php<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>    pop3_capabilities  <span style="color:#4e9a06">&#34;TOP&#34;</span>  <span style="color:#4e9a06">&#34;USER&#34;</span><span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>    imap_capabilities  <span style="color:#4e9a06">&#34;IMAP4rev1&#34;</span>  <span style="color:#4e9a06">&#34;UIDPLUS&#34;</span><span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>    server <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        listen     110<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>        protocol   pop3<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>        proxy      on<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    server <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        listen      25<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>        protocol    smtp<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>        proxy       on<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>        smtp_auth   login plain<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>        xclient     off<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div>
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-3bd1e1c86d00c1b0ad09142914f775f6">2 - Nginx作为反向代理</h1>
+    
+	<h1 id="1-反向代理简介">1. 反向代理简介</h1>
+<p>Nginx可以作为反向代理，接收客户端的请求，并向上游服务器发起新的请求。该请求可以根据客户端请求的URI，客户机参数或其他逻辑进行拆分，原始URL中的任何部分可以以这种方式进行转换。</p>
+<h2 id="1-1-代理模块指令">1.1. 代理模块指令</h2>
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>proxy_connect_timeout</td>
+<td>Nginx从接受到请求到连接至上游服务器的最长等待时间</td>
+</tr>
+<tr>
+<td>proxy_cookie_domain</td>
+<td>替代从上游服务器来的Set-Cookie头的域domain</td>
+</tr>
+<tr>
+<td>proxy_cookie_path</td>
+<td>替代从上游服务器来的Set-Cookie头的path属性</td>
+</tr>
+<tr>
+<td>proxy_headers_hash_bucket_size</td>
+<td>头名字的最大值</td>
+</tr>
+<tr>
+<td>proxy_headers_hash_max_size</td>
+<td>从上游服务器接收到头的总大小</td>
+</tr>
+<tr>
+<td>proxy_hide_header</td>
+<td>不应该传递给客户端头的列表</td>
+</tr>
+<tr>
+<td>proxy_http_version</td>
+<td>用于通上游服务器通信的Http协议版本</td>
+</tr>
+<tr>
+<td>proxy_ignore_client_abort</td>
+<td>如果设置为ON，那么客户端放弃连接后，nginx将不会放弃同上游服务器的连接</td>
+</tr>
+<tr>
+<td>proxy_ignore_headers</td>
+<td>当处理来自上游服务器的响应时，设置哪些头可以被忽略</td>
+</tr>
+<tr>
+<td>proxy_intercept_errors</td>
+<td>如果启用该选项，Nginx将会显示配置的error_page错误，而不是来自于上游服务器的直接响应</td>
+</tr>
+<tr>
+<td>proxy_max_temp_file_size</td>
+<td>在写入内存缓冲区时响应与内存不匹配时使用时，给出溢出文件的最大值</td>
+</tr>
+<tr>
+<td>proxy_pass</td>
+<td>指定请求被传递到的上游服务器，格式为URL</td>
+</tr>
+<tr>
+<td>proxy_pass_header</td>
+<td>覆盖掉在proxy_hide_header指令中设置的头，允许这些头传递到客户端</td>
+</tr>
+<tr>
+<td>proxy_pass_request_body</td>
+<td>如果设置为off，将会阻止请求体传递到客户端</td>
+</tr>
+<tr>
+<td>proxy_pass_request_headers</td>
+<td>如果设置为on,则阻止请求头发送到上游服务器</td>
+</tr>
+<tr>
+<td>proxy_read_timeout</td>
+<td>给出连接关闭前从上游服务器两次成功的读操作耗时，如果上游服务器处理请求比较慢，那么该值需设置较高些</td>
+</tr>
+<tr>
+<td>proxy_redirect</td>
+<td>重写来自于上游服务器的Location和Refresh头</td>
+</tr>
+<tr>
+<td>proxy_send_timeout</td>
+<td>给出连接关闭前从上游服务器两次成功的写操作耗时，如果上游服务器处理请求比较慢，那么该值需设置较高些</td>
+</tr>
+<tr>
+<td>proxy_set_body</td>
+<td>发送到上游服务器的请求体可能会被该指令的设置值修改</td>
+</tr>
+<tr>
+<td>proxy_set_header</td>
+<td>重写发送到上游服务器头的内容，也可以通过将某种头的值设置为空字符，而不是发送某种头的方法实现</td>
+</tr>
+<tr>
+<td>proxy_temp_file_write_size</td>
+<td>在同一时间内限制缓冲到一个临时文件的数据量，以使得Nginx不会过长地阻止单个请求</td>
+</tr>
+<tr>
+<td>proxy_temp_path</td>
+<td>设定临时文件的缓冲，用于缓冲从上游服务器来的文件，可以设定目录的层次</td>
+</tr>
+</tbody>
+</table>
+<h2 id="1-2-upstream模块">1.2. upstream模块</h2>
+<p>upstream指令将会启用一个新的配置区域，在该区域定义了一组上游服务器，这些服务器可以被设置为不同的权重（权重高的服务器将会被Nginx传递越多的连接）。</p>
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ip_hash</td>
+<td>通过IP地址的哈希值确保客户端均匀地连接所有的服务器，键值基于C类地址</td>
+</tr>
+<tr>
+<td>keepalive</td>
+<td>每一个worker进程缓存的到上游服务器的连接数。再使用Http连接时，proxy_http_verison设置1.1，并将proxy_set_header设置为Connection &quot;&quot;</td>
+</tr>
+<tr>
+<td>least_conn</td>
+<td>激活负载均衡算法，将请求发送到活跃连接数最少的那台服务器</td>
+</tr>
+<tr>
+<td>server</td>
+<td>为upstream定义一个服务器地址（带有端口号的域名、IP地址，或者是UNIX套接字）和一个可选的参数，参数如下：weight：设置一个服务器的优先级优于其他服务器。max_fails：设置在fail_timeout时间之内尝试对一个服务器连接的最大次数，如果超过这个次数，那么就会被标记为down。fail_timeout：在这个指定的时间内服务器必须提供响应，如果在这个时间内没有收到响应，那么服务器就会被标记为down状态。backup：一旦其他服务器宕机，那么有该标记的机器就会接收请求。down：标记为一个服务器不再接受任何请求。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="1-2-1-负载均衡算法">1.2.1. 负载均衡算法</h3>
+<p>upstream模块能够使用轮询、IP hash和最少连接数三种负载均衡算法之一来选择哪个上游服务器将会被在下一步中连接。</p>
+<h4 id="1-2-1-1-轮询">1.2.1.1. 轮询</h4>
+<p>默认情况使用轮询，不需要配置指令来设置，该算法选择下一个服务器，基于先前选择，再配置文件中哪一个是下一个服务器，以及每个服务器的负载。轮询算法是基于在队列中谁是下一个的原理确保将访问量均匀的分配给每一个上游服务器。</p>
+<h4 id="1-2-1-2-ip-哈希">1.2.1.2. IP 哈希</h4>
+<p>通过ip_hash指令激活使用，从而将某些IP地址映射到同一个上游服务器。</p>
+<h4 id="1-2-1-3-最少连接数">1.2.1.3. 最少连接数</h4>
+<p>通过least_conn指令启用，该算法通过选择一个活跃的最少连接数服务器，然后将负载均匀分配给上游服务器。如果上游服务器的处理器能力不同，那么可以为server指令使用weight来指示说明。该算法将考虑到不同服务器的加权最小连接数。</p>
+<h1 id="2-upstream服务器类型">2. Upstream服务器类型</h1>
+<p>上游服务器是Ngixn代理连接的一个服务器，可以是物理机或虚拟机。</p>
+<h2 id="2-1-单个upstream服务器">2.1. 单个upstream服务器</h2>
+<p>指令try_files(包括http core模块内)意味着按顺序尝试，直到找到一个匹配为止。Nginx将会投递与客户端给定URI匹配的任何文件，如果没有找到任何配置文件，将会把请求代理到Apache作进一步处理。</p>
+<h2 id="2-2-多个upstream服务器">2.2. 多个upstream服务器</h2>
+<p>Nginx将会通过轮询的方式将连续请求传递给3个上游服务器。这样应用程序不会过载。</p>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1537696859/article/nginx/nginx.png" alt="这里写图片描述"></p>
+<h1 id="3-负载均衡特别说明">3. 负载均衡特别说明</h1>
+<ol>
+<li>如果客户端希望总是访问同一个上游服务器，可以使用ip_hash指令；</li>
+<li>如果请求响应时间长短不一，可以使用least_conn指令；</li>
+<li>默认为轮询。</li>
+</ol>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-fd3c37bc56a35cbed876a7ec53b56dc6">3 - Nginx http服务器</h1>
+    
+	<h1 id="1-nginx的系统架构">1. Nginx的系统架构</h1>
+<ol>
+<li>Nginx包含一个单一的master进程和多个worker进程，每个进程都是单进程，并且设计为同时处理成千上万个连接。</li>
+<li>worker进程是处理连接的地方，Nginx使用了操作系统事件机制来快速响应这些请求。</li>
+<li>master进程负责读取配置文件、处理套接字、派生worker进程、打开日志文件和编译嵌入式的perl脚本。master进程是一个可以通过处理信号量来管理请求的进程。</li>
+<li>worker进程运行在一个忙碌的事件循环处理中，用于处理进入的连接。每一个nginx模块被构筑在worker中。任何请求处理、过滤、处理代理的连接和更多操作都在worker中完成。</li>
+<li>如果没有阻塞worker进程的进程（例如磁盘I/O），那么需要配置的worker进程要多于CPU内核数，以便处理负载。</li>
+</ol>
+<h1 id="2-http核心模块">2. Http核心模块</h1>
+<h2 id="2-1-1-server">2.1.1. server</h2>
+<p>指令server开始一个新的上下文（context）。</p>
+<p>http server指令</p>
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>port_in_redirect</td>
+<td>确认nginx是否对端口指定重定向</td>
+</tr>
+<tr>
+<td>server</td>
+<td>创建一个新的配置区域，定义一个虚拟主机。listen指令指定IP和端口；server_name列举用于匹配的Host头值</td>
+</tr>
+<tr>
+<td>server_name</td>
+<td>配置用于响应请求的虚拟主机名称</td>
+</tr>
+<tr>
+<td>server_name_in_redirect</td>
+<td></td>
+</tr>
+<tr>
+<td>server_tokens</td>
+<td>在错误信息中禁止发送nginx的版本号和server响应头</td>
+</tr>
+</tbody>
+</table>
+<h2 id="2-1-2-日志格式">2.1.2. 日志格式</h2>
+<table>
+<thead>
+<tr>
+<th><strong>参数</strong></th>
+<th><strong>说明</strong></th>
+<th><strong>示例</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$remote_addr</td>
+<td>客户端地址</td>
+<td>211.28.65.253</td>
+</tr>
+<tr>
+<td>$remote_user</td>
+<td>客户端用户名称</td>
+<td>--</td>
+</tr>
+<tr>
+<td>$time_local</td>
+<td>访问时间和时区</td>
+<td>18/Jul/2012:17:00:01 +0800</td>
+</tr>
+<tr>
+<td>$request</td>
+<td>请求的URI和HTTP协议</td>
+<td>&quot;GET /article-10000.html HTTP/1.1&quot;</td>
+</tr>
+<tr>
+<td>$http_host</td>
+<td>请求地址，即浏览器中你输入的地址（IP或域名）</td>
+<td><a href="https://www.it300.com">www.it300.com</a>192.168.100.100</td>
+</tr>
+<tr>
+<td>$status</td>
+<td>HTTP请求状态</td>
+<td>200</td>
+</tr>
+<tr>
+<td>$upstream_status</td>
+<td>upstream状态</td>
+<td>200</td>
+</tr>
+<tr>
+<td>$body_bytes_sent</td>
+<td>发送给客户端文件内容大小</td>
+<td>1547</td>
+</tr>
+<tr>
+<td>$http_referer</td>
+<td>url跳转来源</td>
+<td><a href="https://www.baidu.com/">https://www.baidu.com/</a></td>
+</tr>
+<tr>
+<td>$http_user_agent</td>
+<td>用户终端浏览器等信息</td>
+<td>&quot;Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; SV1; GTB7.0; .NET4.0C;</td>
+</tr>
+<tr>
+<td>$ssl_protocol</td>
+<td>SSL协议版本</td>
+<td>TLSv1</td>
+</tr>
+<tr>
+<td>$ssl_cipher</td>
+<td>交换数据中的算法</td>
+<td>RC4-SHA</td>
+</tr>
+<tr>
+<td>$upstream_addr</td>
+<td>后台upstream的地址，即真正提供服务的主机地址</td>
+<td>10.10.10.100:80</td>
+</tr>
+<tr>
+<td>$request_time</td>
+<td>整个请求的总时间</td>
+<td>0.205</td>
+</tr>
+<tr>
+<td>$upstream_response_time</td>
+<td>请求过程中，upstream响应时间</td>
+<td>0.002</td>
+</tr>
+</tbody>
+</table>
+<p><strong>日志切割</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># vim /etc/logrotate.d/nginx</span>
+</span></span><span style="display:flex;"><span>/usr/local/nginx/logs/*.log<span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#8f5902;font-style:italic">#指定转储周期为每天</span>
+</span></span><span style="display:flex;"><span>        daily
+</span></span><span style="display:flex;"><span>        <span style="color:#8f5902;font-style:italic">#保留30个备份</span>
+</span></span><span style="display:flex;"><span>        rotate <span style="color:#0000cf;font-weight:bold">30</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#8f5902;font-style:italic">#需要压缩</span>
+</span></span><span style="display:flex;"><span>        delaycompress
+</span></span><span style="display:flex;"><span>        <span style="color:#8f5902;font-style:italic">#YYYYMMDD日期格式</span>
+</span></span><span style="display:flex;"><span>        dateext
+</span></span><span style="display:flex;"><span>        <span style="color:#8f5902;font-style:italic">#忽略错误</span>
+</span></span><span style="display:flex;"><span>        missingok
+</span></span><span style="display:flex;"><span>        <span style="color:#8f5902;font-style:italic">#如果日志为空则不做轮询</span>
+</span></span><span style="display:flex;"><span>        notifempty
+</span></span><span style="display:flex;"><span>        <span style="color:#8f5902;font-style:italic">#只为整个日志组运行一次的脚本</span>
+</span></span><span style="display:flex;"><span>        sharedscripts
+</span></span><span style="display:flex;"><span>        <span style="color:#8f5902;font-style:italic">#日志轮询后执行的脚本</span>
+</span></span><span style="display:flex;"><span>        postrotate
+</span></span><span style="display:flex;"><span>                service nginx reload
+</span></span><span style="display:flex;"><span>        endscript
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div>
+</div>
+
+
+
+    
+	
+  
+
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="User mailing list" aria-label="User mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="User mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Twitter" aria-label="Twitter">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/twitter" aria-label="Twitter">
+      <i class="fab fa-twitter"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Stack Overflow" aria-label="Stack Overflow">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/stack" aria-label="Stack Overflow">
+      <i class="fab fa-stack-overflow"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/blog.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Slack" aria-label="Slack">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/slack" aria-label="Slack">
+      <i class="fab fa-slack"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Developer mailing list" aria-label="Developer mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="Developer mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2022 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		<p class="mt-2"><a href="/about/">About</a></p>
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+  </body>
+</html>

@@ -1,0 +1,365 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>胡伟煌 – Memcached</title>
+    <link>https://blog.huweihuang.com/linux-notes/memcached/</link>
+    <description>Recent content in Memcached on 胡伟煌</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Thu, 20 Sep 2018 10:50:57 +0000</lastBuildDate>
+    
+	  <atom:link href="https://blog.huweihuang.com/linux-notes/memcached/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+      
+        
+      
+    
+    
+    <item>
+      <title>Linux-Notes: Memcached的使用</title>
+      <link>https://blog.huweihuang.com/linux-notes/memcached/memcached/</link>
+      <pubDate>Thu, 20 Sep 2018 10:50:57 +0000</pubDate>
+      
+      <guid>https://blog.huweihuang.com/linux-notes/memcached/memcached/</guid>
+      <description>
+        
+        
+        &lt;h1 id=&#34;1-memcached简介&#34;&gt;1. Memcached简介&lt;/h1&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Memcached是一个开源的，高性能，分布式内存对象缓存系统。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Memcached是一种基于内存的key-value存储，用来存储小块的任意数据（字符串、对象）。这些数据可以是数据库调用、API调用或者是页面渲染的结果。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;一般的使用目的是，通过缓存数据库查询结果，减少数据库访问次数，以提高动态Web应用的速度、提高可扩展性。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;1-1-特征&#34;&gt;1.1. 特征&lt;/h2&gt;
+&lt;p&gt;memcached作为高速运行的分布式缓存服务器，具有以下的特点。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;协议简单&lt;/li&gt;
+&lt;li&gt;基于libevent的事件处理&lt;/li&gt;
+&lt;li&gt;内置内存存储方式&lt;/li&gt;
+&lt;li&gt;memcached不互相通信的分布式&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;2-安装与运行&#34;&gt;2. 安装与运行&lt;/h1&gt;
+&lt;h2 id=&#34;2-1-自动安装&#34;&gt;2.1. 自动安装&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# For Redhat/Fedora&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;yum install -y memcached
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# For Debian or Ubuntu&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;apt-get install memcached
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;2-2-源码安装&#34;&gt;2.2. 源码安装&lt;/h2&gt;
+&lt;p&gt;安装指定版本的Memcached可以从 &lt;a href=&#34;https://github.com/memcached/memcached/wiki/ReleaseNotes&#34;&gt;https://github.com/memcached/memcached/wiki/ReleaseNotes&lt;/a&gt; 地址下载。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# Memcached depends on libevent&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;yum install libevent-devel
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# install &lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;wget https://memcached.org/latest
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;[&lt;/span&gt;you might need to rename the file&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tar -zxf memcached-1.x.x.tar.gz
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87&#34;&gt;cd&lt;/span&gt; memcached-1.x.x
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;./configure --prefix&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;/usr/local/memcached
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;make &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; make &lt;span style=&#34;color:#204a87&#34;&gt;test&lt;/span&gt; &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; sudo make install
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;问题&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;如遇以下报错，可再执行&lt;code&gt;make install&lt;/code&gt;。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;Signal handled: Interrupt.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;ok &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;51&lt;/span&gt; - shutdown
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;ok &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;52&lt;/span&gt; - stop_server
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;/bin/sh:行3: prove: 未找到命令
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;make: *** &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;[&lt;/span&gt;test&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;]&lt;/span&gt; Error &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;127&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;2-3-验证&#34;&gt;2.3. 验证&lt;/h2&gt;
+&lt;p&gt;确认是否安装成功，可执行以下命令&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;/usr/local/memcached/bin/memcached -h      
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;2-4-运行&#34;&gt;2.4. 运行&lt;/h2&gt;
+&lt;h3 id=&#34;2-4-1-前台运行&#34;&gt;2.4.1. 前台运行&lt;/h3&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;/usr/local/memcached/bin/memcached -p &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;11211&lt;/span&gt; -m 64m -vv
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;2-4-2-后台运行&#34;&gt;2.4.2. 后台运行&lt;/h3&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;/usr/local/memcached/bin/memcached -p &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;11211&lt;/span&gt; -m 64m -d -c &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;102400&lt;/span&gt; -t &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;8&lt;/span&gt; -P /tmp/memcached.pid 
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;2-5-连接&#34;&gt;2.5. 连接&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ telnet 127.0.0.1 &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;11211&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;Trying 127.0.0.1...
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;Connected to 127.0.0.1.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;Escape character is &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#39;^]&amp;#39;&lt;/span&gt;.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87&#34;&gt;set&lt;/span&gt; foo &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;3&lt;/span&gt;                                                   保存命令
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;bar                                                             数据
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;STORED                                                          结果
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;get foo                                                         取得命令
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;VALUE foo &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;3&lt;/span&gt;                                                   数据
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;bar                                                             数据
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;END                                                             结束行
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;quit                                                            退出
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;3-memcached运行参数&#34;&gt;3. Memcached运行参数&lt;/h1&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# /usr/local/memcached/bin/memcached -h&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;memcached 1.5.12
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-p, --port&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;num&amp;gt;          TCP port to listen on &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;default: 11211&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-U, --udp-port&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;num&amp;gt;      UDP port to listen on &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;default: 0, off&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-s, --unix-socket&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;file&amp;gt;  UNIX socket to listen on &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;disables network support&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-A, --enable-shutdown     &lt;span style=&#34;color:#204a87&#34;&gt;enable&lt;/span&gt; ascii &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;shutdown&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#204a87&#34;&gt;command&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-a, --unix-mask&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;mask&amp;gt;    access mask &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;for&lt;/span&gt; UNIX socket, in octal &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;default: 0700&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-l, --listen&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;addr&amp;gt;       interface to listen on &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;default: INADDR_ANY&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-d, --daemon              run as a daemon
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-r, --enable-coredumps    maximize core file limit
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-u, --user&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;user&amp;gt;         assume identity of &amp;lt;username&amp;gt; &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;only when run as root&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-m, --memory-limit&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;num&amp;gt;  item memory in megabytes &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;default: &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;64&lt;/span&gt; MB&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-M, --disable-evictions   &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;return&lt;/span&gt; error on memory exhausted instead of evicting
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-c, --conn-limit&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;num&amp;gt;    max simultaneous connections &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;default: 1024&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-k, --lock-memory         lock down all paged memory
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-v, --verbose             verbose &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;print errors/warnings &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;while&lt;/span&gt; in event loop&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-vv                       very verbose &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;also print client commands/responses&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-vvv                      extremely verbose &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;internal state transitions&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-h, --help                print this &lt;span style=&#34;color:#204a87&#34;&gt;help&lt;/span&gt; and &lt;span style=&#34;color:#204a87&#34;&gt;exit&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-i, --license             print memcached and libevent license
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-V, --version             print version and &lt;span style=&#34;color:#204a87&#34;&gt;exit&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-P, --pidfile&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;file&amp;gt;      save PID in &amp;lt;file&amp;gt;, only used with -d option
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-f, --slab-growth-factor&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;num&amp;gt; chunk size growth factor &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;default: 1.25&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-n, --slab-min-size&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;bytes&amp;gt; min space used &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;for&lt;/span&gt; key+value+flags &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;default: 48&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-L, --enable-largepages  try to use large memory pages &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;if&lt;/span&gt; available&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-D &amp;lt;char&amp;gt;     Use &amp;lt;char&amp;gt; as the delimiter between key prefixes and IDs.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;              This is used &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;for&lt;/span&gt; per-prefix stats reporting. The default is
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;              &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;:&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;colon&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;. If this option is specified, stats collection
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;              is turned on automatically&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;;&lt;/span&gt; &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;if&lt;/span&gt; not, &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;then&lt;/span&gt; it may be turned on
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;              by sending the &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;stats detail on&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#204a87&#34;&gt;command&lt;/span&gt; to the server.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-t, --threads&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;num&amp;gt;       number of threads to use &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;default: 4&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-R, --max-reqs-per-event  maximum number of requests per event, limits the
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                          requests processed per connection to prevent
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                          starvation &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;default: 20&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-C, --disable-cas         disable use of CAS
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-b, --listen-backlog&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;num&amp;gt; &lt;span style=&#34;color:#204a87&#34;&gt;set&lt;/span&gt; the backlog queue limit &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;default: 1024&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-B, --protocol&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;name&amp;gt;     protocol - one of ascii, binary, or auto &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;default&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-I, --max-item-size&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&amp;lt;num&amp;gt; adjusts max item size
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                          &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;default: 1mb, min: 1k, max: 128m&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-F, --disable-flush-all   disable flush_all &lt;span style=&#34;color:#204a87&#34;&gt;command&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-X, --disable-dumping     disable stats cachedump and lru_crawler metadump
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-o, --extended            comma separated list of extended options
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                          most options have a &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#39;no_&amp;#39;&lt;/span&gt; prefix to disable
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - maxconns_fast:       immediately close new connections after limit
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - hashpower:           an integer multiplier &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;for&lt;/span&gt; how large the &lt;span style=&#34;color:#204a87&#34;&gt;hash&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                          table should be. normally grows at runtime.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                          &lt;span style=&#34;color:#204a87&#34;&gt;set&lt;/span&gt; based on &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;STAT hash_power_level&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - tail_repair_time:    &lt;span style=&#34;color:#204a87&#34;&gt;time&lt;/span&gt; in seconds &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;for&lt;/span&gt; how long to &lt;span style=&#34;color:#204a87&#34;&gt;wait&lt;/span&gt; before
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                          forcefully killing LRU tail item.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                          disabled by default&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;;&lt;/span&gt; very dangerous option.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - hash_algorithm:      the &lt;span style=&#34;color:#204a87&#34;&gt;hash&lt;/span&gt; table algorithm
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                          default is murmur3 hash. options: jenkins, murmur3
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - lru_crawler:         &lt;span style=&#34;color:#204a87&#34;&gt;enable&lt;/span&gt; LRU Crawler background thread
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - lru_crawler_sleep:   microseconds to sleep between items
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                          default is 100.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - lru_crawler_tocrawl: max items to crawl per slab per run
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                          default is &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;unlimited&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - lru_maintainer:      &lt;span style=&#34;color:#204a87&#34;&gt;enable&lt;/span&gt; new LRU system + background thread
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - hot_lru_pct:         pct of slab memory to reserve &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;for&lt;/span&gt; hot lru.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                          &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;requires lru_maintainer&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - warm_lru_pct:        pct of slab memory to reserve &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;for&lt;/span&gt; warm lru.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                          &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;requires lru_maintainer&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - hot_max_factor:      items idle &amp;gt; cold lru age * drop from hot lru.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - warm_max_factor:     items idle &amp;gt; cold lru age * this drop from warm.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - temporary_ttl:       TTL&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#39;s below get separate LRU, can&amp;#39;&lt;/span&gt;t be evicted.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                          &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;requires lru_maintainer&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - idle_timeout:        timeout &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;for&lt;/span&gt; idle connections
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - slab_chunk_max:      &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;EXPERIMENTAL&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt; maximum slab size. use extreme care.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - watcher_logbuf_size: size in kilobytes of per-watcher write buffer.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - worker_logbuf_size:  size in kilobytes of per-worker-thread buffer
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                          &lt;span style=&#34;color:#204a87&#34;&gt;read&lt;/span&gt; by background thread, &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;then&lt;/span&gt; written to watchers.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - track_sizes:         &lt;span style=&#34;color:#204a87&#34;&gt;enable&lt;/span&gt; dynamic reports &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;for&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#39;stats sizes&amp;#39;&lt;/span&gt; command.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - no_inline_ascii_resp: save up to &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;24&lt;/span&gt; bytes per item.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                           small perf hit in ASCII, no perf difference in
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;                           binary protocol. speeds up all sets.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - no_hashexpand:       disables &lt;span style=&#34;color:#204a87&#34;&gt;hash&lt;/span&gt; table expansion &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;dangerous&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - modern:              enables options which will be default in future.
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;             currently: nothing
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   - no_modern:           uses defaults of previous major version &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;1.4.x&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;常用参数：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;-d是启动一个守护进程；&lt;/li&gt;
+&lt;li&gt;-m是分配给Memcache使用的内存数量，单位是MB；&lt;/li&gt;
+&lt;li&gt;-u是运行Memcache的用户；&lt;/li&gt;
+&lt;li&gt;-l是监听的服务器IP地址，可以有多个地址；&lt;/li&gt;
+&lt;li&gt;-p是设置Memcache监听的端口，，最好是1024以上的端口；&lt;/li&gt;
+&lt;li&gt;-c是最大运行的并发连接数，默认是1024；&lt;/li&gt;
+&lt;li&gt;-t是线程数，默认为4；&lt;/li&gt;
+&lt;li&gt;-P是设置保存Memcache的pid文件。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;参考文章：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/memcached/memcached/wiki/Overview&#34;&gt;https://github.com/memcached/memcached/wiki/Overview&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/memcached/memcached/wiki/Install&#34;&gt;https://github.com/memcached/memcached/wiki/Install&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.runoob.com/memcached/memcached-tutorial.html&#34;&gt;http://www.runoob.com/memcached/memcached-tutorial.html&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+      </description>
+    </item>
+    
+    <item>
+      <title>Linux-Notes: Memcached命令</title>
+      <link>https://blog.huweihuang.com/linux-notes/memcached/memcached-cmd/</link>
+      <pubDate>Thu, 20 Sep 2018 10:50:57 +0000</pubDate>
+      
+      <guid>https://blog.huweihuang.com/linux-notes/memcached/memcached-cmd/</guid>
+      <description>
+        
+        
+        &lt;h1 id=&#34;1-memcached-命令&#34;&gt;1. Memcached 命令&lt;/h1&gt;
+&lt;h2 id=&#34;1-1-存储命令&#34;&gt;1.1. 存储命令&lt;/h2&gt;
+&lt;h3 id=&#34;1-1-1-常用命令&#34;&gt;1.1.1. 常用命令&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;命令&lt;/th&gt;
+&lt;th&gt;说明&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;set&lt;/td&gt;
+&lt;td&gt;新增或更新&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;add&lt;/td&gt;
+&lt;td&gt;新增&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;replace&lt;/td&gt;
+&lt;td&gt;替换&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;append&lt;/td&gt;
+&lt;td&gt;在后面追加&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;prepend&lt;/td&gt;
+&lt;td&gt;在前面追加&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;cas&lt;/td&gt;
+&lt;td&gt;检查并设置&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;以上几个命令语法格式相似，以&lt;code&gt;set&lt;/code&gt;为例：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87&#34;&gt;set&lt;/span&gt; key flags exptime bytes &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;[&lt;/span&gt;noreply&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;]&lt;/span&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;value 
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;参数说明如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;**key：**键值 key-value 结构中的 key，用于查找缓存值。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;flags&lt;/strong&gt;：可以包括键值对的整型参数，客户机使用它存储关于键值对的额外信息 。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;exptime&lt;/strong&gt;：在缓存中保存键值对的时间长度（以秒为单位，0 表示永远）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;bytes&lt;/strong&gt;：在缓存中存储的字节数&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;noreply（可选）&lt;/strong&gt;： 该参数告知服务器不需要返回数据&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;value&lt;/strong&gt;：存储的值（始终位于第二行）（可直接理解为key-value结构中的value）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;实例：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;key → runoob&lt;/li&gt;
+&lt;li&gt;flag → 0&lt;/li&gt;
+&lt;li&gt;exptime → 900 (以秒为单位)&lt;/li&gt;
+&lt;li&gt;bytes → 9 (数据存储的字节数)&lt;/li&gt;
+&lt;li&gt;value → memcached&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87&#34;&gt;set&lt;/span&gt; runoob &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;900&lt;/span&gt; &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;9&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;memcached
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;STORED
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;get runoob
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;VALUE runoob &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;9&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;memcached
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;END
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;输出：&lt;/p&gt;
+&lt;p&gt;如果数据设置成功，则输出：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;STORED
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;输出信息说明：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;STORED&lt;/strong&gt;：保存成功后输出。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;ERROR&lt;/strong&gt;：在保存失败后输出。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;1-1-2-cas命令&#34;&gt;1.1.2. cas命令&lt;/h3&gt;
+&lt;p&gt;Memcached CAS（Check-And-Set 或 Compare-And-Swap） 命令用于执行一个&amp;quot;检查并设置&amp;quot;的操作。&lt;/p&gt;
+&lt;p&gt;它仅在当前客户端最后一次取值后，该key 对应的值没有被其他客户端修改的情况下， 才能够将值写入。&lt;/p&gt;
+&lt;p&gt;检查是通过cas_token参数进行的， 这个参数是Memcach指定给已经存在的元素的一个唯一的64位值。&lt;/p&gt;
+&lt;p&gt;语法：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;比以上命令多了一个&lt;code&gt;unique_cas_token&lt;/code&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;cas key flags exptime bytes unique_cas_token &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;[&lt;/span&gt;noreply&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;value
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;参数说明如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;key&lt;/strong&gt;：键值 key-value 结构中的 key，用于查找缓存值。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;flags&lt;/strong&gt;：可以包括键值对的整型参数，客户机使用它存储关于键值对的额外信息 。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;exptime&lt;/strong&gt;：在缓存中保存键值对的时间长度（以秒为单位，0 表示永远）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;bytes&lt;/strong&gt;：在缓存中存储的字节数&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;unique_cas_token&lt;/strong&gt;通过 gets 命令获取的一个唯一的64位值。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;noreply（可选）&lt;/strong&gt;： 该参数告知服务器不需要返回数据&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;value&lt;/strong&gt;：存储的值（始终位于第二行）（可直接理解为key-value结构中的value）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;unique_cas_token&lt;/strong&gt;通过&lt;strong&gt;gets&lt;/strong&gt;命令获取。&lt;/p&gt;
+&lt;h2 id=&#34;1-2-查找命令&#34;&gt;1.2. 查找命令&lt;/h2&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;命令&lt;/th&gt;
+&lt;th&gt;说明&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;get&lt;/td&gt;
+&lt;td&gt;获取一个或多个key&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;gets&lt;/td&gt;
+&lt;td&gt;获取一个或多个cas token&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;delete&lt;/td&gt;
+&lt;td&gt;删除已存在的key&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;incr/decr&lt;/td&gt;
+&lt;td&gt;对已存在的 key(键) 的数字值进行自增或自减操作&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2 id=&#34;1-3-统计命令&#34;&gt;1.3. 统计命令&lt;/h2&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;命令&lt;/th&gt;
+&lt;th&gt;说明&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;stats&lt;/td&gt;
+&lt;td&gt;用于返回统计信息例如 PID(进程号)、版本号、连接数等。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;stats items&lt;/td&gt;
+&lt;td&gt;用于显示各个 slab 中 item 的数目和存储时长(最后一次访问距离现在的秒数)。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;stats slabs&lt;/td&gt;
+&lt;td&gt;用于显示各个slab的信息，包括chunk的大小、数目、使用情况等。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;stats sizes&lt;/td&gt;
+&lt;td&gt;用于显示所有item的大小和个数。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;flush_all&lt;/td&gt;
+&lt;td&gt;用于清理缓存中的所有 &lt;strong&gt;key=&amp;gt;value(键=&amp;gt;值)&lt;/strong&gt; 对。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;参考文章：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;http://www.runoob.com/memcached/memcached-tutorial.html&#34;&gt;http://www.runoob.com/memcached/memcached-tutorial.html&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+      </description>
+    </item>
+    
+  </channel>
+</rss>

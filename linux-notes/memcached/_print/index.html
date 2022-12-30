@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<link rel="canonical" type="text/html" href="https://blog.huweihuang.com/linux-notes/memcached/">
+<link rel="alternate" type="application/rss&#43;xml" href="https://blog.huweihuang.com/linux-notes/memcached/index.xml">
+<meta name="robots" content="noindex, nofollow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>Memcached | 胡伟煌</title>
+<meta name="description" content="">
+<meta property="og:title" content="Memcached" />
+<meta property="og:description" content="Kubernetes学习笔记" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://blog.huweihuang.com/linux-notes/memcached/" /><meta property="og:site_name" content="胡伟煌" />
+
+<meta itemprop="name" content="Memcached">
+<meta itemprop="description" content="Kubernetes学习笔记"><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Memcached"/>
+<meta name="twitter:description" content="Kubernetes学习笔记"/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" as="style">
+<link href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-114718458-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-section">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">胡伟煌</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/kubernetes-notes/" ><span>Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/k8s-source-code-analysis/" ><span>Kubernetes源码分析</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/golang-notes/" ><span>Golang学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/linux-notes/" ><span class="active">Linux学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/about/" ><span>About</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.f043f65e6bd084162569d168aa0d2ea7.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+
+
+
+
+<div class="td-content">
+<div class="pageinfo pageinfo-primary d-print-none">
+<p>
+这是本节的多页打印视图。
+<a href="#" onclick="print();return false;">点击此处打印</a>.
+</p><p>
+<a href="/linux-notes/memcached/">返回本页常规视图</a>.
+</p>
+</div>
+
+
+
+<h1 class="title">Memcached</h1>
+
+
+
+
+
+    <ul>
+    
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>1: <a href="#pg-1a183ff43ce899c1c4a8db7481a3acaf">Memcached的使用</a></li>
+
+
+    
+  
+    
+    
+	
+<li>2: <a href="#pg-c28ae96d748e302a7642d5734f49cfad">Memcached命令</a></li>
+
+
+    
+  
+
+    </ul>
+
+
+<div class="content">
+      
+</div>
+</div>
+
+
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-1a183ff43ce899c1c4a8db7481a3acaf">1 - Memcached的使用</h1>
+    
+	<h1 id="1-memcached简介">1. Memcached简介</h1>
+<ul>
+<li>
+<p>Memcached是一个开源的，高性能，分布式内存对象缓存系统。</p>
+</li>
+<li>
+<p>Memcached是一种基于内存的key-value存储，用来存储小块的任意数据（字符串、对象）。这些数据可以是数据库调用、API调用或者是页面渲染的结果。</p>
+</li>
+<li>
+<p>一般的使用目的是，通过缓存数据库查询结果，减少数据库访问次数，以提高动态Web应用的速度、提高可扩展性。</p>
+</li>
+</ul>
+<h2 id="1-1-特征">1.1. 特征</h2>
+<p>memcached作为高速运行的分布式缓存服务器，具有以下的特点。</p>
+<ul>
+<li>协议简单</li>
+<li>基于libevent的事件处理</li>
+<li>内置内存存储方式</li>
+<li>memcached不互相通信的分布式</li>
+</ul>
+<h1 id="2-安装与运行">2. 安装与运行</h1>
+<h2 id="2-1-自动安装">2.1. 自动安装</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># For Redhat/Fedora</span>
+</span></span><span style="display:flex;"><span>yum install -y memcached
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># For Debian or Ubuntu</span>
+</span></span><span style="display:flex;"><span>apt-get install memcached
+</span></span></code></pre></div><h2 id="2-2-源码安装">2.2. 源码安装</h2>
+<p>安装指定版本的Memcached可以从 <a href="https://github.com/memcached/memcached/wiki/ReleaseNotes">https://github.com/memcached/memcached/wiki/ReleaseNotes</a> 地址下载。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Memcached depends on libevent</span>
+</span></span><span style="display:flex;"><span>yum install libevent-devel
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># install </span>
+</span></span><span style="display:flex;"><span>wget https://memcached.org/latest
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>you might need to rename the file<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>tar -zxf memcached-1.x.x.tar.gz
+</span></span><span style="display:flex;"><span><span style="color:#204a87">cd</span> memcached-1.x.x
+</span></span><span style="display:flex;"><span>./configure --prefix<span style="color:#ce5c00;font-weight:bold">=</span>/usr/local/memcached
+</span></span><span style="display:flex;"><span>make <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> make <span style="color:#204a87">test</span> <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> sudo make install
+</span></span></code></pre></div><p><strong>问题</strong></p>
+<p>如遇以下报错，可再执行<code>make install</code>。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>Signal handled: Interrupt.
+</span></span><span style="display:flex;"><span>ok <span style="color:#0000cf;font-weight:bold">51</span> - shutdown
+</span></span><span style="display:flex;"><span>ok <span style="color:#0000cf;font-weight:bold">52</span> - stop_server
+</span></span><span style="display:flex;"><span>/bin/sh:行3: prove: 未找到命令
+</span></span><span style="display:flex;"><span>make: *** <span style="color:#ce5c00;font-weight:bold">[</span>test<span style="color:#ce5c00;font-weight:bold">]</span> Error <span style="color:#0000cf;font-weight:bold">127</span>
+</span></span></code></pre></div><h2 id="2-3-验证">2.3. 验证</h2>
+<p>确认是否安装成功，可执行以下命令</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>/usr/local/memcached/bin/memcached -h      
+</span></span></code></pre></div><h2 id="2-4-运行">2.4. 运行</h2>
+<h3 id="2-4-1-前台运行">2.4.1. 前台运行</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>/usr/local/memcached/bin/memcached -p <span style="color:#0000cf;font-weight:bold">11211</span> -m 64m -vv
+</span></span></code></pre></div><h3 id="2-4-2-后台运行">2.4.2. 后台运行</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>/usr/local/memcached/bin/memcached -p <span style="color:#0000cf;font-weight:bold">11211</span> -m 64m -d -c <span style="color:#0000cf;font-weight:bold">102400</span> -t <span style="color:#0000cf;font-weight:bold">8</span> -P /tmp/memcached.pid 
+</span></span></code></pre></div><h2 id="2-5-连接">2.5. 连接</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ telnet 127.0.0.1 <span style="color:#0000cf;font-weight:bold">11211</span>
+</span></span><span style="display:flex;"><span>Trying 127.0.0.1...
+</span></span><span style="display:flex;"><span>Connected to 127.0.0.1.
+</span></span><span style="display:flex;"><span>Escape character is <span style="color:#4e9a06">&#39;^]&#39;</span>.
+</span></span><span style="display:flex;"><span><span style="color:#204a87">set</span> foo <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#0000cf;font-weight:bold">3</span>                                                   保存命令
+</span></span><span style="display:flex;"><span>bar                                                             数据
+</span></span><span style="display:flex;"><span>STORED                                                          结果
+</span></span><span style="display:flex;"><span>get foo                                                         取得命令
+</span></span><span style="display:flex;"><span>VALUE foo <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#0000cf;font-weight:bold">3</span>                                                   数据
+</span></span><span style="display:flex;"><span>bar                                                             数据
+</span></span><span style="display:flex;"><span>END                                                             结束行
+</span></span><span style="display:flex;"><span>quit                                                            退出
+</span></span></code></pre></div><h1 id="3-memcached运行参数">3. Memcached运行参数</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># /usr/local/memcached/bin/memcached -h</span>
+</span></span><span style="display:flex;"><span>memcached 1.5.12
+</span></span><span style="display:flex;"><span>-p, --port<span style="color:#ce5c00;font-weight:bold">=</span>&lt;num&gt;          TCP port to listen on <span style="color:#ce5c00;font-weight:bold">(</span>default: 11211<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-U, --udp-port<span style="color:#ce5c00;font-weight:bold">=</span>&lt;num&gt;      UDP port to listen on <span style="color:#ce5c00;font-weight:bold">(</span>default: 0, off<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-s, --unix-socket<span style="color:#ce5c00;font-weight:bold">=</span>&lt;file&gt;  UNIX socket to listen on <span style="color:#ce5c00;font-weight:bold">(</span>disables network support<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-A, --enable-shutdown     <span style="color:#204a87">enable</span> ascii <span style="color:#4e9a06">&#34;shutdown&#34;</span> <span style="color:#204a87">command</span>
+</span></span><span style="display:flex;"><span>-a, --unix-mask<span style="color:#ce5c00;font-weight:bold">=</span>&lt;mask&gt;    access mask <span style="color:#204a87;font-weight:bold">for</span> UNIX socket, in octal <span style="color:#ce5c00;font-weight:bold">(</span>default: 0700<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-l, --listen<span style="color:#ce5c00;font-weight:bold">=</span>&lt;addr&gt;       interface to listen on <span style="color:#ce5c00;font-weight:bold">(</span>default: INADDR_ANY<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-d, --daemon              run as a daemon
+</span></span><span style="display:flex;"><span>-r, --enable-coredumps    maximize core file limit
+</span></span><span style="display:flex;"><span>-u, --user<span style="color:#ce5c00;font-weight:bold">=</span>&lt;user&gt;         assume identity of &lt;username&gt; <span style="color:#ce5c00;font-weight:bold">(</span>only when run as root<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-m, --memory-limit<span style="color:#ce5c00;font-weight:bold">=</span>&lt;num&gt;  item memory in megabytes <span style="color:#ce5c00;font-weight:bold">(</span>default: <span style="color:#0000cf;font-weight:bold">64</span> MB<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-M, --disable-evictions   <span style="color:#204a87;font-weight:bold">return</span> error on memory exhausted instead of evicting
+</span></span><span style="display:flex;"><span>-c, --conn-limit<span style="color:#ce5c00;font-weight:bold">=</span>&lt;num&gt;    max simultaneous connections <span style="color:#ce5c00;font-weight:bold">(</span>default: 1024<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-k, --lock-memory         lock down all paged memory
+</span></span><span style="display:flex;"><span>-v, --verbose             verbose <span style="color:#ce5c00;font-weight:bold">(</span>print errors/warnings <span style="color:#204a87;font-weight:bold">while</span> in event loop<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-vv                       very verbose <span style="color:#ce5c00;font-weight:bold">(</span>also print client commands/responses<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-vvv                      extremely verbose <span style="color:#ce5c00;font-weight:bold">(</span>internal state transitions<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-h, --help                print this <span style="color:#204a87">help</span> and <span style="color:#204a87">exit</span>
+</span></span><span style="display:flex;"><span>-i, --license             print memcached and libevent license
+</span></span><span style="display:flex;"><span>-V, --version             print version and <span style="color:#204a87">exit</span>
+</span></span><span style="display:flex;"><span>-P, --pidfile<span style="color:#ce5c00;font-weight:bold">=</span>&lt;file&gt;      save PID in &lt;file&gt;, only used with -d option
+</span></span><span style="display:flex;"><span>-f, --slab-growth-factor<span style="color:#ce5c00;font-weight:bold">=</span>&lt;num&gt; chunk size growth factor <span style="color:#ce5c00;font-weight:bold">(</span>default: 1.25<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-n, --slab-min-size<span style="color:#ce5c00;font-weight:bold">=</span>&lt;bytes&gt; min space used <span style="color:#204a87;font-weight:bold">for</span> key+value+flags <span style="color:#ce5c00;font-weight:bold">(</span>default: 48<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-L, --enable-largepages  try to use large memory pages <span style="color:#ce5c00;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">if</span> available<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-D &lt;char&gt;     Use &lt;char&gt; as the delimiter between key prefixes and IDs.
+</span></span><span style="display:flex;"><span>              This is used <span style="color:#204a87;font-weight:bold">for</span> per-prefix stats reporting. The default is
+</span></span><span style="display:flex;"><span>              <span style="color:#4e9a06">&#34;:&#34;</span> <span style="color:#ce5c00;font-weight:bold">(</span>colon<span style="color:#ce5c00;font-weight:bold">)</span>. If this option is specified, stats collection
+</span></span><span style="display:flex;"><span>              is turned on automatically<span style="color:#000;font-weight:bold">;</span> <span style="color:#204a87;font-weight:bold">if</span> not, <span style="color:#204a87;font-weight:bold">then</span> it may be turned on
+</span></span><span style="display:flex;"><span>              by sending the <span style="color:#4e9a06">&#34;stats detail on&#34;</span> <span style="color:#204a87">command</span> to the server.
+</span></span><span style="display:flex;"><span>-t, --threads<span style="color:#ce5c00;font-weight:bold">=</span>&lt;num&gt;       number of threads to use <span style="color:#ce5c00;font-weight:bold">(</span>default: 4<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-R, --max-reqs-per-event  maximum number of requests per event, limits the
+</span></span><span style="display:flex;"><span>                          requests processed per connection to prevent
+</span></span><span style="display:flex;"><span>                          starvation <span style="color:#ce5c00;font-weight:bold">(</span>default: 20<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-C, --disable-cas         disable use of CAS
+</span></span><span style="display:flex;"><span>-b, --listen-backlog<span style="color:#ce5c00;font-weight:bold">=</span>&lt;num&gt; <span style="color:#204a87">set</span> the backlog queue limit <span style="color:#ce5c00;font-weight:bold">(</span>default: 1024<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-B, --protocol<span style="color:#ce5c00;font-weight:bold">=</span>&lt;name&gt;     protocol - one of ascii, binary, or auto <span style="color:#ce5c00;font-weight:bold">(</span>default<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-I, --max-item-size<span style="color:#ce5c00;font-weight:bold">=</span>&lt;num&gt; adjusts max item size
+</span></span><span style="display:flex;"><span>                          <span style="color:#ce5c00;font-weight:bold">(</span>default: 1mb, min: 1k, max: 128m<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>-F, --disable-flush-all   disable flush_all <span style="color:#204a87">command</span>
+</span></span><span style="display:flex;"><span>-X, --disable-dumping     disable stats cachedump and lru_crawler metadump
+</span></span><span style="display:flex;"><span>-o, --extended            comma separated list of extended options
+</span></span><span style="display:flex;"><span>                          most options have a <span style="color:#4e9a06">&#39;no_&#39;</span> prefix to disable
+</span></span><span style="display:flex;"><span>   - maxconns_fast:       immediately close new connections after limit
+</span></span><span style="display:flex;"><span>   - hashpower:           an integer multiplier <span style="color:#204a87;font-weight:bold">for</span> how large the <span style="color:#204a87">hash</span>
+</span></span><span style="display:flex;"><span>                          table should be. normally grows at runtime.
+</span></span><span style="display:flex;"><span>                          <span style="color:#204a87">set</span> based on <span style="color:#4e9a06">&#34;STAT hash_power_level&#34;</span>
+</span></span><span style="display:flex;"><span>   - tail_repair_time:    <span style="color:#204a87">time</span> in seconds <span style="color:#204a87;font-weight:bold">for</span> how long to <span style="color:#204a87">wait</span> before
+</span></span><span style="display:flex;"><span>                          forcefully killing LRU tail item.
+</span></span><span style="display:flex;"><span>                          disabled by default<span style="color:#000;font-weight:bold">;</span> very dangerous option.
+</span></span><span style="display:flex;"><span>   - hash_algorithm:      the <span style="color:#204a87">hash</span> table algorithm
+</span></span><span style="display:flex;"><span>                          default is murmur3 hash. options: jenkins, murmur3
+</span></span><span style="display:flex;"><span>   - lru_crawler:         <span style="color:#204a87">enable</span> LRU Crawler background thread
+</span></span><span style="display:flex;"><span>   - lru_crawler_sleep:   microseconds to sleep between items
+</span></span><span style="display:flex;"><span>                          default is 100.
+</span></span><span style="display:flex;"><span>   - lru_crawler_tocrawl: max items to crawl per slab per run
+</span></span><span style="display:flex;"><span>                          default is <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#ce5c00;font-weight:bold">(</span>unlimited<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>   - lru_maintainer:      <span style="color:#204a87">enable</span> new LRU system + background thread
+</span></span><span style="display:flex;"><span>   - hot_lru_pct:         pct of slab memory to reserve <span style="color:#204a87;font-weight:bold">for</span> hot lru.
+</span></span><span style="display:flex;"><span>                          <span style="color:#ce5c00;font-weight:bold">(</span>requires lru_maintainer<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>   - warm_lru_pct:        pct of slab memory to reserve <span style="color:#204a87;font-weight:bold">for</span> warm lru.
+</span></span><span style="display:flex;"><span>                          <span style="color:#ce5c00;font-weight:bold">(</span>requires lru_maintainer<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>   - hot_max_factor:      items idle &gt; cold lru age * drop from hot lru.
+</span></span><span style="display:flex;"><span>   - warm_max_factor:     items idle &gt; cold lru age * this drop from warm.
+</span></span><span style="display:flex;"><span>   - temporary_ttl:       TTL<span style="color:#4e9a06">&#39;s below get separate LRU, can&#39;</span>t be evicted.
+</span></span><span style="display:flex;"><span>                          <span style="color:#ce5c00;font-weight:bold">(</span>requires lru_maintainer<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>   - idle_timeout:        timeout <span style="color:#204a87;font-weight:bold">for</span> idle connections
+</span></span><span style="display:flex;"><span>   - slab_chunk_max:      <span style="color:#ce5c00;font-weight:bold">(</span>EXPERIMENTAL<span style="color:#ce5c00;font-weight:bold">)</span> maximum slab size. use extreme care.
+</span></span><span style="display:flex;"><span>   - watcher_logbuf_size: size in kilobytes of per-watcher write buffer.
+</span></span><span style="display:flex;"><span>   - worker_logbuf_size:  size in kilobytes of per-worker-thread buffer
+</span></span><span style="display:flex;"><span>                          <span style="color:#204a87">read</span> by background thread, <span style="color:#204a87;font-weight:bold">then</span> written to watchers.
+</span></span><span style="display:flex;"><span>   - track_sizes:         <span style="color:#204a87">enable</span> dynamic reports <span style="color:#204a87;font-weight:bold">for</span> <span style="color:#4e9a06">&#39;stats sizes&#39;</span> command.
+</span></span><span style="display:flex;"><span>   - no_inline_ascii_resp: save up to <span style="color:#0000cf;font-weight:bold">24</span> bytes per item.
+</span></span><span style="display:flex;"><span>                           small perf hit in ASCII, no perf difference in
+</span></span><span style="display:flex;"><span>                           binary protocol. speeds up all sets.
+</span></span><span style="display:flex;"><span>   - no_hashexpand:       disables <span style="color:#204a87">hash</span> table expansion <span style="color:#ce5c00;font-weight:bold">(</span>dangerous<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>   - modern:              enables options which will be default in future.
+</span></span><span style="display:flex;"><span>             currently: nothing
+</span></span><span style="display:flex;"><span>   - no_modern:           uses defaults of previous major version <span style="color:#ce5c00;font-weight:bold">(</span>1.4.x<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span></code></pre></div><p>常用参数：</p>
+<ul>
+<li>-d是启动一个守护进程；</li>
+<li>-m是分配给Memcache使用的内存数量，单位是MB；</li>
+<li>-u是运行Memcache的用户；</li>
+<li>-l是监听的服务器IP地址，可以有多个地址；</li>
+<li>-p是设置Memcache监听的端口，，最好是1024以上的端口；</li>
+<li>-c是最大运行的并发连接数，默认是1024；</li>
+<li>-t是线程数，默认为4；</li>
+<li>-P是设置保存Memcache的pid文件。</li>
+</ul>
+<p>参考文章：</p>
+<ul>
+<li><a href="https://github.com/memcached/memcached/wiki/Overview">https://github.com/memcached/memcached/wiki/Overview</a></li>
+<li><a href="https://github.com/memcached/memcached/wiki/Install">https://github.com/memcached/memcached/wiki/Install</a></li>
+<li><a href="http://www.runoob.com/memcached/memcached-tutorial.html">http://www.runoob.com/memcached/memcached-tutorial.html</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-c28ae96d748e302a7642d5734f49cfad">2 - Memcached命令</h1>
+    
+	<h1 id="1-memcached-命令">1. Memcached 命令</h1>
+<h2 id="1-1-存储命令">1.1. 存储命令</h2>
+<h3 id="1-1-1-常用命令">1.1.1. 常用命令</h3>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>set</td>
+<td>新增或更新</td>
+</tr>
+<tr>
+<td>add</td>
+<td>新增</td>
+</tr>
+<tr>
+<td>replace</td>
+<td>替换</td>
+</tr>
+<tr>
+<td>append</td>
+<td>在后面追加</td>
+</tr>
+<tr>
+<td>prepend</td>
+<td>在前面追加</td>
+</tr>
+<tr>
+<td>cas</td>
+<td>检查并设置</td>
+</tr>
+</tbody>
+</table>
+<p>以上几个命令语法格式相似，以<code>set</code>为例：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#204a87">set</span> key flags exptime bytes <span style="color:#ce5c00;font-weight:bold">[</span>noreply<span style="color:#ce5c00;font-weight:bold">]</span> 
+</span></span><span style="display:flex;"><span>value 
+</span></span></code></pre></div><p>参数说明如下：</p>
+<ul>
+<li>**key：**键值 key-value 结构中的 key，用于查找缓存值。</li>
+<li><strong>flags</strong>：可以包括键值对的整型参数，客户机使用它存储关于键值对的额外信息 。</li>
+<li><strong>exptime</strong>：在缓存中保存键值对的时间长度（以秒为单位，0 表示永远）</li>
+<li><strong>bytes</strong>：在缓存中存储的字节数</li>
+<li><strong>noreply（可选）</strong>： 该参数告知服务器不需要返回数据</li>
+<li><strong>value</strong>：存储的值（始终位于第二行）（可直接理解为key-value结构中的value）</li>
+</ul>
+<p>实例：</p>
+<ul>
+<li>key → runoob</li>
+<li>flag → 0</li>
+<li>exptime → 900 (以秒为单位)</li>
+<li>bytes → 9 (数据存储的字节数)</li>
+<li>value → memcached</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#204a87">set</span> runoob <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#0000cf;font-weight:bold">900</span> <span style="color:#0000cf;font-weight:bold">9</span>
+</span></span><span style="display:flex;"><span>memcached
+</span></span><span style="display:flex;"><span>STORED
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>get runoob
+</span></span><span style="display:flex;"><span>VALUE runoob <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#0000cf;font-weight:bold">9</span>
+</span></span><span style="display:flex;"><span>memcached
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>END
+</span></span></code></pre></div><p>输出：</p>
+<p>如果数据设置成功，则输出：</p>
+<pre tabindex="0"><code>STORED
+</code></pre><p>输出信息说明：</p>
+<ul>
+<li><strong>STORED</strong>：保存成功后输出。</li>
+<li><strong>ERROR</strong>：在保存失败后输出。</li>
+</ul>
+<h3 id="1-1-2-cas命令">1.1.2. cas命令</h3>
+<p>Memcached CAS（Check-And-Set 或 Compare-And-Swap） 命令用于执行一个&quot;检查并设置&quot;的操作。</p>
+<p>它仅在当前客户端最后一次取值后，该key 对应的值没有被其他客户端修改的情况下， 才能够将值写入。</p>
+<p>检查是通过cas_token参数进行的， 这个参数是Memcach指定给已经存在的元素的一个唯一的64位值。</p>
+<p>语法：</p>
+<blockquote>
+<p>比以上命令多了一个<code>unique_cas_token</code></p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>cas key flags exptime bytes unique_cas_token <span style="color:#ce5c00;font-weight:bold">[</span>noreply<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>value
+</span></span></code></pre></div><p>参数说明如下：</p>
+<ul>
+<li><strong>key</strong>：键值 key-value 结构中的 key，用于查找缓存值。</li>
+<li><strong>flags</strong>：可以包括键值对的整型参数，客户机使用它存储关于键值对的额外信息 。</li>
+<li><strong>exptime</strong>：在缓存中保存键值对的时间长度（以秒为单位，0 表示永远）</li>
+<li><strong>bytes</strong>：在缓存中存储的字节数</li>
+<li><strong>unique_cas_token</strong>通过 gets 命令获取的一个唯一的64位值。</li>
+<li><strong>noreply（可选）</strong>： 该参数告知服务器不需要返回数据</li>
+<li><strong>value</strong>：存储的值（始终位于第二行）（可直接理解为key-value结构中的value）</li>
+</ul>
+<p><strong>unique_cas_token</strong>通过<strong>gets</strong>命令获取。</p>
+<h2 id="1-2-查找命令">1.2. 查找命令</h2>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>get</td>
+<td>获取一个或多个key</td>
+</tr>
+<tr>
+<td>gets</td>
+<td>获取一个或多个cas token</td>
+</tr>
+<tr>
+<td>delete</td>
+<td>删除已存在的key</td>
+</tr>
+<tr>
+<td>incr/decr</td>
+<td>对已存在的 key(键) 的数字值进行自增或自减操作</td>
+</tr>
+</tbody>
+</table>
+<h2 id="1-3-统计命令">1.3. 统计命令</h2>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>stats</td>
+<td>用于返回统计信息例如 PID(进程号)、版本号、连接数等。</td>
+</tr>
+<tr>
+<td>stats items</td>
+<td>用于显示各个 slab 中 item 的数目和存储时长(最后一次访问距离现在的秒数)。</td>
+</tr>
+<tr>
+<td>stats slabs</td>
+<td>用于显示各个slab的信息，包括chunk的大小、数目、使用情况等。</td>
+</tr>
+<tr>
+<td>stats sizes</td>
+<td>用于显示所有item的大小和个数。</td>
+</tr>
+<tr>
+<td>flush_all</td>
+<td>用于清理缓存中的所有 <strong>key=&gt;value(键=&gt;值)</strong> 对。</td>
+</tr>
+</tbody>
+</table>
+<p>参考文章：</p>
+<ul>
+<li><a href="http://www.runoob.com/memcached/memcached-tutorial.html">http://www.runoob.com/memcached/memcached-tutorial.html</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="User mailing list" aria-label="User mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="User mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Twitter" aria-label="Twitter">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/twitter" aria-label="Twitter">
+      <i class="fab fa-twitter"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Stack Overflow" aria-label="Stack Overflow">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/stack" aria-label="Stack Overflow">
+      <i class="fab fa-stack-overflow"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/blog.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Slack" aria-label="Slack">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/slack" aria-label="Slack">
+      <i class="fab fa-slack"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Developer mailing list" aria-label="Developer mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="Developer mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2022 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		<p class="mt-2"><a href="/about/">About</a></p>
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+  </body>
+</html>

@@ -1,0 +1,1217 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<link rel="canonical" type="text/html" href="https://blog.huweihuang.com/linux-notes/file/">
+<link rel="alternate" type="application/rss&#43;xml" href="https://blog.huweihuang.com/linux-notes/file/index.xml">
+<meta name="robots" content="noindex, nofollow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>Linux 文件系统 | 胡伟煌</title>
+<meta name="description" content="">
+<meta property="og:title" content="Linux 文件系统" />
+<meta property="og:description" content="Kubernetes学习笔记" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://blog.huweihuang.com/linux-notes/file/" /><meta property="og:site_name" content="胡伟煌" />
+
+<meta itemprop="name" content="Linux 文件系统">
+<meta itemprop="description" content="Kubernetes学习笔记"><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Linux 文件系统"/>
+<meta name="twitter:description" content="Kubernetes学习笔记"/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" as="style">
+<link href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-114718458-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-section">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">胡伟煌</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/kubernetes-notes/" ><span>Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/k8s-source-code-analysis/" ><span>Kubernetes源码分析</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/golang-notes/" ><span>Golang学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/linux-notes/" ><span class="active">Linux学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/about/" ><span>About</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.f043f65e6bd084162569d168aa0d2ea7.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+
+
+
+
+<div class="td-content">
+<div class="pageinfo pageinfo-primary d-print-none">
+<p>
+这是本节的多页打印视图。
+<a href="#" onclick="print();return false;">点击此处打印</a>.
+</p><p>
+<a href="/linux-notes/file/">返回本页常规视图</a>.
+</p>
+</div>
+
+
+
+<h1 class="title">Linux 文件系统</h1>
+
+
+
+
+
+    <ul>
+    
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>1: <a href="#pg-3d91317eb6270bd994a7ca5e80d4d8b7">Linux介绍</a></li>
+
+
+    
+  
+    
+    
+	
+<li>2: <a href="#pg-9103fc8f641ac26af94593740e4ef6ab">Linux文件系统</a></li>
+
+
+    
+  
+    
+    
+	
+<li>3: <a href="#pg-6135486aa33d07567abb490570427588">Linux文件存储</a></li>
+
+
+    
+  
+    
+    
+	
+<li>4: <a href="#pg-a7b3f765840dfa2ad5df8a5b65479d1b">Linux文件权限</a></li>
+
+
+    
+  
+
+    </ul>
+
+
+<div class="content">
+      
+</div>
+</div>
+
+
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-3d91317eb6270bd994a7ca5e80d4d8b7">1 - Linux介绍</h1>
+    
+	<h1 id="1-linux简介">1. Linux简介</h1>
+<p>严格来讲，Linux（内核）是<code>计算机软件与硬件通信之间的平台</code>，不是真正意义上的操作系统，而一些厂家将Linux内核和GNU软件（系统软件和工具）整合起来，并提供一些安装界面和系统设定与管理工具，就构成一些发行套件（系统），例如：<code>Ubuntu</code>、<code>CentOS</code>、<code>Red Hat</code>、<code>Debian</code>等。</p>
+<p><strong>Linux内核版本</strong></p>
+<p>Linux内核版本一般格式为：<code>x.y.zz-www </code>，例如：Kernel2.6.15</p>
+<ul>
+<li>x.y：Linux内核主版本号，y若为奇数则表示是测试版</li>
+<li>zz：次版本好</li>
+<li>www：代表发行号</li>
+</ul>
+<h1 id="2-linux体系结构">2. Linux体系结构</h1>
+<p>Linux体系结构如下：</p>
+<img src="http://res.cloudinary.com/dqxtn0ick/image/upload/v1536472043/article/linux/kernel.jpg" width=60%>
+<p>几个重要概念：</p>
+<ul>
+<li><code>内核</code>：内核是操作系统的核心。内核直接与硬件交互，并处理大部分较低层的任务，如内存管理、进程调度、文件管理等。</li>
+<li><code>Shell</code>：Shell是一个处理用户请求的工具，它负责解释用户输入的命令，调用用户希望使用的程序。</li>
+<li><code>命令和工具</code>：日常工作中，你会用到很多系统命令和工具，如cp、mv、cat和grep等。</li>
+<li><code>文件和目录</code>：Linux系统中所有的数据都被存储到文件中，这些文件被分配到各个目录，构成文件系统。</li>
+</ul>
+<h1 id="3-系统操作">3. 系统操作</h1>
+<h2 id="3-1-登录linux">3.1. 登录Linux</h2>
+<p>登录需要输入用户名和密码，用户名和密码是区分大小写。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>login : amrood
+</span></span><span style="display:flex;"><span>amrood<span style="color:#a40000">&#39;</span>s password:
+</span></span><span style="display:flex;"><span>Last login: Sun Jun <span style="color:#0000cf;font-weight:bold">14</span> 09:32:32 <span style="color:#0000cf;font-weight:bold">2009</span> from 62.61.164.73
+</span></span><span style="display:flex;"><span>$
+</span></span></code></pre></div><h2 id="3-2-修改密码">3.2. 修改密码</h2>
+<p>输入<code>password</code>命令后，输入原密码和新密码，确认密码即可。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ passwd
+</span></span><span style="display:flex;"><span>Changing password <span style="color:#204a87;font-weight:bold">for</span> amrood
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">(</span>current<span style="color:#ce5c00;font-weight:bold">)</span> Linux password:******
+</span></span><span style="display:flex;"><span>New Linux password:*******
+</span></span><span style="display:flex;"><span>Retype new Linux password:*******
+</span></span><span style="display:flex;"><span>passwd: all authentication tokens updated  successfully
+</span></span></code></pre></div><h2 id="3-3-查看当前用户">3.3. 查看当前用户</h2>
+<p>1、查看自己的用户名</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ whoami
+</span></span><span style="display:flex;"><span>amrood
+</span></span></code></pre></div><p>2、查看当前在线用户</p>
+<p>可以使用<code>users</code> 、<code>who</code>、<code>w</code>命令。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ users
+</span></span><span style="display:flex;"><span>amrood bablu qadir
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ who
+</span></span><span style="display:flex;"><span>amrood ttyp0 Oct <span style="color:#0000cf;font-weight:bold">8</span> 14:10 <span style="color:#ce5c00;font-weight:bold">(</span>limbo<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>bablu  ttyp2 Oct <span style="color:#0000cf;font-weight:bold">4</span> 09:08 <span style="color:#ce5c00;font-weight:bold">(</span>calliope<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>qadir  ttyp4 Oct <span style="color:#0000cf;font-weight:bold">8</span> 12:09 <span style="color:#ce5c00;font-weight:bold">(</span>dent<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ w
+</span></span><span style="display:flex;"><span> 13:58:53 up <span style="color:#0000cf;font-weight:bold">158</span> days, 22:07,  <span style="color:#0000cf;font-weight:bold">3</span> users,  load average: 0.72, 0.99, 1.11
+</span></span><span style="display:flex;"><span>USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT
+</span></span><span style="display:flex;"><span>root     pts/1    172.16.20.65     13:40    0.00s  0.22s  0.02s w
+</span></span><span style="display:flex;"><span>root     pts/2    172.16.20.65     Fri15   43:17m  1.04s  1.04s -bash
+</span></span></code></pre></div><h2 id="3-4-关闭系统">3.4. 关闭系统</h2>
+<p>关闭系统可以使用以下命令</p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>halt</td>
+<td>直接关闭系统</td>
+</tr>
+<tr>
+<td>init 0</td>
+<td>使用预先定义的脚本关闭系统，关闭前可以清理和更新有关信息</td>
+</tr>
+<tr>
+<td>init 6</td>
+<td>重新启动系统</td>
+</tr>
+<tr>
+<td>poweroff</td>
+<td>通过断电来关闭系统</td>
+</tr>
+<tr>
+<td>reboot</td>
+<td>重新启动系统</td>
+</tr>
+<tr>
+<td>shutdown</td>
+<td>安全关闭系统</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>一般只有root有关闭系统的权限，普通用户被赋予相应权限也可以关闭系统。</p>
+</blockquote>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-9103fc8f641ac26af94593740e4ef6ab">2 - Linux文件系统</h1>
+    
+	<h1 id="1-文件系统">1. 文件系统</h1>
+<p>文件系统就是分区或磁盘上的所有文件的逻辑集合。文件系统不仅包含着文件中的数据而且还有文件系统的结构，所有Linux 用户和程序看到的文件、目录、软连接及文件保护信息等都存储在其中。</p>
+<p>不同Linux发行版本之间的文件系统差别很少，主要表现在系统管理的特色工具以及软件包管理方式的不同，文件目录结构基本上都是一样的。</p>
+<ul>
+<li>ext2 ： 早期linux中常用的文件系统；</li>
+<li>ext3 ： ext2的升级版，带日志功能；</li>
+<li>RAMFS ： 内存文件系统，速度很快；</li>
+<li>iso9660：光盘或光盘镜像；</li>
+<li>NFS ： 网络文件系统，由SUN发明，主要用于远程文件共享；</li>
+<li>MS-DOS ： MS-DOS文件系统；</li>
+<li>FAT ： Windows XP 操作系统采用的文件系统；</li>
+<li>NTFS ： Windows NT/XP 操作系统采用的文件系统。</li>
+</ul>
+<h1 id="2-分区与目录">2. 分区与目录</h1>
+<p>文件系统位于磁盘分区中；一个硬盘可以有多个分区，也可以只有一个分区；一个分区只能包含一个文件系统。</p>
+<p>Linux文件系统与Windows有较大的差别：</p>
+<ul>
+<li>
+<p>Windows的文件结构是多个并列的树状结构，最顶部的是不同的磁盘（分区），如 C、D、E、F等。</p>
+</li>
+<li>
+<p>Linux的文件结构是单个的树状结构，根目录是“/”，其他目录都要位于根目录下。</p>
+</li>
+</ul>
+<p>每次安装系统的时候我们都会进行分区，Linux下磁盘分区和目录的关系如下：</p>
+<ul>
+<li>任何一个分区都必须对应到某个目录上，才能进行读写操作，称为“挂载”。</li>
+<li>被挂载的目录可以是根目录，也可以是其他二级、三级目录，任何目录都可以是挂载点。</li>
+<li>目录是逻辑上的区分。分区是物理上的区分。</li>
+<li>根目录是所有Linux的文件和目录所在的地方，需要挂载上一个磁盘分区。</li>
+</ul>
+<p>下图是常见的目录和分区的对应关系：</p>
+<p>(<img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1536666481/article/linux/file.png" width="70%">)</p>
+<p>为什么要分区，如何分区？</p>
+<ul>
+<li>可以把不同资料，分别放入不同分区中管理，降低风险。</li>
+<li>大硬盘搜索范围大，效率低。</li>
+<li>/home、/var、/usr/local 经常是单独分区，因为经常会操作，容易产生碎片。</li>
+</ul>
+<p>为了便于定位和查找，Linux中的每个目录一般都存放特定类型的文件，下表列出了各种Linux发行版本的常见目录：</p>
+<table>
+<thead>
+<tr>
+<th>目录</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>/</td>
+<td>根目录，只能包含目录，不能包含具体文件。</td>
+</tr>
+<tr>
+<td>/bin</td>
+<td>存放可执行文件。很多命令就对应/bin目录下的某个程序，例如 ls、cp、mkdir。/bin目录对所有用户有效。</td>
+</tr>
+<tr>
+<td>/dev</td>
+<td>硬件驱动程序。例如声卡、磁盘驱动等，还有如 /dev/null、/dev/console、/dev/zero、/dev/full 等文件。</td>
+</tr>
+<tr>
+<td>/etc</td>
+<td>主要包含系统配置文件和用户、用户组配置文件。</td>
+</tr>
+<tr>
+<td>/lib</td>
+<td>主要包含共享库文件，类似于Windows下的DLL；有时也会包含内核相关文件。</td>
+</tr>
+<tr>
+<td>/boot</td>
+<td>系统启动文件，例如Linux内核、引导程序等。</td>
+</tr>
+<tr>
+<td>/home</td>
+<td>用户工作目录（主目录），每个用户都会分配一个目录。</td>
+</tr>
+<tr>
+<td>/mnt</td>
+<td>临时挂载文件系统。这个目录一般是用于存放挂载储存设备的挂载目录的，例如挂载CD-ROM的cdrom目录。</td>
+</tr>
+<tr>
+<td>/proc</td>
+<td>操作系统运行时，进程（正在运行中的程序）信息及内核信息（比如cpu、硬盘分区、内存信息等）存放在这里。/proc目录伪装的文件系统proc的挂载目录，proc并不是真正的文件系统。</td>
+</tr>
+<tr>
+<td>/tmp</td>
+<td>临时文件目录，系统重启后不会被保存。</td>
+</tr>
+<tr>
+<td>/usr</td>
+<td>/user目下的文件比较混杂，包含了管理命令、共享文件、库文件等，可以被很多用户使用。</td>
+</tr>
+<tr>
+<td>/var</td>
+<td>主要包含一些可变长度的文件，会经常对数据进行读写，例如日志文件和打印队列里的文件。</td>
+</tr>
+<tr>
+<td>/sbin</td>
+<td>和 /bin 类似，主要包含可执行文件，不过一般是系统管理所需要的，不是所有用户都需要。</td>
+</tr>
+</tbody>
+</table>
+<h1 id="3-常用文件管理命令">3. 常用文件管理命令</h1>
+<p>你可以通过下面的命令来管理文件：</p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cat filename</td>
+<td>查看文件内容。</td>
+</tr>
+<tr>
+<td>cd dirname</td>
+<td>改变所在目录。</td>
+</tr>
+<tr>
+<td>cp file1 file2</td>
+<td>复制文件或目录。</td>
+</tr>
+<tr>
+<td>file filename</td>
+<td>查看文件类型(binary, text, etc)。</td>
+</tr>
+<tr>
+<td>find filename dir</td>
+<td>搜索文件或目录。</td>
+</tr>
+<tr>
+<td>head filename</td>
+<td>显示文件的开头，与tail命令相对。</td>
+</tr>
+<tr>
+<td>less filename</td>
+<td>查看文件的全部内容，可以分页显示，比more命令要强大。</td>
+</tr>
+<tr>
+<td>ls dirname</td>
+<td>遍历目录下的文件或目录。</td>
+</tr>
+<tr>
+<td>mkdir dirname</td>
+<td>创建目录。</td>
+</tr>
+<tr>
+<td>more filename</td>
+<td>查看文件的全部内容，可以分页显示。</td>
+</tr>
+<tr>
+<td>mv file1 file2</td>
+<td>移动文件或重命名。</td>
+</tr>
+<tr>
+<td>pwd</td>
+<td>显示用户当前所在目录。</td>
+</tr>
+<tr>
+<td>rm filename</td>
+<td>删除文件。</td>
+</tr>
+<tr>
+<td>rmdir dirname</td>
+<td>删除目录。</td>
+</tr>
+<tr>
+<td>tail filename</td>
+<td>显示文件的结尾，与head命令相对。</td>
+</tr>
+<tr>
+<td>touch filename</td>
+<td>文件不存在时创建一个空文件，存在时修改文件时间戳。</td>
+</tr>
+<tr>
+<td>whereis filename</td>
+<td>查看文件所在位置。</td>
+</tr>
+<tr>
+<td>which filename</td>
+<td>如果文件在环境变量PATH中有定义，那么显示文件位置。</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-1-df命令">3.1. df命令</h2>
+<p>管理磁盘分区时经常会使用 <strong>df</strong> (disk free) 命令，df -k 命令可以用来查看磁盘空间的使用情况（以千字节计），例如：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#000">$df</span> -k
+</span></span><span style="display:flex;"><span>Filesystem      1K-blocks      Used   Available Use% Mounted on
+</span></span><span style="display:flex;"><span>/dev/vzfs        <span style="color:#0000cf;font-weight:bold">10485760</span>   <span style="color:#0000cf;font-weight:bold">7836644</span>     <span style="color:#0000cf;font-weight:bold">2649116</span>  75% /
+</span></span><span style="display:flex;"><span>/devices                <span style="color:#0000cf;font-weight:bold">0</span>         <span style="color:#0000cf;font-weight:bold">0</span>           <span style="color:#0000cf;font-weight:bold">0</span>   0% /devices
+</span></span></code></pre></div><p>每一列的含义如下：</p>
+<table>
+<thead>
+<tr>
+<th>列</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Filesystem</td>
+<td>代表文件系统对应的设备文件的路径名（一般是硬盘上的分区）。</td>
+</tr>
+<tr>
+<td>kbytes</td>
+<td>分区包含的数据块（1024字节）的数目。</td>
+</tr>
+<tr>
+<td>used</td>
+<td>已用空间。</td>
+</tr>
+<tr>
+<td>avail</td>
+<td>可用空间。</td>
+</tr>
+<tr>
+<td>capacity</td>
+<td>已用空间的百分比。</td>
+</tr>
+<tr>
+<td>Mounted on</td>
+<td>文件系统挂载点。</td>
+</tr>
+</tbody>
+</table>
+<p>某些目录（例如 /devices）的 kbytes、used、avail 列为0，use列为0%，这些都是特殊（或虚拟）文件系统，即使位于根目录下，也不占用硬盘空间。</p>
+<p>你可以结合 -h (human readable) 选项将输出信息格式化，让人更易阅读。</p>
+<h2 id="3-2-du-命令">3.2. du 命令</h2>
+<p>du (disk usage) 命令可以用来查看特定目录的空间使用情况。</p>
+<p>du 命令会显示每个目录所占用数据块。根据系统的不同，一个数据块可能是 512 字节或 1024 字节。举例如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#000">$du</span> /etc
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">10</span>     /etc/cron.d
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">126</span>    /etc/default
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">6</span>      /etc/dfs
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p>结合 -h 选项可以让信息显示的更加清晰：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#000">$du</span> -h /etc
+</span></span><span style="display:flex;"><span>5k    /etc/cron.d
+</span></span><span style="display:flex;"><span>63k   /etc/default
+</span></span><span style="display:flex;"><span>3k    /etc/dfs
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><h1 id="4-挂载文件系统">4. 挂载文件系统</h1>
+<p>挂载是指将一个硬件设备（例如硬盘、U盘、光盘等）对应到一个已存在的目录上。 若要访问设备中的文件，必须将文件挂载到一个已存在的目录上， 然后通过访问这个目录来访问存储设备。</p>
+<p>这样就为用户提供了统一的接口，屏蔽了硬件设备的细节。Linux将所有的硬件设备看做文件，对硬件设备的操作等同于对文件的操作。</p>
+<p>注意：挂载目录可以不为空，但挂载后这个目录下以前的内容将不可用。</p>
+<p>需要知道的是，光盘、软盘、其他操作系统使用的文件系统的格式与linux使用的文件系统格式是不一样的，挂载需要确认Linux是否支持所要挂载的文件系统格式。</p>
+<p>查看当前系统所挂载的硬件设备可以使用 mount 命令：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ mount
+</span></span><span style="display:flex;"><span>/dev/vzfs on / <span style="color:#204a87">type</span> reiserfs <span style="color:#ce5c00;font-weight:bold">(</span>rw,usrquota,grpquota<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>proc on /proc <span style="color:#204a87">type</span> proc <span style="color:#ce5c00;font-weight:bold">(</span>rw,nodiratime<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>devpts on /dev/pts <span style="color:#204a87">type</span> devpts <span style="color:#ce5c00;font-weight:bold">(</span>rw<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span></code></pre></div><p>一般约定，/mnt 为临时挂载目录，例如挂载CD-ROM、远程网络设备、软盘等。
+也可以通过mount命令来挂载文件系统，语法为：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>mount -t file_system_type device_to_mount directory_to_mount_to
+</span></span></code></pre></div><p>例如：</p>
+<p>将 CD-ROM 挂载到 /mnt/cdrom 目录。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ mount -t iso9660 /dev/cdrom /mnt/cdrom
+</span></span></code></pre></div><p>注意：file_system_type用来指定文件系统类型，通常可以不指定，Linux会自动正确选择文件系统类型。</p>
+<p>挂载文件系统后，就可以通过 cd、cat 等命令来操作对应文件。</p>
+<p>可以通过 umount 命令来卸载文件系统。例如，卸载 cdrom：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ umount /dev/cdrom
+</span></span></code></pre></div><p>不过，大部分现代的Linux系统都有自动挂载卸载功能，unmount 命令较少用到。</p>
+<h1 id="5-用户和群组配额">5. 用户和群组配额</h1>
+<p>用户和群组配额可以让管理员为每个用户或群组分配固定的磁盘空间。
+管理员有两种方式来分配磁盘空间：</p>
+<ul>
+<li>软限制：如果用户超过指定的空间，会有一个宽限期，等待用户释放空间。</li>
+<li>硬限制：没有宽限期，超出指定空间立即禁止操作。</li>
+</ul>
+<p>下面的命令可以用来管理配额：</p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>quota</td>
+<td>显示磁盘使用情况以及每个用户组的配额。</td>
+</tr>
+<tr>
+<td>edquota</td>
+<td>编辑用户和群组的配额。</td>
+</tr>
+<tr>
+<td>quotacheck</td>
+<td>查看文件系统的磁盘使用情况，创建、检查并修复配额文件。</td>
+</tr>
+<tr>
+<td>setquota</td>
+<td>设置配额。</td>
+</tr>
+<tr>
+<td>quotaon</td>
+<td>开启用户或群组的配额功能。</td>
+</tr>
+<tr>
+<td>quotaoff</td>
+<td>关闭用户或群组的配额功能。</td>
+</tr>
+<tr>
+<td>repquota</td>
+<td>打印指定文件系统的配额。</td>
+</tr>
+</tbody>
+</table>
+<p>参考：</p>
+<ul>
+<li><a href="http://c.biancheng.net/cpp/linux/">http://c.biancheng.net/cpp/linux/</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-6135486aa33d07567abb490570427588">3 - Linux文件存储</h1>
+    
+	<h1 id="文件存储结构">文件存储结构</h1>
+<p>大部分的Linux文件系统（如ext2、ext3）规定，一个文件由目录项、inode和数据块组成</p>
+<ul>
+<li>目录项：包括文件名和inode节点号。</li>
+<li>Inode：又称文件索引节点，包含文件的基础信息以及数据块的指针。</li>
+<li>数据块：包含文件的具体内容。</li>
+</ul>
+<h2 id="1-inode">1. inode</h2>
+<p>理解inode，要从文件储存说起。文件储存在硬盘上，硬盘的最小存储单位叫做&quot;扇区&quot;（Sector），每个扇区储存512字节（相当于0.5KB）。</p>
+<p>操作系统读取硬盘的时候，不会一个扇区一个扇区地读取，这样效率太低，而是一次性连续读取多个扇区，即一次性读取一个&quot;块&quot;（block）。这种由多个扇区组成的&quot;块&quot;，是文件存取的最小单位。，即连续八个 sector组成一个 block。</p>
+<p>文件数据都储存在&quot;块&quot;中，那么很显然，我们还必须找到一个地方储存文件的元信息，比如文件的创建者、文件的创建日期、文件的大小等等。这种储存文件元信息的区域就叫做inode，中文译名为&quot;索引节点&quot;。</p>
+<p>inode包含文件的元信息，具体来说有以下内容：</p>
+<ul>
+<li>文件的字节数。</li>
+<li>文件拥有者的User ID。</li>
+<li>文件的Group ID。</li>
+<li>文件的读、写、执行权限。</li>
+<li>文件的时间戳，共有三个：ctime指inode上一次变动的时间，mtime指文件内容上一次变动的时间，atime指文件上一次打开的时间。</li>
+<li>链接数，即有多少文件名指向这个inode。</li>
+<li>文件数据block的位置。</li>
+</ul>
+<p>可以用stat命令，查看某个文件的inode信息：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>stat demo.txt
+</span></span></code></pre></div><p>总之，除了文件名以外的所有文件信息，都存在inode之中。</p>
+<p>当查看某个文件时，会先从inode表中查出文件属性及数据存放点，再从数据块中读取数据。</p>
+<p>请看文件存储结构示意图：</p>
+<p><img src="../img/linux-storage.png" alt="img"></p>
+<h3 id="1-1-inode的大小">1.1. inode的大小</h3>
+<p>inode也会消耗硬盘空间，所以硬盘格式化的时候，操作系统自动将硬盘分成两个区域。一个是数据区，存放文件数据；另一个是inode区（inode table），存放inode所包含的信息。</p>
+<p>每个inode节点的大小，一般是128字节或256字节。inode节点的总数，在格式化时就给定，一般是每1KB或每2KB就设置一个inode。假定在一块1GB的硬盘中，每个inode节点的大小为128字节，每1KB就设置一个inode，那么inode table的大小就会达到128MB，占整块硬盘的12.8%。</p>
+<p>查看每个硬盘分区的inode总数和已经使用的数量，可以使用df -i 命令。</p>
+<p>查看每个inode节点的大小，可以用如下命令：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo dumpe2fs -h /dev/hda <span style="color:#000;font-weight:bold">|</span> grep <span style="color:#4e9a06">&#34;Inode size&#34;</span>
+</span></span></code></pre></div><p>由于每个文件都必须有一个inode，因此有可能发生inode已经用光，但是硬盘还未存满的情况。这时，就无法在硬盘上创建新文件。</p>
+<h3 id="1-2-inode号码">1.2. inode号码</h3>
+<p>每个inode都有一个号码，操作系统用inode号码来识别不同的文件。</p>
+<p>Linux系统内部不使用文件名，而使用inode号码来识别文件。对于系统来说，文件名只是inode号码便于识别的别称或者绰号。表面上，用户通过文件名，打开文件。实际上，系统内部这个过程分成三步：首先，系统找到这个文件名对应的inode号码；其次，通过inode号码，获取inode信息；最后，根据inode信息，找到文件数据所在的block，读出数据。</p>
+<p>使用ls -i命令，可以看到文件名对应的inode号码，例如：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ls -i demo.txt
+</span></span></code></pre></div><h2 id="3-目录项">3. 目录项</h2>
+<p>Linux系统中，目录（directory）也是一种文件。打开目录，实际上就是打开目录文件。</p>
+<p>目录文件的结构非常简单，就是一系列目录项（dirent）的列表。每个目录项，由两部分组成：所包含文件的文件名，以及该文件名对应的inode号码。</p>
+<p>ls命令只列出目录文件中的所有文件名：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ls /etc
+</span></span></code></pre></div><p>ls -i命令列出整个目录文件，即文件名和inode号码：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ls -i /etc
+</span></span></code></pre></div><p>如果要查看文件的详细信息，就必须根据inode号码，访问inode节点，读取信息。ls -l命令列出文件的详细信息。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ls -l /etc
+</span></span></code></pre></div><h2 id="4-硬链接和软链接">4. 硬链接和软链接</h2>
+<h3 id="4-1-硬链接">4.1. 硬链接</h3>
+<p>一般情况下，文件名和inode号码是&quot;一一对应&quot;关系，每个inode号码对应一个文件名。但是，Linux系统允许，多个文件名指向同一个inode号码。这意味着，可以用不同的文件名访问同样的内容；对文件内容进行修改，会影响到所有文件名；但是，删除一个文件名，不影响另一个文件名的访问。这种情况就被称为&quot;硬链接&quot;（hard link）。</p>
+<p>ln命令可以创建硬链接</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ln source_file target_file
+</span></span></code></pre></div><p>运行上面这条命令以后，源文件与目标文件的inode号码相同，都指向同一个inode。inode信息中有一项叫做&quot;链接数&quot;，记录指向该inode的文件名总数，这时就会增加1。反过来，删除一个文件名，就会使得inode节点中的&quot;链接数&quot;减1。当这个值减到0，表明没有文件名指向这个inode，系统就会回收这个inode号码，以及其所对应block区域。</p>
+<p>这里顺便说一下目录文件的&quot;链接数&quot;。创建目录时，默认会生成两个目录项：&quot;.&quot;和&quot;..&quot;。前者的inode号码就是当前目录的inode号码，等同于当前目录的&quot;硬链接&quot;；后者的inode号码就是当前目录的父目录的inode号码，等同于父目录的&quot;硬链接&quot;。所以，任何一个目录的&quot;硬链接&quot;总数，总是等于2加上它的子目录总数（含隐藏目录）,这里的2是父目录对其的“硬链接”和当前目录下的&quot;.硬链接“。</p>
+<h3 id="4-2-软链接">4.2. 软链接</h3>
+<p>除了硬链接以外，还有一种特殊情况。文件A和文件B的inode号码虽然不一样，但是文件A的内容是文件B的路径。读取文件A时，系统会自动将访问者导向文件B。因此，无论打开哪一个文件，最终读取的都是文件B。这时，文件A就称为文件B的&quot;软链接&quot;（soft link）或者&quot;符号链接（symbolic link）。</p>
+<p>这意味着，文件A依赖于文件B而存在，如果删除了文件B，打开文件A就会报错：&quot;No such file or directory&quot;。这是软链接与硬链接最大的不同：文件A指向文件B的文件名，而不是文件B的inode号码，文件B的inode&quot;链接数&quot;不会因此发生变化。</p>
+<p>ln -s命令可以创建软链接</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ln -s source_file target_file
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="http://c.biancheng.net/cpp/linux/">http://c.biancheng.net/cpp/linux/</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-a7b3f765840dfa2ad5df8a5b65479d1b">4 - Linux文件权限</h1>
+    
+	<h1 id="1-linux文件管理">1. Linux文件管理</h1>
+<p>Linux中的所有数据都被保存在文件中，所有的文件被分配到不同的目录。目录是一种类似于树的结构，称为文件系统。</p>
+<h2 id="1-1-文件类型">1.1. 文件类型</h2>
+<p>1、<code>普通文件</code></p>
+<p>普通文件是以字节为单位的数据流，包括文本文件、源码文件、可执行文件等。文本和二进制对Linux来说并无区别，对普通文件的解释由处理该文件的应用程序进行。</p>
+<p>2、<code>目录</code></p>
+<p>目录可以包含普通文件和特殊文件，目录相当于Windows和Mac OS中的文件夹。</p>
+<p>3、<code>设备文件</code></p>
+<p>Linux 与外部设备（例如光驱，打印机，终端，modern等）是通过一种被称为设备文件的文件来进行通信。Linux 输入输出到外部设备的方式和输入输出到一个文件的方式是相同的。Linux 和一个外部设备通讯之前，这个设备必须首先要有一个设备文件存在。</p>
+<p>设备文件和普通文件不一样，设备文件中并不包含任何数据。</p>
+<p>设备文件有两种类型：字符设备文件和块设备文件。</p>
+<ul>
+<li>字符设备文件以字母&quot;c&quot;开头。字符设备文件向设备传送数据时，一次传送一个字符。典型的通过字符传送数据的设备有终端、打印机、绘图仪、modern等。字符设备文件有时也被称为&quot;raw&quot;设备文件。</li>
+<li>块设备文件以字母&quot;b&quot;开头。块设备文件向设备传送数据时，先从内存中的buffer中读或写数据，而不是直接传送数据到物理磁盘。磁盘和CD-ROMS既可以使用字符设备文件也可以使用块设备文件。</li>
+</ul>
+<h2 id="1-2-文件属性">1.2. 文件属性</h2>
+<p>可以使用<code>ls -al</code>来查看当前目录下的所有文件列表。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>root@www ~<span style="color:#ce5c00;font-weight:bold">]</span><span style="color:#8f5902;font-style:italic"># ls -al</span>
+</span></span><span style="display:flex;"><span>total <span style="color:#0000cf;font-weight:bold">156</span>
+</span></span><span style="display:flex;"><span>drwxr-x---   <span style="color:#0000cf;font-weight:bold">4</span>    root   root     <span style="color:#0000cf;font-weight:bold">4096</span>   Sep  <span style="color:#0000cf;font-weight:bold">8</span> 14:06 .   <span style="color:#8f5902;font-style:italic"># 当前目录</span>
+</span></span><span style="display:flex;"><span>drwxr-xr-x  <span style="color:#0000cf;font-weight:bold">23</span>    root   root     <span style="color:#0000cf;font-weight:bold">4096</span>   Sep  <span style="color:#0000cf;font-weight:bold">8</span> 14:21 ..  <span style="color:#8f5902;font-style:italic"># 父目录</span>
+</span></span><span style="display:flex;"><span>-rw-------   <span style="color:#0000cf;font-weight:bold">1</span>    root   root     <span style="color:#0000cf;font-weight:bold">1474</span>   Sep  <span style="color:#0000cf;font-weight:bold">4</span> 18:27 anaconda-ks.cfg
+</span></span><span style="display:flex;"><span>-rw-------   <span style="color:#0000cf;font-weight:bold">1</span>    root   root      <span style="color:#0000cf;font-weight:bold">199</span>   Sep  <span style="color:#0000cf;font-weight:bold">8</span> 17:14 .bash_history
+</span></span><span style="display:flex;"><span>-rw-r--r--   <span style="color:#0000cf;font-weight:bold">1</span>    root   root       <span style="color:#0000cf;font-weight:bold">24</span>   Jan  <span style="color:#0000cf;font-weight:bold">6</span>  <span style="color:#0000cf;font-weight:bold">2007</span> .bash_logout
+</span></span><span style="display:flex;"><span>-rw-r--r--   <span style="color:#0000cf;font-weight:bold">1</span>    root   root      <span style="color:#0000cf;font-weight:bold">191</span>   Jan  <span style="color:#0000cf;font-weight:bold">6</span>  <span style="color:#0000cf;font-weight:bold">2007</span> .bash_profile
+</span></span><span style="display:flex;"><span>-rw-r--r--   <span style="color:#0000cf;font-weight:bold">1</span>    root   root      <span style="color:#0000cf;font-weight:bold">176</span>   Jan  <span style="color:#0000cf;font-weight:bold">6</span>  <span style="color:#0000cf;font-weight:bold">2007</span> .bashrc
+</span></span><span style="display:flex;"><span>-rw-r--r--   <span style="color:#0000cf;font-weight:bold">1</span>    root   root      <span style="color:#0000cf;font-weight:bold">100</span>   Jan  <span style="color:#0000cf;font-weight:bold">6</span>  <span style="color:#0000cf;font-weight:bold">2007</span> .cshrc
+</span></span><span style="display:flex;"><span>drwx------   <span style="color:#0000cf;font-weight:bold">3</span>    root   root     <span style="color:#0000cf;font-weight:bold">4096</span>   Sep  <span style="color:#0000cf;font-weight:bold">5</span> 10:37 .gconf      
+</span></span><span style="display:flex;"><span>drwx------   <span style="color:#0000cf;font-weight:bold">2</span>    root   root     <span style="color:#0000cf;font-weight:bold">4096</span>   Sep  <span style="color:#0000cf;font-weight:bold">5</span> 14:09 .gconfd
+</span></span><span style="display:flex;"><span>-rw-r--r--   <span style="color:#0000cf;font-weight:bold">1</span>    root   root    <span style="color:#0000cf;font-weight:bold">42304</span>   Sep  <span style="color:#0000cf;font-weight:bold">4</span> 18:26 install.log
+</span></span><span style="display:flex;"><span>-rw-r--r--   <span style="color:#0000cf;font-weight:bold">1</span>    root   root     <span style="color:#0000cf;font-weight:bold">5661</span>   Sep  <span style="color:#0000cf;font-weight:bold">4</span> 18:25 install.log.syslog
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>    <span style="color:#0000cf;font-weight:bold">1</span>   <span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">[</span> <span style="color:#0000cf;font-weight:bold">2</span> <span style="color:#ce5c00;font-weight:bold">][</span>   <span style="color:#0000cf;font-weight:bold">3</span>  <span style="color:#ce5c00;font-weight:bold">][</span>  <span style="color:#0000cf;font-weight:bold">4</span> <span style="color:#ce5c00;font-weight:bold">]</span>  <span style="color:#ce5c00;font-weight:bold">[</span>  <span style="color:#0000cf;font-weight:bold">5</span>   <span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">[</span>    <span style="color:#0000cf;font-weight:bold">6</span>     <span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">[</span>       <span style="color:#0000cf;font-weight:bold">7</span>          <span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>  权限   <span style="color:#ce5c00;font-weight:bold">][</span>文件数<span style="color:#ce5c00;font-weight:bold">][</span>所有者<span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">[</span>用户组<span style="color:#ce5c00;font-weight:bold">][</span>文件容量<span style="color:#ce5c00;font-weight:bold">][</span> 修改日期   <span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">[</span>      文件名      <span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span></code></pre></div><p>每列含义说明：</p>
+<ul>
+<li>第一列：文件类型。</li>
+<li>第二列：表示文件个数。如果是文件，那么就是1；如果是目录，那么就是该目录中文件的数目。</li>
+<li>第三列：文件的所有者，即文件的创建者。</li>
+<li>第四列：文件所有者所在的用户组。在Linux中，每个用户都隶属于一个用户组。</li>
+<li>第五列：文件大小（以字节计）。</li>
+<li>第六列：文件被创建或上次被修改的时间。</li>
+<li>第七列：文件名或目录名。</li>
+</ul>
+<p><strong>文件类型字符</strong></p>
+<table>
+<thead>
+<tr>
+<th>前缀</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-</td>
+<td>普通文件。如文本文件、二进制可执行文件、源代码等。</td>
+</tr>
+<tr>
+<td>b</td>
+<td>块设备文件。硬盘可以使用块设备文件。</td>
+</tr>
+<tr>
+<td>c</td>
+<td>字符设备文件。硬盘也可以使用字符设备文件。</td>
+</tr>
+<tr>
+<td>d</td>
+<td>目录文件。目录可以包含文件和其他目录。</td>
+</tr>
+<tr>
+<td>l</td>
+<td>符号链接（软链接）。可以链接任何普通文件，类似于 Windows 中的快捷方式。</td>
+</tr>
+<tr>
+<td>p</td>
+<td>具名管道。管道是进程间的一种通信机制。</td>
+</tr>
+<tr>
+<td>s</td>
+<td>用于进程间通信的套接字。</td>
+</tr>
+</tbody>
+</table>
+<p><strong>隐藏文件</strong></p>
+<p>隐藏文件的第一个字符为英文句号或点号(.)，Linux程序（包括Shell）通常使用隐藏文件来保存配置信息。可以通过<code>ls -a</code>来查看所有文件，即包含隐藏文件。</p>
+<p>常见的隐藏文件：
+.profile：Bourne shell (sh) 初始化脚本
+.kshrc：Korn shell (ksh) 初始化脚本
+.cshrc：C shell (csh) 初始化脚本
+.rhosts：Remote shell (rsh) 配置文件</p>
+<h2 id="1-3-文件的操作">1.3. 文件的操作</h2>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>命令</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>创建</td>
+<td>touch filename</td>
+</tr>
+<tr>
+<td>编辑</td>
+<td>vi filename</td>
+</tr>
+<tr>
+<td>查看</td>
+<td>cat filename</td>
+</tr>
+<tr>
+<td>复制</td>
+<td>cp filename copyfile</td>
+</tr>
+<tr>
+<td>重命名</td>
+<td>mv filename newfile</td>
+</tr>
+<tr>
+<td>删除</td>
+<td>rm filename filename2</td>
+</tr>
+<tr>
+<td>统计词数</td>
+<td>wc filename</td>
+</tr>
+</tbody>
+</table>
+<h2 id="1-4-标准的linux流">1.4. 标准的Linux流</h2>
+<p>一般情况下，每个Linux程序运行时都会创建三个文件流（三个文件）：</p>
+<ul>
+<li><code>标准输入流(stdin)</code>：stdin的文件描述符为0，Linux程序默认从stdin读取数据。</li>
+<li><code>标准输出流(stdout)</code>：stdout 的文件描述符为1，Linux程序默认向stdout输出数据。</li>
+<li><code>标准错误流(stderr)</code>：stderr的文件描述符为2，Linux程序会向stderr流中写入错误信息。</li>
+</ul>
+<h1 id="2-文件权限和访问模式">2. 文件权限和访问模式</h1>
+<h2 id="2-1-查看文件权限">2.1. 查看文件权限</h2>
+<p>Linux每个文件都有三类权限：</p>
+<ul>
+<li><code>所有者权限(user)</code>：文件所有者能够进行的操作</li>
+<li><code>组权限(group)</code>：文件所属用户组能够进行的操作</li>
+<li><code>外部权限（other）</code>：其他用户可以进行的操作。</li>
+</ul>
+<p>通过<code>ls -l</code>的命令可以查看文件权限信息。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#000">$ls</span> -l /home/amrood
+</span></span><span style="display:flex;"><span>-rwxr-xr--  <span style="color:#0000cf;font-weight:bold">1</span> amrood   users <span style="color:#0000cf;font-weight:bold">1024</span>  Nov <span style="color:#0000cf;font-weight:bold">2</span> 00:10  myfile
+</span></span><span style="display:flex;"><span>drwxr-xr--- <span style="color:#0000cf;font-weight:bold">1</span> amrood   users <span style="color:#0000cf;font-weight:bold">1024</span>  Nov <span style="color:#0000cf;font-weight:bold">2</span> 00:10  mydir
+</span></span></code></pre></div><p>第一列<code>-rwxr-xr-- </code>包含了文件或目录的权限。</p>
+<p>除了第一个字符<code>-</code>或<code>d</code>分别用来表示<code>文件</code>或<code>目录</code>外，其他的九个字符可以分为三组，分别对应<code>所有者权限</code>，<code>用户组权限</code>，<code>其他用户权限</code>，即<code>-|user|group|other</code>。</p>
+<p>每组的权限又可分为三类：</p>
+<ul>
+<li>
+<p><code>读取（r）</code>，对应权限数字<code>4</code></p>
+</li>
+<li>
+<p><code>写入（w）</code>，对应权限数字<code>2</code></p>
+</li>
+<li>
+<p><code>执行（x）</code>，对应权限数字<code>1</code></p>
+</li>
+</ul>
+<p>使用数字表示权限：</p>
+<table>
+<thead>
+<tr>
+<th>数字</th>
+<th>说明</th>
+<th>权限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>没有任何权限</td>
+<td>---</td>
+</tr>
+<tr>
+<td>1</td>
+<td>执行权限</td>
+<td>--x</td>
+</tr>
+<tr>
+<td>2</td>
+<td>写入权限</td>
+<td>-w-</td>
+</tr>
+<tr>
+<td>3</td>
+<td>执行权限和写入权限：1 (执行) + 2 (写入) = 3</td>
+<td>-wx</td>
+</tr>
+<tr>
+<td>4</td>
+<td>读取权限</td>
+<td>r--</td>
+</tr>
+<tr>
+<td>5</td>
+<td>读取和执行权限：4 (读取) + 1 (执行) = 5</td>
+<td>r-x</td>
+</tr>
+<tr>
+<td>6</td>
+<td>读取和写入权限：4 (读取) + 2 (写入) = 6</td>
+<td>rw-</td>
+</tr>
+<tr>
+<td>7</td>
+<td>所有权限: 4 (读取) + 2 (写入) + 1 (执行) = 7</td>
+<td>rwx</td>
+</tr>
+</tbody>
+</table>
+<h2 id="2-2-访问模式">2.2. 访问模式</h2>
+<h3 id="2-2-1-文件访问模式">2.2.1. 文件访问模式</h3>
+<p>基本的权限有读取(r)、写入(w)和执行(x)：</p>
+<ul>
+<li>读取：用户能够读取文件信息，查看文件内容。</li>
+<li>写入：用户可以编辑文件，可以向文件写入内容，也可以删除文件内容。</li>
+<li>执行：用户可以将文件作为程序来运行。</li>
+</ul>
+<h3 id="2-2-2-目录访问模式">2.2.2. 目录访问模式</h3>
+<p>目录的访问模式和文件类似，但是稍有不同：</p>
+<ul>
+<li>读取：用户可以查看目录中的文件</li>
+<li>写入：用户可以在当前目录中删除文件或创建文件</li>
+<li>执行：执行权限赋予用户遍历目录的权利，例如执行 cd 和 ls 命令。</li>
+</ul>
+<h2 id="2-3-权限的操作">2.3. 权限的操作</h2>
+<h3 id="2-3-1-chmod">2.3.1. chmod</h3>
+<p><strong>chmod</strong> (change mode) 命令来改变文件或目录的访问权限，权限可以使用符号或数字来表示。</p>
+<p><strong>1、通过符号方式</strong></p>
+<p>可以使用符号来改变文件或目录的权限，你可以增加(+)和删除(-)权限，也可以指定特定权限(=)。</p>
+<p>指定权限范围</p>
+<ul>
+<li>u (user)：所有者权限</li>
+<li>g(group)：所属用户组权限</li>
+<li>o(other)：其他用户权限</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>+</td>
+<td>为文件或目录增加权限</td>
+</tr>
+<tr>
+<td>-</td>
+<td>删除文件或目录的权限</td>
+</tr>
+<tr>
+<td>=</td>
+<td>设置指定的权限</td>
+</tr>
+</tbody>
+</table>
+<p>示例</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看权限</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">$ls</span> -l testfile
+</span></span><span style="display:flex;"><span>-rwxrwxr--  <span style="color:#0000cf;font-weight:bold">1</span> amrood   users <span style="color:#0000cf;font-weight:bold">1024</span>  Nov <span style="color:#0000cf;font-weight:bold">2</span> 00:10  testfile
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 增加权限</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">$chmod</span> o+wx testfile
+</span></span><span style="display:flex;"><span><span style="color:#000">$ls</span> -l testfile
+</span></span><span style="display:flex;"><span>-rwxrwxrwx  <span style="color:#0000cf;font-weight:bold">1</span> amrood   users <span style="color:#0000cf;font-weight:bold">1024</span>  Nov <span style="color:#0000cf;font-weight:bold">2</span> 00:10  testfile
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 删除权限</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">$chmod</span> u-x testfile
+</span></span><span style="display:flex;"><span><span style="color:#000">$ls</span> -l testfile
+</span></span><span style="display:flex;"><span>-rw-rwxrwx  <span style="color:#0000cf;font-weight:bold">1</span> amrood   users <span style="color:#0000cf;font-weight:bold">1024</span>  Nov <span style="color:#0000cf;font-weight:bold">2</span> 00:10  testfile
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 指定权限</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">$chmod</span> <span style="color:#000">g</span><span style="color:#ce5c00;font-weight:bold">=</span>rx testfile
+</span></span><span style="display:flex;"><span><span style="color:#000">$ls</span> -l testfile
+</span></span><span style="display:flex;"><span>-rw-r-xrwx  <span style="color:#0000cf;font-weight:bold">1</span> amrood   users <span style="color:#0000cf;font-weight:bold">1024</span>  Nov <span style="color:#0000cf;font-weight:bold">2</span> 00:10  testfile
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 同时使用多个符号</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">$chmod</span> o+wx,u-x,g<span style="color:#ce5c00;font-weight:bold">=</span>rx testfile
+</span></span><span style="display:flex;"><span><span style="color:#000">$ls</span> -l testfile
+</span></span><span style="display:flex;"><span>-rw-r-xrwx  <span style="color:#0000cf;font-weight:bold">1</span> amrood   users <span style="color:#0000cf;font-weight:bold">1024</span>  Nov <span style="color:#0000cf;font-weight:bold">2</span> 00:10  testfile
+</span></span></code></pre></div><p><strong>2、通过数字权限方式</strong></p>
+<p>数字权限依照<code>2.1</code>的权限说明。</p>
+<p>示例</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#000">$ls</span> -l testfile
+</span></span><span style="display:flex;"><span>-rwxrwxr--  <span style="color:#0000cf;font-weight:bold">1</span> amrood   users <span style="color:#0000cf;font-weight:bold">1024</span>  Nov <span style="color:#0000cf;font-weight:bold">2</span> 00:10  testfile
+</span></span><span style="display:flex;"><span>$ chmod <span style="color:#0000cf;font-weight:bold">755</span> testfile
+</span></span><span style="display:flex;"><span><span style="color:#000">$ls</span> -l testfile
+</span></span><span style="display:flex;"><span>-rwxr-xr-x  <span style="color:#0000cf;font-weight:bold">1</span> amrood   users <span style="color:#0000cf;font-weight:bold">1024</span>  Nov <span style="color:#0000cf;font-weight:bold">2</span> 00:10  testfile
+</span></span></code></pre></div><h3 id="2-3-2-chown">2.3.2. chown</h3>
+<p>chown 命令是&quot;change owner&quot;的缩写，用来改变文件的<code>所有者</code>。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># user可以是用户名或用户ID</span>
+</span></span><span style="display:flex;"><span>$ chown user filelist
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 例如：</span>
+</span></span><span style="display:flex;"><span>$ chown amrood testfile
+</span></span></code></pre></div><blockquote>
+<p>超级用户 root 可以不受限制的更改文件的所有者和用户组，但是普通用户只能更改所有者是自己的文件或目录。</p>
+</blockquote>
+<h3 id="2-3-3-chgrp">2.3.3. chgrp</h3>
+<p>chgrp 命令是&quot;change group&quot;的缩写，用来改变文件所在的<code>群组</code>。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># group可以是用户组名或用户组ID</span>
+</span></span><span style="display:flex;"><span>$ chgrp group filelist
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 例如：</span>
+</span></span><span style="display:flex;"><span>$ chgrp special testfile
+</span></span></code></pre></div><h2 id="2-4-suid和sgid位">2.4. SUID和SGID位</h2>
+<p>在Linux中，一些程序需要特殊权限才能完成用户指定的操作。例如密码文件<code>/etc/shadow</code>。</p>
+<p>Linux 通过给程序设置SUID(Set User ID)和SGID(Set Group ID)位来赋予普通用户特殊权限。当我们运行一个带有SUID位的程序时，就会继承该程序所有者的权限；如果程序不带SUID位，则会根据程序使用者的权限来运行。</p>
+<p>例如：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ ls -l /usr/bin/passwd
+</span></span><span style="display:flex;"><span>-r-sr-xr-x  <span style="color:#0000cf;font-weight:bold">1</span>   root   bin  <span style="color:#0000cf;font-weight:bold">19031</span> Feb <span style="color:#0000cf;font-weight:bold">7</span> 13:47  /usr/bin/passwd*
+</span></span></code></pre></div><p>上面第一列第四个字符不是'x'或'-'，而是's'，说明 /usr/bin/passwd 文件设置了SUID位，这时普通用户会以root用户的权限来执行passwd程序。</p>
+<blockquote>
+<p>小写字母's'说明文件所有者有执行权限(x)，大写字母'S'说明程序所有者没有执行权限(x)。</p>
+</blockquote>
+<p>为一个目录设置SUID和SGID位可以使用下面的命令：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ chmod ug+s dirname
+</span></span><span style="display:flex;"><span>$ ls -l
+</span></span><span style="display:flex;"><span>drwsr-sr-x <span style="color:#0000cf;font-weight:bold">2</span> root root  <span style="color:#0000cf;font-weight:bold">4096</span> Jun <span style="color:#0000cf;font-weight:bold">19</span> 06:45 dirname
+</span></span></code></pre></div>
+</div>
+
+
+
+    
+	
+  
+
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="User mailing list" aria-label="User mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="User mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Twitter" aria-label="Twitter">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/twitter" aria-label="Twitter">
+      <i class="fab fa-twitter"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Stack Overflow" aria-label="Stack Overflow">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/stack" aria-label="Stack Overflow">
+      <i class="fab fa-stack-overflow"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/blog.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Slack" aria-label="Slack">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/slack" aria-label="Slack">
+      <i class="fab fa-slack"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Developer mailing list" aria-label="Developer mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="Developer mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2022 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		<p class="mt-2"><a href="/about/">About</a></p>
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+  </body>
+</html>

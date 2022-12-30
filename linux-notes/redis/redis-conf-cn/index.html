@@ -1,0 +1,1491 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<meta name="robots" content="index, follow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>Redis配置详解（中文版） | 胡伟煌</title>
+<meta name="description" content="
+以下为redis.conf的文件的中文描述，整理于网络
+
+# Redis 配置文件示例
+
+# 注意单位: 当需要配置内存大小时, 可能需要指定像1k,5GB,4M等常见格式
+#
+# 1k =&gt; 1000 bytes
+# 1kb =&gt; 1024 bytes
+# 1m =&gt; …">
+<meta property="og:title" content="Redis配置详解（中文版）" />
+<meta property="og:description" content="以下为redis.conf的文件的中文描述，整理于网络
+# Redis 配置文件示例 # 注意单位: 当需要配置内存大小时, 可能需要指定像1k,5GB,4M等常见格式 # # 1k =&gt; 1000 bytes # 1kb =&gt; 1024 bytes # 1m =&gt; 1000000 bytes # 1mb =&gt; 1024*1024 bytes # 1g =&gt; 1000000000 bytes # 1gb =&gt; 1024*1024*1024 bytes # # 单位是对大小写不敏感的 1GB 1Gb 1gB 是相同的。 INCLUDES ################################## INCLUDES ################################### # 可以在这里包含一个或多个其他的配置文件。如果你有一个适用于所有Redis服务器的标准配置模板 # 但也需要一些每个服务器自定义的设置，这个功能将很有用。被包含的配置文件也可以包含其他配置文件， # 所以需要谨慎的使用这个功能。 # # 注意“inclue”选项不能被admin或Redis哨兵的&#34;CONFIG REWRITE&#34;命令重写。 # 因为Redis总是使用最后解析的配置行最为配置指令的值, 你最好在这个文件的开头配置includes来 # 避免它在运行时重写配置。 # 如果相反你想用includes的配置覆盖原来的配置，你最好在该文件的最后使用include # # include /path/to/local." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.huweihuang.com/linux-notes/redis/redis-conf-cn/" /><meta property="article:section" content="linux-notes" />
+
+<meta property="og:site_name" content="胡伟煌" />
+
+<meta itemprop="name" content="Redis配置详解（中文版）">
+<meta itemprop="description" content="以下为redis.conf的文件的中文描述，整理于网络
+# Redis 配置文件示例 # 注意单位: 当需要配置内存大小时, 可能需要指定像1k,5GB,4M等常见格式 # # 1k =&gt; 1000 bytes # 1kb =&gt; 1024 bytes # 1m =&gt; 1000000 bytes # 1mb =&gt; 1024*1024 bytes # 1g =&gt; 1000000000 bytes # 1gb =&gt; 1024*1024*1024 bytes # # 单位是对大小写不敏感的 1GB 1Gb 1gB 是相同的。 INCLUDES ################################## INCLUDES ################################### # 可以在这里包含一个或多个其他的配置文件。如果你有一个适用于所有Redis服务器的标准配置模板 # 但也需要一些每个服务器自定义的设置，这个功能将很有用。被包含的配置文件也可以包含其他配置文件， # 所以需要谨慎的使用这个功能。 # # 注意“inclue”选项不能被admin或Redis哨兵的&#34;CONFIG REWRITE&#34;命令重写。 # 因为Redis总是使用最后解析的配置行最为配置指令的值, 你最好在这个文件的开头配置includes来 # 避免它在运行时重写配置。 # 如果相反你想用includes的配置覆盖原来的配置，你最好在该文件的最后使用include # # include /path/to/local.">
+
+<meta itemprop="wordCount" content="1315">
+<meta itemprop="keywords" content="Redis," /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Redis配置详解（中文版）"/>
+<meta name="twitter:description" content="以下为redis.conf的文件的中文描述，整理于网络
+# Redis 配置文件示例 # 注意单位: 当需要配置内存大小时, 可能需要指定像1k,5GB,4M等常见格式 # # 1k =&gt; 1000 bytes # 1kb =&gt; 1024 bytes # 1m =&gt; 1000000 bytes # 1mb =&gt; 1024*1024 bytes # 1g =&gt; 1000000000 bytes # 1gb =&gt; 1024*1024*1024 bytes # # 单位是对大小写不敏感的 1GB 1Gb 1gB 是相同的。 INCLUDES ################################## INCLUDES ################################### # 可以在这里包含一个或多个其他的配置文件。如果你有一个适用于所有Redis服务器的标准配置模板 # 但也需要一些每个服务器自定义的设置，这个功能将很有用。被包含的配置文件也可以包含其他配置文件， # 所以需要谨慎的使用这个功能。 # # 注意“inclue”选项不能被admin或Redis哨兵的&#34;CONFIG REWRITE&#34;命令重写。 # 因为Redis总是使用最后解析的配置行最为配置指令的值, 你最好在这个文件的开头配置includes来 # 避免它在运行时重写配置。 # 如果相反你想用includes的配置覆盖原来的配置，你最好在该文件的最后使用include # # include /path/to/local."/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" as="style">
+<link href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-114718458-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-page">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">胡伟煌</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/kubernetes-notes/" ><span>Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/k8s-source-code-analysis/" ><span>Kubernetes源码分析</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/golang-notes/" ><span>Golang学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/linux-notes/" ><span class="active">Linux学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/about/" ><span>About</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.f043f65e6bd084162569d168aa0d2ea7.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <aside class="col-12 col-md-3 col-xl-2 td-sidebar d-print-none">
+            
+<div id="td-sidebar-menu" class="td-sidebar__inner">
+  <form class="td-sidebar__search d-flex align-items-center">
+    <input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.f043f65e6bd084162569d168aa0d2ea7.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+
+    <button class="btn btn-link td-sidebar__toggle d-md-none p-0 ml-3 fas fa-bars" type="button" data-toggle="collapse" data-target="#td-section-nav" aria-controls="td-docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    </button>
+  </form>
+  <nav class="collapse td-sidebar-nav foldable-nav" id="td-section-nav">
+    <ul class="td-sidebar-nav__section pr-md-3 ul-0">
+      <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-linux-notes-li">
+  <a href="/linux-notes/" class="align-left pl-0 td-sidebar-link td-sidebar-link__section tree-root" id="m-linux-notes"><span class="">Linux学习笔记</span></a>
+  <ul class="ul-1">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-file-li">
+  <input type="checkbox" id="m-linux-notes-file-check"/>
+  <label for="m-linux-notes-file-check"><a href="/linux-notes/file/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-file"><span class="">Linux 文件系统</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-file-linux-introduction-li">
+  <input type="checkbox" id="m-linux-notes-file-linux-introduction-check"/>
+  <label for="m-linux-notes-file-linux-introduction-check"><a href="/linux-notes/file/linux-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-file-linux-introduction"><span class="">Linux介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-file-linux-file-system-li">
+  <input type="checkbox" id="m-linux-notes-file-linux-file-system-check"/>
+  <label for="m-linux-notes-file-linux-file-system-check"><a href="/linux-notes/file/linux-file-system/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-file-linux-file-system"><span class="">Linux文件系统</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-file-linux-file-storage-li">
+  <input type="checkbox" id="m-linux-notes-file-linux-file-storage-check"/>
+  <label for="m-linux-notes-file-linux-file-storage-check"><a href="/linux-notes/file/linux-file-storage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-file-linux-file-storage"><span class="">Linux文件存储</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-file-linux-file-permission-li">
+  <input type="checkbox" id="m-linux-notes-file-linux-file-permission-check"/>
+  <label for="m-linux-notes-file-linux-file-permission-check"><a href="/linux-notes/file/linux-file-permission/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-file-linux-file-permission"><span class="">Linux文件权限</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-disk-li">
+  <input type="checkbox" id="m-linux-notes-disk-check"/>
+  <label for="m-linux-notes-disk-check"><a href="/linux-notes/disk/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-disk"><span class="">磁盘</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-disk-disk-command-li">
+  <input type="checkbox" id="m-linux-notes-disk-disk-command-check"/>
+  <label for="m-linux-notes-disk-disk-command-check"><a href="/linux-notes/disk/disk-command/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-disk-disk-command"><span class="">磁盘命令</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-disk-lvm-usage-li">
+  <input type="checkbox" id="m-linux-notes-disk-lvm-usage-check"/>
+  <label for="m-linux-notes-disk-lvm-usage-check"><a href="/linux-notes/disk/lvm-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-disk-lvm-usage"><span class="">LVM的使用</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-tcpip-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-check"/>
+  <label for="m-linux-notes-tcpip-check"><a href="/linux-notes/tcpip/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-tcpip"><span class="">TCP/IP</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tcpip-http-basics-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-http-basics-check"/>
+  <label for="m-linux-notes-tcpip-http-basics-check"><a href="/linux-notes/tcpip/http-basics/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tcpip-http-basics"><span class="">HTTP基础</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tcpip-tcpip-basics-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-tcpip-basics-check"/>
+  <label for="m-linux-notes-tcpip-tcpip-basics-check"><a href="/linux-notes/tcpip/tcpip-basics/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tcpip-tcpip-basics"><span class="">TCPIP基础</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tcpip-http-message-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-http-message-check"/>
+  <label for="m-linux-notes-tcpip-http-message-check"><a href="/linux-notes/tcpip/http-message/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tcpip-http-message"><span class="">HTTP报文</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tcpip-ip-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-ip-check"/>
+  <label for="m-linux-notes-tcpip-ip-check"><a href="/linux-notes/tcpip/ip/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tcpip-ip"><span class="">IP协议</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tcpip-http-code-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-http-code-check"/>
+  <label for="m-linux-notes-tcpip-http-code-check"><a href="/linux-notes/tcpip/http-code/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tcpip-http-code"><span class="">HTTP状态码</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tcpip-tcp-udp-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-tcp-udp-check"/>
+  <label for="m-linux-notes-tcpip-tcp-udp-check"><a href="/linux-notes/tcpip/tcp-udp/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tcpip-tcp-udp"><span class="">TCP与UDP协议</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-network-li">
+  <input type="checkbox" id="m-linux-notes-network-check"/>
+  <label for="m-linux-notes-network-check"><a href="/linux-notes/network/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-network"><span class="">网络</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-network-iptables-li">
+  <input type="checkbox" id="m-linux-notes-network-iptables-check"/>
+  <label for="m-linux-notes-network-iptables-check"><a href="/linux-notes/network/iptables/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-network-iptables"><span class="">iptables命令</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-shell-li">
+  <input type="checkbox" id="m-linux-notes-shell-check"/>
+  <label for="m-linux-notes-shell-check"><a href="/linux-notes/shell/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-shell"><span class="">Shell脚本</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-introduction-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-introduction-check"/>
+  <label for="m-linux-notes-shell-shell-introduction-check"><a href="/linux-notes/shell/shell-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-introduction"><span class="">Shell简介</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-var-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-var-check"/>
+  <label for="m-linux-notes-shell-shell-var-check"><a href="/linux-notes/shell/shell-var/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-var"><span class="">Shell变量</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-char-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-char-check"/>
+  <label for="m-linux-notes-shell-shell-char-check"><a href="/linux-notes/shell/shell-char/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-char"><span class="">Shell运算符</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-array-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-array-check"/>
+  <label for="m-linux-notes-shell-shell-array-check"><a href="/linux-notes/shell/shell-array/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-array"><span class="">Shell数组</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-echo-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-echo-check"/>
+  <label for="m-linux-notes-shell-shell-echo-check"><a href="/linux-notes/shell/shell-echo/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-echo"><span class="">Shell echo命令</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-if-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-if-check"/>
+  <label for="m-linux-notes-shell-shell-if-check"><a href="/linux-notes/shell/shell-if/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-if"><span class="">Shell 判断语句</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-loop-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-loop-check"/>
+  <label for="m-linux-notes-shell-shell-loop-check"><a href="/linux-notes/shell/shell-loop/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-loop"><span class="">Shell 循环语句</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-function-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-function-check"/>
+  <label for="m-linux-notes-shell-shell-function-check"><a href="/linux-notes/shell/shell-function/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-function"><span class="">Shell 函数</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-stdout-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-stdout-check"/>
+  <label for="m-linux-notes-shell-shell-stdout-check"><a href="/linux-notes/shell/shell-stdout/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-stdout"><span class="">Shell 重定向</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-tools-li">
+  <input type="checkbox" id="m-linux-notes-tools-check"/>
+  <label for="m-linux-notes-tools-check"><a href="/linux-notes/tools/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-tools"><span class="">运维工具</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-ansible-usage-li">
+  <input type="checkbox" id="m-linux-notes-tools-ansible-usage-check"/>
+  <label for="m-linux-notes-tools-ansible-usage-check"><a href="/linux-notes/tools/ansible-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-ansible-usage"><span class="">ansible的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-ceph-fuse-li">
+  <input type="checkbox" id="m-linux-notes-tools-ceph-fuse-check"/>
+  <label for="m-linux-notes-tools-ceph-fuse-check"><a href="/linux-notes/tools/ceph-fuse/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-ceph-fuse"><span class="">ceph-fuse的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-confd-usage-li">
+  <input type="checkbox" id="m-linux-notes-tools-confd-usage-check"/>
+  <label for="m-linux-notes-tools-confd-usage-check"><a href="/linux-notes/tools/confd-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-confd-usage"><span class="">confd的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-nfs-usage-li">
+  <input type="checkbox" id="m-linux-notes-tools-nfs-usage-check"/>
+  <label for="m-linux-notes-tools-nfs-usage-check"><a href="/linux-notes/tools/nfs-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-nfs-usage"><span class="">NFS的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-ssh-tips-li">
+  <input type="checkbox" id="m-linux-notes-tools-ssh-tips-check"/>
+  <label for="m-linux-notes-tools-ssh-tips-check"><a href="/linux-notes/tools/ssh-tips/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-ssh-tips"><span class="">ssh tips</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-supervisor-usage-li">
+  <input type="checkbox" id="m-linux-notes-tools-supervisor-usage-check"/>
+  <label for="m-linux-notes-tools-supervisor-usage-check"><a href="/linux-notes/tools/supervisor-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-supervisor-usage"><span class="">Supervisor的使用</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-git-li">
+  <input type="checkbox" id="m-linux-notes-git-check"/>
+  <label for="m-linux-notes-git-check"><a href="/linux-notes/git/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-git"><span class="">GIT命令</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-git-git-li">
+  <input type="checkbox" id="m-linux-notes-git-git-check"/>
+  <label for="m-linux-notes-git-git-check"><a href="/linux-notes/git/git/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-git-git"><span class="">Git介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-git-git-common-cmd-li">
+  <input type="checkbox" id="m-linux-notes-git-git-common-cmd-check"/>
+  <label for="m-linux-notes-git-git-common-cmd-check"><a href="/linux-notes/git/git-common-cmd/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-git-git-common-cmd"><span class="">Git常用命令</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-git-git-commands-li">
+  <input type="checkbox" id="m-linux-notes-git-git-commands-check"/>
+  <label for="m-linux-notes-git-git-commands-check"><a href="/linux-notes/git/git-commands/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-git-git-commands"><span class="">Git命令分类</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-git-git-commit-msg-li">
+  <input type="checkbox" id="m-linux-notes-git-git-commit-msg-check"/>
+  <label for="m-linux-notes-git-git-commit-msg-check"><a href="/linux-notes/git/git-commit-msg/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-git-git-commit-msg"><span class="">Git commit规范</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-git-git-alias-zsh-li">
+  <input type="checkbox" id="m-linux-notes-git-git-alias-zsh-check"/>
+  <label for="m-linux-notes-git-git-alias-zsh-check"><a href="/linux-notes/git/git-alias-zsh/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-git-git-alias-zsh"><span class="">Git命令别名</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-mysql-li">
+  <input type="checkbox" id="m-linux-notes-mysql-check"/>
+  <label for="m-linux-notes-mysql-check"><a href="/linux-notes/mysql/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-mysql"><span class="">Mysql</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-mysql-system-manage-li">
+  <input type="checkbox" id="m-linux-notes-mysql-system-manage-check"/>
+  <label for="m-linux-notes-mysql-system-manage-check"><a href="/linux-notes/mysql/system-manage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-mysql-system-manage"><span class="">Mysql常用命令之系统管理</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-mysql-table-operation-li">
+  <input type="checkbox" id="m-linux-notes-mysql-table-operation-check"/>
+  <label for="m-linux-notes-mysql-table-operation-check"><a href="/linux-notes/mysql/table-operation/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-mysql-table-operation"><span class="">Mysql常用命令之数据表操作</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-mysql-curd-commands-li">
+  <input type="checkbox" id="m-linux-notes-mysql-curd-commands-check"/>
+  <label for="m-linux-notes-mysql-curd-commands-check"><a href="/linux-notes/mysql/curd-commands/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-mysql-curd-commands"><span class="">Mysql常用命令之表内容操作</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-linux-notes-redis-li">
+  <input type="checkbox" id="m-linux-notes-redis-check" checked/>
+  <label for="m-linux-notes-redis-check"><a href="/linux-notes/redis/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-redis"><span class="">Redis</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-redis-redis-introduction-li">
+  <input type="checkbox" id="m-linux-notes-redis-redis-introduction-check"/>
+  <label for="m-linux-notes-redis-redis-introduction-check"><a href="/linux-notes/redis/redis-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-redis-redis-introduction"><span class="">Redis介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-redis-redis-cluster-li">
+  <input type="checkbox" id="m-linux-notes-redis-redis-cluster-check"/>
+  <label for="m-linux-notes-redis-redis-cluster-check"><a href="/linux-notes/redis/redis-cluster/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-redis-redis-cluster"><span class="">Redis集群模式部署</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-redis-redis-sentinel-li">
+  <input type="checkbox" id="m-linux-notes-redis-redis-sentinel-check"/>
+  <label for="m-linux-notes-redis-redis-sentinel-check"><a href="/linux-notes/redis/redis-sentinel/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-redis-redis-sentinel"><span class="">Redis哨兵模式部署</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-redis-redis-conf-cn-li">
+  <input type="checkbox" id="m-linux-notes-redis-redis-conf-cn-check"/>
+  <label for="m-linux-notes-redis-redis-conf-cn-check"><a href="/linux-notes/redis/redis-conf-cn/" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-linux-notes-redis-redis-conf-cn"><span class="td-sidebar-nav-active-item">Redis配置详解（中文版）</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-redis-redis-conf-en-li">
+  <input type="checkbox" id="m-linux-notes-redis-redis-conf-en-check"/>
+  <label for="m-linux-notes-redis-redis-conf-en-check"><a href="/linux-notes/redis/redis-conf-en/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-redis-redis-conf-en"><span class="">Redis配置详解（英文版）</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-memcached-li">
+  <input type="checkbox" id="m-linux-notes-memcached-check"/>
+  <label for="m-linux-notes-memcached-check"><a href="/linux-notes/memcached/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-memcached"><span class="">Memcached</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-memcached-memcached-li">
+  <input type="checkbox" id="m-linux-notes-memcached-memcached-check"/>
+  <label for="m-linux-notes-memcached-memcached-check"><a href="/linux-notes/memcached/memcached/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-memcached-memcached"><span class="">Memcached的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-memcached-memcached-cmd-li">
+  <input type="checkbox" id="m-linux-notes-memcached-memcached-cmd-check"/>
+  <label for="m-linux-notes-memcached-memcached-cmd-check"><a href="/linux-notes/memcached/memcached-cmd/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-memcached-memcached-cmd"><span class="">Memcached命令</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-nginx-li">
+  <input type="checkbox" id="m-linux-notes-nginx-check"/>
+  <label for="m-linux-notes-nginx-check"><a href="/linux-notes/nginx/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-nginx"><span class="">Nginx</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-nginx-install-nginx-li">
+  <input type="checkbox" id="m-linux-notes-nginx-install-nginx-check"/>
+  <label for="m-linux-notes-nginx-install-nginx-check"><a href="/linux-notes/nginx/install-nginx/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-nginx-install-nginx"><span class="">Nginx的部署与配置</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-nginx-nginx-proxy-li">
+  <input type="checkbox" id="m-linux-notes-nginx-nginx-proxy-check"/>
+  <label for="m-linux-notes-nginx-nginx-proxy-check"><a href="/linux-notes/nginx/nginx-proxy/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-nginx-nginx-proxy"><span class="">Nginx作为反向代理</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-nginx-nginx-http-li">
+  <input type="checkbox" id="m-linux-notes-nginx-nginx-http-check"/>
+  <label for="m-linux-notes-nginx-nginx-http-check"><a href="/linux-notes/nginx/nginx-http/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-nginx-nginx-http"><span class="">Nginx http服务器</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-keepalived-li">
+  <input type="checkbox" id="m-linux-notes-keepalived-check"/>
+  <label for="m-linux-notes-keepalived-check"><a href="/linux-notes/keepalived/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-keepalived"><span class="">Keepalived</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keepalived-keepalived-introduction-li">
+  <input type="checkbox" id="m-linux-notes-keepalived-keepalived-introduction-check"/>
+  <label for="m-linux-notes-keepalived-keepalived-introduction-check"><a href="/linux-notes/keepalived/keepalived-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keepalived-keepalived-introduction"><span class="">Keepalived简介</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keepalived-install-keepalived-li">
+  <input type="checkbox" id="m-linux-notes-keepalived-install-keepalived-check"/>
+  <label for="m-linux-notes-keepalived-install-keepalived-check"><a href="/linux-notes/keepalived/install-keepalived/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keepalived-install-keepalived"><span class="">Keepalived安装与配置</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keepalived-keepalived-operation-li">
+  <input type="checkbox" id="m-linux-notes-keepalived-keepalived-operation-check"/>
+  <label for="m-linux-notes-keepalived-keepalived-operation-check"><a href="/linux-notes/keepalived/keepalived-operation/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keepalived-keepalived-operation"><span class="">Keepalived相关操作</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keepalived-keepalived-conf-li">
+  <input type="checkbox" id="m-linux-notes-keepalived-keepalived-conf-check"/>
+  <label for="m-linux-notes-keepalived-keepalived-conf-check"><a href="/linux-notes/keepalived/keepalived-conf/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keepalived-keepalived-conf"><span class="">Keepalived配置详解</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-keymap-li">
+  <input type="checkbox" id="m-linux-notes-keymap-check"/>
+  <label for="m-linux-notes-keymap-check"><a href="/linux-notes/keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-keymap"><span class="">快捷键</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keymap-vscode-keymap-li">
+  <input type="checkbox" id="m-linux-notes-keymap-vscode-keymap-check"/>
+  <label for="m-linux-notes-keymap-vscode-keymap-check"><a href="/linux-notes/keymap/vscode-keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keymap-vscode-keymap"><span class="">vscode快捷键</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keymap-eclipse-keymap-li">
+  <input type="checkbox" id="m-linux-notes-keymap-eclipse-keymap-check"/>
+  <label for="m-linux-notes-keymap-eclipse-keymap-check"><a href="/linux-notes/keymap/eclipse-keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keymap-eclipse-keymap"><span class="">eclipse快捷键</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keymap-chrome-keymap-li">
+  <input type="checkbox" id="m-linux-notes-keymap-chrome-keymap-check"/>
+  <label for="m-linux-notes-keymap-chrome-keymap-check"><a href="/linux-notes/keymap/chrome-keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keymap-chrome-keymap"><span class="">chrome快捷键</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keymap-tmux-keymap-li">
+  <input type="checkbox" id="m-linux-notes-keymap-tmux-keymap-check"/>
+  <label for="m-linux-notes-keymap-tmux-keymap-check"><a href="/linux-notes/keymap/tmux-keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keymap-tmux-keymap"><span class="">tmux快捷键</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keymap-iterm2-rzsz-li">
+  <input type="checkbox" id="m-linux-notes-keymap-iterm2-rzsz-check"/>
+  <label for="m-linux-notes-keymap-iterm2-rzsz-check"><a href="/linux-notes/keymap/iterm2-rzsz/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keymap-iterm2-rzsz"><span class="">iterm2 rz与sz的使用</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-ide-li">
+  <input type="checkbox" id="m-linux-notes-ide-check"/>
+  <label for="m-linux-notes-ide-check"><a href="/linux-notes/ide/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-ide"><span class="">IDE配置</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-ide-goland-li">
+  <input type="checkbox" id="m-linux-notes-ide-goland-check"/>
+  <label for="m-linux-notes-ide-goland-check"><a href="/linux-notes/ide/goland/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-ide-goland"><span class="">Goland配置</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-ide-vscode-li">
+  <input type="checkbox" id="m-linux-notes-ide-vscode-check"/>
+  <label for="m-linux-notes-ide-vscode-check"><a href="/linux-notes/ide/vscode/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-ide-vscode"><span class="">vscode远程开发</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-vim-li">
+  <input type="checkbox" id="m-linux-notes-vim-check"/>
+  <label for="m-linux-notes-vim-check"><a href="/linux-notes/vim/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-vim"><span class="">VIM配置</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-vim-basic-vimrc-li">
+  <input type="checkbox" id="m-linux-notes-vim-basic-vimrc-check"/>
+  <label for="m-linux-notes-vim-basic-vimrc-check"><a href="/linux-notes/vim/basic-vimrc/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-vim-basic-vimrc"><span class="">basic vimrc</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-vim-vim-keymap-li">
+  <input type="checkbox" id="m-linux-notes-vim-vim-keymap-check"/>
+  <label for="m-linux-notes-vim-vim-keymap-check"><a href="/linux-notes/vim/vim-keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-vim-vim-keymap"><span class="">vim 命令</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-vim-vimrc-cn-li">
+  <input type="checkbox" id="m-linux-notes-vim-vimrc-cn-check"/>
+  <label for="m-linux-notes-vim-vimrc-cn-check"><a href="/linux-notes/vim/vimrc-cn/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-vim-vimrc-cn"><span class="">vim 配置</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-summary-li">
+  <input type="checkbox" id="m-linux-notes-summary-check"/>
+  <label for="m-linux-notes-summary-check"><a href="/linux-notes/summary/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-summary"><span class=""></span></a></label>
+  
+</li>
+  </ul>
+</li>
+    </ul>
+  </nav>
+</div>
+
+          </aside>
+          <aside class="d-none d-xl-block col-xl-2 td-sidebar-toc d-print-none">
+            
+<div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
+<a href="https://github.com/huweihuang/blog.huweihuang.com/tree/master/content/zh-cn/linux-notes/redis/redis-conf-cn.md" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa fa-file-alt fa-fw"></i> 查看页面源码</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/edit/master/content/zh-cn/linux-notes/redis/redis-conf-cn.md" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 编辑此页</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/new/master/content/zh-cn/linux-notes/redis/redis-conf-cn.md?filename=change-me.md&amp;value=---%0Atitle%3A&#43;%22Long&#43;Page&#43;Title%22%0AlinkTitle%3A&#43;%22Short&#43;Nav&#43;Title%22%0Aweight%3A&#43;100%0Adescription%3A&#43;%3E-%0A&#43;&#43;&#43;&#43;&#43;Page&#43;description&#43;for&#43;heading&#43;and&#43;indexes.%0A---%0A%0A%23%23&#43;Heading%0A%0AEdit&#43;this&#43;template&#43;to&#43;create&#43;your&#43;new&#43;page.%0A%0A%2A&#43;Give&#43;it&#43;a&#43;good&#43;name%2C&#43;ending&#43;in&#43;%60.md%60&#43;-&#43;e.g.&#43;%60getting-started.md%60%0A%2A&#43;Edit&#43;the&#43;%22front&#43;matter%22&#43;section&#43;at&#43;the&#43;top&#43;of&#43;the&#43;page&#43;%28weight&#43;controls&#43;how&#43;its&#43;ordered&#43;amongst&#43;other&#43;pages&#43;in&#43;the&#43;same&#43;directory%3B&#43;lowest&#43;number&#43;first%29.%0A%2A&#43;Add&#43;a&#43;good&#43;commit&#43;message&#43;at&#43;the&#43;bottom&#43;of&#43;the&#43;page&#43;%28%3C80&#43;characters%3B&#43;use&#43;the&#43;extended&#43;description&#43;field&#43;for&#43;more&#43;detail%29.%0A%2A&#43;Create&#43;a&#43;new&#43;branch&#43;so&#43;you&#43;can&#43;preview&#43;your&#43;new&#43;file&#43;and&#43;request&#43;a&#43;review&#43;via&#43;Pull&#43;Request.%0A" class="td-page-meta--child" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 添加子页面</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new?title=Redis%e9%85%8d%e7%bd%ae%e8%af%a6%e8%a7%a3%ef%bc%88%e4%b8%ad%e6%96%87%e7%89%88%ef%bc%89" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new" class="td-page-meta--project-issue" target="_blank" rel="noopener"><i class="fas fa-tasks fa-fw"></i> 提交项目问题</a>
+  <a id="print" href="https://blog.huweihuang.com/linux-notes/redis/_print/"><i class="fa fa-print fa-fw"></i> 整节打印</a>
+
+</div>
+
+            
+
+
+<div class="td-toc"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#includes">INCLUDES</a></li>
+    <li><a href="#general">GENERAL</a></li>
+    <li><a href="#snapshotting">SNAPSHOTTING</a></li>
+    <li><a href="#replication">REPLICATION</a></li>
+    <li><a href="#security">SECURITY</a></li>
+    <li><a href="#limits">LIMITS</a></li>
+    <li><a href="#append-only-mode">APPEND ONLY MODE</a></li>
+    <li><a href="#slow-log">SLOW LOG</a></li>
+    <li><a href="#event-notification">Event notification</a></li>
+    <li><a href="#advanced-config">ADVANCED CONFIG</a></li>
+  </ul>
+</nav></div>
+
+
+
+            
+
+	
+		
+			
+				
+			
+			
+
+
+
+  
+  
+    <div class="taxonomy taxonomy-terms-cloud taxo-tags">
+      
+        <h5 class="taxonomy-title">Tags</h5>
+      
+      <ul class="taxonomy-terms">
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/apisix/" data-taxonomy-term="apisix"><span class="taxonomy-label">ApiSix</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/cni/" data-taxonomy-term="cni"><span class="taxonomy-label">CNI</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/containerd/" data-taxonomy-term="containerd"><span class="taxonomy-label">Containerd</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/csi/" data-taxonomy-term="csi"><span class="taxonomy-label">CSI</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/disk/" data-taxonomy-term="disk"><span class="taxonomy-label">disk</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/docker/" data-taxonomy-term="docker"><span class="taxonomy-label">Docker</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/etcd/" data-taxonomy-term="etcd"><span class="taxonomy-label">Etcd</span><span class="taxonomy-count">8</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/git/" data-taxonomy-term="git"><span class="taxonomy-label">Git</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/golang/" data-taxonomy-term="golang"><span class="taxonomy-label">Golang</span><span class="taxonomy-count">40</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/iptables/" data-taxonomy-term="iptables"><span class="taxonomy-label">iptables</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/karmada/" data-taxonomy-term="karmada"><span class="taxonomy-label">Karmada</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/keepalived/" data-taxonomy-term="keepalived"><span class="taxonomy-label">Keepalived</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubeedge/" data-taxonomy-term="kubeedge"><span class="taxonomy-label">Kubeedge</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubernetes/" data-taxonomy-term="kubernetes"><span class="taxonomy-label">Kubernetes</span><span class="taxonomy-count">60</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubevirt/" data-taxonomy-term="kubevirt"><span class="taxonomy-label">KubeVirt</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/linux/" data-taxonomy-term="linux"><span class="taxonomy-label">Linux</span><span class="taxonomy-count">12</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/memcached/" data-taxonomy-term="memcached"><span class="taxonomy-label">Memcached</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/mysql/" data-taxonomy-term="mysql"><span class="taxonomy-label">Mysql</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/network/" data-taxonomy-term="network"><span class="taxonomy-label">Network</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/nginx/" data-taxonomy-term="nginx"><span class="taxonomy-label">Nginx</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/openyurt/" data-taxonomy-term="openyurt"><span class="taxonomy-label">OpenYurt</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/redis/" data-taxonomy-term="redis"><span class="taxonomy-label">Redis</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/runtime/" data-taxonomy-term="runtime"><span class="taxonomy-label">Runtime</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/shell/" data-taxonomy-term="shell"><span class="taxonomy-label">Shell</span><span class="taxonomy-count">9</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/tcpip/" data-taxonomy-term="tcpip"><span class="taxonomy-label">TCPIP</span><span class="taxonomy-count">6</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/vim/" data-taxonomy-term="vim"><span class="taxonomy-label">VIM</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/virtualkubelet/" data-taxonomy-term="virtualkubelet"><span class="taxonomy-label">VirtualKubelet</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%A4%9A%E9%9B%86%E7%BE%A4/" data-taxonomy-term="%E5%A4%9A%E9%9B%86%E7%BE%A4"><span class="taxonomy-label">多集群</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%BF%AB%E6%8D%B7%E9%94%AE/" data-taxonomy-term="%E5%BF%AB%E6%8D%B7%E9%94%AE"><span class="taxonomy-label">快捷键</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-taxonomy-term="%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="taxonomy-label">源码分析</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/" data-taxonomy-term="%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5"><span class="taxonomy-label">问题排查</span><span class="taxonomy-count">9</span></a></li>
+        
+      </ul>
+    </div>
+  
+
+		
+			
+				
+			
+			
+
+
+
+  
+  
+
+		
+	
+
+          </aside>
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+  
+
+            <nav aria-label="breadcrumb" class="td-breadcrumbs">
+  <ol class="breadcrumb">
+  <li class="breadcrumb-item">
+    <a href="https://blog.huweihuang.com/linux-notes/">Linux学习笔记</a>
+  </li>
+  <li class="breadcrumb-item">
+    <a href="https://blog.huweihuang.com/linux-notes/redis/">Redis</a>
+  </li>
+  <li class="breadcrumb-item active" aria-current="page">
+    <a href="https://blog.huweihuang.com/linux-notes/redis/redis-conf-cn/">Redis配置详解（中文版）</a>
+  </li>
+  </ol>
+</nav>
+            
+<div class="td-content">
+	<h1>Redis配置详解（中文版）</h1>
+	
+	<header class="article-meta">
+		
+
+  
+    
+      
+
+
+<div class="taxonomy taxonomy-terms-article taxo-tags">
+  <h5 class="taxonomy-title">Tags:</h5>
+  <ul class="taxonomy-terms">
+    
+      <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/redis/" data-taxonomy-term="redis"><span class="taxonomy-label">Redis</span></a></li>
+    
+  </ul>
+</div>
+
+    
+      
+
+
+    
+  
+
+		
+	</header>    
+	<blockquote>
+<p>以下为<code>redis.conf</code>的文件的中文描述，整理于网络</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Redis 配置文件示例</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 注意单位: 当需要配置内存大小时, 可能需要指定像1k,5GB,4M等常见格式</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 1k =&gt; 1000 bytes</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 1kb =&gt; 1024 bytes</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 1m =&gt; 1000000 bytes</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 1mb =&gt; 1024*1024 bytes</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 1g =&gt; 1000000000 bytes</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 1gb =&gt; 1024*1024*1024 bytes</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 单位是对大小写不敏感的 1GB 1Gb 1gB 是相同的。</span>
+</span></span></code></pre></div><h1 id="includes">INCLUDES</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">################################## INCLUDES ###################################</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 可以在这里包含一个或多个其他的配置文件。如果你有一个适用于所有Redis服务器的标准配置模板</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 但也需要一些每个服务器自定义的设置，这个功能将很有用。被包含的配置文件也可以包含其他配置文件，</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 所以需要谨慎的使用这个功能。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 注意“inclue”选项不能被admin或Redis哨兵的&#34;CONFIG REWRITE&#34;命令重写。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 因为Redis总是使用最后解析的配置行最为配置指令的值, 你最好在这个文件的开头配置includes来</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 避免它在运行时重写配置。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果相反你想用includes的配置覆盖原来的配置，你最好在该文件的最后使用include</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># include /path/to/local.conf</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># include /path/to/other.conf</span>
+</span></span></code></pre></div><h1 id="general">GENERAL</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">################################ GENERAL  #####################################</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 默认Rdis不会作为守护进程运行。如果需要的话配置成&#39;yes&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 注意配置成守护进程后Redis会将进程号写入文件/var/run/redis.pid</span>
+</span></span><span style="display:flex;"><span>daemonize no
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 当以守护进程方式运行时，默认Redis会把进程ID写到 /var/run/redis.pid。你可以在这里修改路径。</span>
+</span></span><span style="display:flex;"><span>pidfile /var/run/redis.pid
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 接受连接的特定端口，默认是6379</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果端口设置为0，Redis就不会监听TCP套接字。</span>
+</span></span><span style="display:flex;"><span>port <span style="color:#0000cf;font-weight:bold">6379</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># TCP listen() backlog.</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 在高并发环境下你需要一个高backlog值来避免慢客户端连接问题。注意Linux内核默默地将这个值减小</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 到/proc/sys/net/core/somaxconn的值，所以需要确认增大somaxconn和tcp_max_syn_backlog</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 两个值来达到想要的效果。</span>
+</span></span><span style="display:flex;"><span>tcp-backlog <span style="color:#0000cf;font-weight:bold">511</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 默认Redis监听服务器上所有可用网络接口的连接。可以用&#34;bind&#34;配置指令跟一个或多个ip地址来实现</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 监听一个或多个网络接口</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 示例:</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># bind 192.168.1.100 10.0.0.1</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># bind 127.0.0.1</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 指定用来监听Unix套套接字的路径。没有默认值， 所以在没有指定的情况下Redis不会监听Unix套接字</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># unixsocket /tmp/redis.sock</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># unixsocketperm 755</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 一个客户端空闲多少秒后关闭连接。(0代表禁用，永不关闭)</span>
+</span></span><span style="display:flex;"><span>timeout <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># TCP keepalive.</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果非零，则设置SO_KEEPALIVE选项来向空闲连接的客户端发送ACK，由于以下两个原因这是很有用的：</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 1）能够检测无响应的对端</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 2）让该连接中间的网络设备知道这个连接还存活</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 在Linux上，这个指定的值(单位：秒)就是发送ACK的时间间隔。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 注意：要关闭这个连接需要两倍的这个时间值。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 在其他内核上这个时间间隔由内核配置决定</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 这个选项的一个合理值是60秒</span>
+</span></span><span style="display:flex;"><span>tcp-keepalive <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 指定服务器调试等级</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 可能值：</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># debug （大量信息，对开发/测试有用）</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># verbose （很多精简的有用信息，但是不像debug等级那么多）</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># notice （适量的信息，基本上是你生产环境中需要的）</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># warning （只有很重要/严重的信息会记录下来）</span>
+</span></span><span style="display:flex;"><span>loglevel notice
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 指明日志文件名。也可以使用&#34;stdout&#34;来强制让Redis把日志信息写到标准输出上。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 注意:如果Redis以守护进程方式运行，而设置日志显示到标准输出的话，日志会发送到/dev/null</span>
+</span></span><span style="display:flex;"><span>logfile <span style="color:#4e9a06">&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 要使用系统日志记录器，只要设置 &#34;syslog-enabled&#34; 为 &#34;yes&#34; 就可以了。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 然后根据需要设置其他一些syslog参数就可以了。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># syslog-enabled no</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 指明syslog身份</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># syslog-ident redis</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 指明syslog的设备。必须是user或LOCAL0 ~ LOCAL7之一。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># syslog-facility local0</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 设置数据库个数。默认数据库是 DB 0，</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 可以通过select &lt;dbid&gt;  (0 &lt;= dbid &lt;= &#39;databases&#39; - 1 ）来为每个连接使用不同的数据库。</span>
+</span></span><span style="display:flex;"><span>databases <span style="color:#0000cf;font-weight:bold">16</span>
+</span></span></code></pre></div><h1 id="snapshotting">SNAPSHOTTING</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">################################ SNAPSHOTTING  ################################</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 把数据库存到磁盘上:</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#   save &lt;seconds&gt; &lt;changes&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#   </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#   会在指定秒数和数据变化次数之后把数据库写到磁盘上。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#   下面的例子将会进行把数据写入磁盘的操作:</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#   900秒（15分钟）之后，且至少1次变更</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#   300秒（5分钟）之后，且至少10次变更</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#   60秒之后，且至少10000次变更</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#   注意：你要想不写磁盘的话就把所有 &#34;save&#34; 设置注释掉就行了。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#   通过添加一条带空字符串参数的save指令也能移除之前所有配置的save指令</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#   像下面的例子：</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#   save &#34;&#34; </span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>save <span style="color:#0000cf;font-weight:bold">900</span> <span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span>save <span style="color:#0000cf;font-weight:bold">300</span> <span style="color:#0000cf;font-weight:bold">10</span>
+</span></span><span style="display:flex;"><span>save <span style="color:#0000cf;font-weight:bold">60</span> <span style="color:#0000cf;font-weight:bold">10000</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 默认如果开启RDB快照(至少一条save指令)并且最新的后台保存失败，Redis将会停止接受写操作</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 这将使用户知道数据没有正确的持久化到硬盘，否则可能没人注意到并且造成一些灾难。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果后台保存进程能重新开始工作，Redis将自动允许写操作</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 然而如果你已经部署了适当的Redis服务器和持久化的监控，你可能想关掉这个功能以便于即使是</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 硬盘，权限等出问题了Redis也能够像平时一样正常工作，</span>
+</span></span><span style="display:flex;"><span>stop-writes-on-bgsave-error yes
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 当导出到 .rdb 数据库时是否用LZF压缩字符串对象？</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 默认设置为 &#34;yes&#34;，因为几乎在任何情况下它都是不错的。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果你想节省CPU的话你可以把这个设置为 &#34;no&#34;，但是如果你有可压缩的key和value的话，</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 那数据文件就会更大了。</span>
+</span></span><span style="display:flex;"><span>rdbcompression yes
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 因为版本5的RDB有一个CRC64算法的校验和放在了文件的最后。这将使文件格式更加可靠但在</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 生产和加载RDB文件时，这有一个性能消耗(大约10%)，所以你可以关掉它来获取最好的性能。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 生成的关闭校验的RDB文件有一个0的校验和，它将告诉加载代码跳过检查</span>
+</span></span><span style="display:flex;"><span>rdbchecksum yes
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 持久化数据库的文件名</span>
+</span></span><span style="display:flex;"><span>dbfilename dump.rdb
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 工作目录</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 数据库会写到这个目录下，文件名就是上面的 &#34;dbfilename&#34; 的值。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 累加文件也放这里。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 注意你这里指定的必须是目录，不是文件名。</span>
+</span></span><span style="display:flex;"><span>dir ./
+</span></span></code></pre></div><h1 id="replication">REPLICATION</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">################################# REPLICATION #################################</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 主从同步。通过 slaveof 指令来实现Redis实例的备份。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 注意，这里是本地从远端复制数据。也就是说，本地可以有不同的数据库文件、绑定不同的IP、监听</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 不同的端口。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># slaveof &lt;masterip&gt; &lt;masterport&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果master设置了密码保护（通过 &#34;requirepass&#34; 选项来配置），那么slave在开始同步之前必须</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 进行身份验证，否则它的同步请求会被拒绝。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># masterauth &lt;master-password&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 当一个slave失去和master的连接，或者同步正在进行中，slave的行为有两种可能：</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 1) 如果 slave-serve-stale-data 设置为 &#34;yes&#34; (默认值)，slave会继续响应客户端请求，</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#    可能是正常数据，也可能是还没获得值的空数据。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 2) 如果 slave-serve-stale-data 设置为 &#34;no&#34;，slave会回复&#34;正在从master同步</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#   （SYNC with master in progress）&#34;来处理各种请求，除了 INFO 和 SLAVEOF 命令。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span>slave-serve-stale-data yes
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 你可以配置salve实例是否接受写操作。可写的slave实例可能对存储临时数据比较有用(因为写入salve</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 的数据在同master同步之后将很容被删除)，但是如果客户端由于配置错误在写入时也可能产生一些问题。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 从Redis2.6默认所有的slave为只读</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 注意:只读的slave不是为了暴露给互联网上不可信的客户端而设计的。它只是一个防止实例误用的保护层。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 一个只读的slave支持所有的管理命令比如config,debug等。为了限制你可以用&#39;rename-command&#39;来</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 隐藏所有的管理和危险命令来增强只读slave的安全性</span>
+</span></span><span style="display:flex;"><span>slave-read-only yes
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># slave根据指定的时间间隔向master发送ping请求。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 时间间隔可以通过 repl_ping_slave_period 来设置。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 默认10秒。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># repl-ping-slave-period 10</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 以下选项设置同步的超时时间</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 1）slave在与master SYNC期间有大量数据传输，造成超时</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 2）在slave角度，master超时，包括数据、ping等</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 3）在master角度，slave超时，当master发送REPLCONF ACK pings</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 确保这个值大于指定的repl-ping-slave-period，否则在主从间流量不高时每次都会检测到超时</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># repl-timeout 60</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 是否在slave套接字发送SYNC之后禁用 TCP_NODELAY ？</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果你选择“yes”Redis将使用更少的TCP包和带宽来向slaves发送数据。但是这将使数据传输到slave</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 上有延迟，Linux内核的默认配置会达到40毫秒</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果你选择了 &#34;no&#34; 数据传输到salve的延迟将会减少但要使用更多的带宽</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 默认我们会为低延迟做优化，但高流量情况或主从之间的跳数过多时，把这个选项设置为“yes”</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 是个不错的选择。</span>
+</span></span><span style="display:flex;"><span>repl-disable-tcp-nodelay no
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 设置数据备份的backlog大小。backlog是一个slave在一段时间内断开连接时记录salve数据的缓冲，</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 所以一个slave在重新连接时，不必要全量的同步，而是一个增量同步就足够了，将在断开连接的这段</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 时间内slave丢失的部分数据传送给它。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 同步的backlog越大，slave能够进行增量同步并且允许断开连接的时间就越长。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># backlog只分配一次并且至少需要一个slave连接</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># repl-backlog-size 1mb</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 当master在一段时间内不再与任何slave连接，backlog将会释放。以下选项配置了从最后一个</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># slave断开开始计时多少秒后，backlog缓冲将会释放。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 0表示永不释放backlog</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># repl-backlog-ttl 3600</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># slave的优先级是一个整数展示在Redis的Info输出中。如果master不再正常工作了，哨兵将用它来</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 选择一个slave提升=升为master。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 优先级数字小的salve会优先考虑提升为master，所以例如有三个slave优先级分别为10，100，25，</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 哨兵将挑选优先级最小数字为10的slave。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 0作为一个特殊的优先级，标识这个slave不能作为master，所以一个优先级为0的slave永远不会被</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 哨兵挑选提升为master</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 默认优先级为100</span>
+</span></span><span style="display:flex;"><span>slave-priority <span style="color:#0000cf;font-weight:bold">100</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果master少于N个延时小于等于M秒的已连接slave，就可以停止接收写操作。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># N个slave需要是“oneline”状态</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 延时是以秒为单位，并且必须小于等于指定值，是从最后一个从slave接收到的ping（通常每秒发送）</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 开始计数。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># This option does not GUARANTEES that N replicas will accept the write, but</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># will limit the window of exposure for lost writes in case not enough slaves</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># are available, to the specified number of seconds.</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 例如至少需要3个延时小于等于10秒的slave用下面的指令：</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># min-slaves-to-write 3</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># min-slaves-max-lag 10</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 两者之一设置为0将禁用这个功能。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 默认 min-slaves-to-write 值是0（该功能禁用）并且 min-slaves-max-lag 值是10。</span>
+</span></span></code></pre></div><h1 id="security">SECURITY</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">################################## SECURITY ###################################</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 要求客户端在处理任何命令时都要验证身份和密码。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 这个功能在有你不信任的其它客户端能够访问redis服务器的环境里非常有用。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 为了向后兼容的话这段应该注释掉。而且大多数人不需要身份验证(例如:它们运行在自己的服务器上)</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 警告：因为Redis太快了，所以外面的人可以尝试每秒150k的密码来试图破解密码。这意味着你需要</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 一个高强度的密码，否则破解太容易了。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># requirepass foobared</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 命令重命名</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 在共享环境下，可以为危险命令改变名字。比如，你可以为 CONFIG 改个其他不太容易猜到的名字，</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 这样内部的工具仍然可以使用，而普通的客户端将不行。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 例如：</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># rename-command CONFIG b840fc02d524045429941cc15f59e41cb7be6c52</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 也可以通过改名为空字符串来完全禁用一个命令</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># rename-command CONFIG &#34;&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 请注意：改变命令名字被记录到AOF文件或被传送到从服务器可能产生问题。</span>
+</span></span></code></pre></div><h1 id="limits">LIMITS</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">################################### LIMITS ####################################</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 设置最多同时连接的客户端数量。默认这个限制是10000个客户端，然而如果Redis服务器不能配置</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 处理文件的限制数来满足指定的值，那么最大的客户端连接数就被设置成当前文件限制数减32（因</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 为Redis服务器保留了一些文件描述符作为内部使用）</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 一旦达到这个限制，Redis会关闭所有新连接并发送错误&#39;max number of clients reached&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># maxclients 10000</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 不要用比设置的上限更多的内存。一旦内存使用达到上限，Redis会根据选定的回收策略（参见：</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># maxmemmory-policy）删除key</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果因为删除策略Redis无法删除key，或者策略设置为 &#34;noeviction&#34;，Redis会回复需要更</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 多内存的错误信息给命令。例如，SET,LPUSH等等，但是会继续响应像Get这样的只读命令。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 在使用Redis作为LRU缓存，或者为实例设置了硬性内存限制的时候（使用 &#34;noeviction&#34; 策略）</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 的时候，这个选项通常事很有用的。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 警告：当有多个slave连上达到内存上限的实例时，master为同步slave的输出缓冲区所需</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 内存不计算在使用内存中。这样当驱逐key时，就不会因网络问题 / 重新同步事件触发驱逐key</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 的循环，反过来slaves的输出缓冲区充满了key被驱逐的DEL命令，这将触发删除更多的key，</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 直到这个数据库完全被清空为止</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 总之...如果你需要附加多个slave，建议你设置一个稍小maxmemory限制，这样系统就会有空闲</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 的内存作为slave的输出缓存区(但是如果最大内存策略设置为&#34;noeviction&#34;的话就没必要了)</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># maxmemory &lt;bytes&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 最大内存策略：如果达到内存限制了，Redis如何选择删除key。你可以在下面五个行为里选：</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># volatile-lru -&gt; 根据LRU算法生成的过期时间来删除。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># allkeys-lru -&gt; 根据LRU算法删除任何key。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># volatile-random -&gt; 根据过期设置来随机删除key。 </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># allkeys-&gt;random -&gt; 无差别随机删。 </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># volatile-ttl -&gt; 根据最近过期时间来删除（辅以TTL） </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># noeviction -&gt; 谁也不删，直接在写操作时返回错误。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 注意：对所有策略来说，如果Redis找不到合适的可以删除的key都会在写操作时返回一个错误。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#       目前为止涉及的命令：set setnx setex append</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#       incr decr rpush lpush rpushx lpushx linsert lset rpoplpush sadd</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#       sinter sinterstore sunion sunionstore sdiff sdiffstore zadd zincrby</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#       zunionstore zinterstore hset hsetnx hmset hincrby incrby decrby</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#       getset mset msetnx exec sort</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 默认值如下：</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># maxmemory-policy volatile-lru</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># LRU和最小TTL算法的实现都不是很精确，但是很接近（为了省内存），所以你可以用样本量做检测。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 例如：默认Redis会检查3个key然后取最旧的那个，你可以通过下面的配置指令来设置样本的个数。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># maxmemory-samples 3</span>
+</span></span></code></pre></div><h1 id="append-only-mode">APPEND ONLY MODE</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">############################## APPEND ONLY MODE ###############################</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 默认情况下，Redis是异步的把数据导出到磁盘上。这种模式在很多应用里已经足够好，但Redis进程</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 出问题或断电时可能造成一段时间的写操作丢失(这取决于配置的save指令)。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># AOF是一种提供了更可靠的替代持久化模式，例如使用默认的数据写入文件策略（参见后面的配置）</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 在遇到像服务器断电或单写情况下Redis自身进程出问题但操作系统仍正常运行等突发事件时，Redis</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 能只丢失1秒的写操作。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># AOF和RDB持久化能同时启动并且不会有问题。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果AOF开启，那么在启动时Redis将加载AOF文件，它更能保证数据的可靠性。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 请查看 http://redis.io/topics/persistence 来获取更多信息.</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>appendonly no
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 纯累加文件名字（默认：&#34;appendonly.aof&#34;）</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>appendfilename <span style="color:#4e9a06">&#34;appendonly.aof&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># fsync() 系统调用告诉操作系统把数据写到磁盘上，而不是等更多的数据进入输出缓冲区。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 有些操作系统会真的把数据马上刷到磁盘上；有些则会尽快去尝试这么做。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Redis支持三种不同的模式：</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># no：不要立刻刷，只有在操作系统需要刷的时候再刷。比较快。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># always：每次写操作都立刻写入到aof文件。慢，但是最安全。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># everysec：每秒写一次。折中方案。 </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 默认的 &#34;everysec&#34; 通常来说能在速度和数据安全性之间取得比较好的平衡。根据你的理解来</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 决定，如果你能放宽该配置为&#34;no&#34; 来获取更好的性能(但如果你能忍受一些数据丢失，可以考虑使用</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 默认的快照持久化模式)，或者相反，用“always”会比较慢但比everysec要更安全。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 请查看下面的文章来获取更多的细节</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># http://antirez.com/post/redis-persistence-demystified.html </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果不能确定，就用 &#34;everysec&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># appendfsync always</span>
+</span></span><span style="display:flex;"><span>appendfsync everysec
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># appendfsync no</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果AOF的同步策略设置成 &#34;always&#34; 或者 &#34;everysec&#34;，并且后台的存储进程（后台存储或写入AOF</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 日志）会产生很多磁盘I/O开销。某些Linux的配置下会使Redis因为 fsync()系统调用而阻塞很久。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 注意，目前对这个情况还没有完美修正，甚至不同线程的 fsync() 会阻塞我们同步的write(2)调用。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 为了缓解这个问题，可以用下面这个选项。它可以在 BGSAVE 或 BGREWRITEAOF 处理时阻止fsync()。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 这就意味着如果有子进程在进行保存操作，那么Redis就处于&#34;不可同步&#34;的状态。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 这实际上是说，在最差的情况下可能会丢掉30秒钟的日志数据。（默认Linux设定）</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果把这个设置成&#34;yes&#34;带来了延迟问题，就保持&#34;no&#34;，这是保存持久数据的最安全的方式。</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>no-appendfsync-on-rewrite no
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 自动重写AOF文件</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果AOF日志文件增大到指定百分比，Redis能够通过 BGREWRITEAOF 自动重写AOF日志文件。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 工作原理：Redis记住上次重写时AOF文件的大小（如果重启后还没有写操作，就直接用启动时的AOF大小）</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 这个基准大小和当前大小做比较。如果当前大小超过指定比例，就会触发重写操作。你还需要指定被重写</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 日志的最小尺寸，这样避免了达到指定百分比但尺寸仍然很小的情况还要重写。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 指定百分比为0会禁用AOF自动重写特性。</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>auto-aof-rewrite-percentage <span style="color:#0000cf;font-weight:bold">100</span>
+</span></span><span style="display:flex;"><span>auto-aof-rewrite-min-size 64mb
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">################################ LUA SCRIPTING  ###############################</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Lua 脚本的最大执行时间，毫秒为单位</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果达到了最大的执行时间，Redis将要记录在达到最大允许时间之后一个脚本仍然在执行，并且将</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 开始对查询进行错误响应。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 当一个长时间运行的脚本超过了最大执行时间，只有 SCRIPT KILL 和 SHUTDOWN NOSAVE 两个</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 命令可用。第一个可以用于停止一个还没有调用写命名的脚本。第二个是关闭服务器唯一方式，当</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 写命令已经通过脚本开始执行，并且用户不想等到脚本的自然终止。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 设置成0或者负值表示不限制执行时间并且没有任何警告</span>
+</span></span><span style="display:flex;"><span>lua-time-limit <span style="color:#0000cf;font-weight:bold">5000</span>
+</span></span></code></pre></div><h1 id="slow-log">SLOW LOG</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">################################## SLOW LOG ###################################</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Redis慢查询日志可以记录超过指定时间的查询。运行时间不包括各种I/O时间，例如：连接客户端，</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 发送响应数据等，而只计算命令执行的实际时间（这只是线程阻塞而无法同时为其他请求服务的命令执</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 行阶段）</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 你可以为慢查询日志配置两个参数:一个指明Redis的超时时间(单位为微秒)来记录超过这个时间的命令</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 另一个是慢查询日志长度。当一个新的命令被写进日志的时候，最老的那个记录从队列中移除。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 下面的时间单位是微秒，所以1000000就是1秒。注意，负数时间会禁用慢查询日志，而0则会强制记录</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 所有命令。</span>
+</span></span><span style="display:flex;"><span>slowlog-log-slower-than <span style="color:#0000cf;font-weight:bold">10000</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 这个长度没有限制。只是要主要会消耗内存。你可以通过 SLOWLOG RESET 来回收内存。</span>
+</span></span><span style="display:flex;"><span>slowlog-max-len <span style="color:#0000cf;font-weight:bold">128</span>
+</span></span></code></pre></div><h1 id="event-notification">Event notification</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">############################# Event notification ##############################</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Redis 能通知 Pub/Sub 客户端关于键空间发生的事件</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 这个功能文档位于http://redis.io/topics/keyspace-events</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 例如：如果键空间事件通知被开启，并且客户端对 0 号数据库的键 foo 执行 DEL 命令时，将通过</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Pub/Sub发布两条消息：</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># PUBLISH __keyspace@0__:foo del</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># PUBLISH __keyevent@0__:del foo</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 可以在下表中选择Redis要通知的事件类型。事件类型由单个字符来标识：</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># K    键空间通知，以__keyspace@&lt;db&gt;__为前缀</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># E    键事件通知，以__keysevent@&lt;db&gt;__为前缀</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># g    DEL , EXPIRE , RENAME 等类型无关的通用命令的通知, ...</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># $    String命令</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># l    List命令</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># s    Set命令</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># h    Hash命令</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># z    有序集合命令</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># x    过期事件（每次key过期时生成）</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># e    驱逐事件（当key在内存满了被清除时生成）</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># A    g$lshzxe的别名，因此”AKE”意味着所有的事件</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># notify-keyspace-events 带一个由0到多个字符组成的字符串参数。空字符串意思是通知被禁用。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 例子：启用List和通用事件通知：</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># notify-keyspace-events Elg</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 例子2：为了获取过期key的通知订阅名字为 __keyevent@__:expired 的频道，用以下配置</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># notify-keyspace-events Ex</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 默认所用的通知被禁用，因为用户通常不需要该特性，并且该特性会有性能损耗。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 注意如果你不指定至少K或E之一，不会发送任何事件。</span>
+</span></span><span style="display:flex;"><span>notify-keyspace-events <span style="color:#4e9a06">&#34;&#34;</span>
+</span></span></code></pre></div><h1 id="advanced-config">ADVANCED CONFIG</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 当hash只有少量的entry时，并且最大的entry所占空间没有超过指定的限制时，会用一种节省内存的</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 数据结构来编码。可以通过下面的指令来设定限制</span>
+</span></span><span style="display:flex;"><span>hash-max-ziplist-entries <span style="color:#0000cf;font-weight:bold">512</span>
+</span></span><span style="display:flex;"><span>hash-max-ziplist-value <span style="color:#0000cf;font-weight:bold">64</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 与hash似，数据元素较少的list，可以用另一种方式来编码从而节省大量空间。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 这种特殊的方式只有在符合下面限制时才可以用：</span>
+</span></span><span style="display:flex;"><span>list-max-ziplist-entries <span style="color:#0000cf;font-weight:bold">512</span>
+</span></span><span style="display:flex;"><span>list-max-ziplist-value <span style="color:#0000cf;font-weight:bold">64</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># set有一种特殊编码的情况：当set数据全是十进制64位有符号整型数字构成的字符串时。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 下面这个配置项就是用来设置set使用这种编码来节省内存的最大长度。</span>
+</span></span><span style="display:flex;"><span>set-max-intset-entries <span style="color:#0000cf;font-weight:bold">512</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 与hash和list相似，有序集合也可以用一种特别的编码方式来节省大量空间。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 这种编码只适合长度和元素都小于下面限制的有序集合：</span>
+</span></span><span style="display:flex;"><span>zset-max-ziplist-entries <span style="color:#0000cf;font-weight:bold">128</span>
+</span></span><span style="display:flex;"><span>zset-max-ziplist-value <span style="color:#0000cf;font-weight:bold">64</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># HyperLogLog sparse representation bytes limit. The limit includes the</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 16 bytes header. When an HyperLogLog using the sparse representation crosses</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># this limit, it is converted into the dense representation.</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># A value greater than 16000 is totally useless, since at that point the</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># dense representation is more memory efficient.</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># The suggested value is ~ 3000 in order to have the benefits of</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># the space efficient encoding without slowing down too much PFADD,</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># which is O(N) with the sparse encoding. The value can be raised to</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ~ 10000 when CPU is not a concern, but space is, and the data set is</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># composed of many HyperLogLogs with cardinality in the 0 - 15000 range.</span>
+</span></span><span style="display:flex;"><span>hll-sparse-max-bytes <span style="color:#0000cf;font-weight:bold">3000</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 启用哈希刷新，每100个CPU毫秒会拿出1个毫秒来刷新Redis的主哈希表（顶级键值映射表）。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># redis所用的哈希表实现（见dict.c）采用延迟哈希刷新机制：你对一个哈希表操作越多，哈希刷新</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 操作就越频繁；反之，如果服务器是空闲的，那么哈希刷新就不会完成，哈希表就会占用更多的一些</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 内存而已。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 默认是每秒钟进行10次哈希表刷新，用来刷新字典，然后尽快释放内存。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 建议：</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果你对延迟比较在意，不能够接受Redis时不时的对请求有2毫秒的延迟的话，就用</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># &#34;activerehashing no&#34;，如果不太在意延迟而希望尽快释放内存就设置&#34;activerehashing yes&#34;</span>
+</span></span><span style="display:flex;"><span>activerehashing yes
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 客户端的输出缓冲区的限制，可用于强制断开那些因为某种原因从服务器读取数据的速度不够快的客户端，</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># （一个常见的原因是一个发布/订阅客户端消费消息的速度无法赶上生产它们的速度）</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 可以对三种不同的客户端设置不同的限制：</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># normal -&gt; 正常客户端</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># slave -&gt; slave和 MONITOR 客户端</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># pubsub -&gt; 至少订阅了一个pubsub channel或pattern的客户端</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 下面是每个client-output-buffer-limit语法:</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># client-output-buffer-limit &lt;class&gt;&lt;hard limit&gt; &lt;soft limit&gt; &lt;soft seconds&gt;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 一旦达到硬限制客户端会立即被断开，或者达到软限制并持续达到指定的秒数（连续的）。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 例如，如果硬限制为32兆字节和软限制为16兆字节/10秒，客户端将会立即断开</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果输出缓冲区的大小达到32兆字节，或客户端达到16兆字节并连续超过了限制10秒，就将断开连接。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 默认normal客户端不做限制，因为他们在不主动请求时不接收数据（以推的方式），只有异步客户端</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 可能会出现请求数据的速度比它可以读取的速度快的场景。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># pubsub和slave客户端会有一个默认值，因为订阅者和slaves以推的方式来接收数据</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 把硬限制和软限制都设置为0来禁用该功能</span>
+</span></span><span style="display:flex;"><span>client-output-buffer-limit normal <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>client-output-buffer-limit slave 256mb 64mb <span style="color:#0000cf;font-weight:bold">60</span>
+</span></span><span style="display:flex;"><span>client-output-buffer-limit pubsub 32mb 8mb <span style="color:#0000cf;font-weight:bold">60</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Redis调用内部函数来执行许多后台任务，如关闭客户端超时的连接，清除未被请求过的过期Key等等。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 不是所有的任务都以相同的频率执行，但Redis依照指定的“hz”值来执行检查任务。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 默认情况下，“hz”的被设定为10。提高该值将在Redis空闲时使用更多的CPU时，但同时当有多个key</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 同时到期会使Redis的反应更灵敏，以及超时可以更精确地处理。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 范围是1到500之间，但是值超过100通常不是一个好主意。</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 大多数用户应该使用10这个默认值，只有在非常低的延迟要求时有必要提高到100。</span>
+</span></span><span style="display:flex;"><span>hz <span style="color:#0000cf;font-weight:bold">10</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 当一个子进程重写AOF文件时，如果启用下面的选项，则文件每生成32M数据会被同步。为了增量式的</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 写入硬盘并且避免大的延迟高峰这个指令是非常有用的</span>
+</span></span><span style="display:flex;"><span>aof-rewrite-incremental-fsync yes
+</span></span></code></pre></div>
+	
+		<style>
+  .feedback--answer {
+    display: inline-block;
+  }
+  .feedback--answer-no {
+    margin-left: 1em;
+  }
+  .feedback--response {
+    display: none;
+    margin-top: 1em;
+  }
+  .feedback--response__visible {
+    display: block;
+  }
+</style>
+<div class="d-print-none">
+<h2 class="feedback--title">Feedback</h2>
+<p class="feedback--question">Was this page helpful?</p>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-yes">Yes</button>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-no">No</button>
+<p class="feedback--response feedback--response-yes">
+  Glad to hear it! Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+<p class="feedback--response feedback--response-no">
+  Sorry to hear that. Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+</div>
+<script>
+  const yesButton = document.querySelector('.feedback--answer-yes');
+  const noButton = document.querySelector('.feedback--answer-no');
+  const yesResponse = document.querySelector('.feedback--response-yes');
+  const noResponse = document.querySelector('.feedback--response-no');
+  const disableButtons = () => {
+    yesButton.disabled = true;
+    noButton.disabled = true;
+  };
+  const sendFeedback = (value) => {
+    if (typeof ga !== 'function') return;
+    const args = {
+      command: 'send',
+      hitType: 'event',
+      category: 'Helpful',
+      action: 'click',
+      label: window.location.pathname,
+      value: value
+    };
+    ga(args.command, args.hitType, args.category, args.action, args.label, args.value);
+  };
+  yesButton.addEventListener('click', () => {
+    yesResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(1);
+  });
+  noButton.addEventListener('click', () => {
+    noResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(0);
+  });
+</script>
+
+		<br />
+	
+	
+	
+</div>
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="User mailing list" aria-label="User mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="User mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Twitter" aria-label="Twitter">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/twitter" aria-label="Twitter">
+      <i class="fab fa-twitter"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Stack Overflow" aria-label="Stack Overflow">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/stack" aria-label="Stack Overflow">
+      <i class="fab fa-stack-overflow"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/blog.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Slack" aria-label="Slack">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/slack" aria-label="Slack">
+      <i class="fab fa-slack"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Developer mailing list" aria-label="Developer mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="Developer mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2022 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		<p class="mt-2"><a href="/about/">About</a></p>
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+  </body>
+</html>
