@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.d61e73305e2c59bfa9ebd0d9b7a98cb4.json"
+  data-offline-search-index-json-src="/offline-search-index.b0adf892cc27b4f7c22a0c564b176b89.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -356,7 +356,7 @@ if (!doNotTrack) {
     
     
 	
-<li>4.1: <a href="#pg-2e853cd9731a1b7fa5f3d4955c5ceda3">iptables介绍</a></li>
+<li>4.1: <a href="#pg-699fefc6af767e2525a21bee111a7f03">tcpdump抓包流程</a></li>
 
 
     
@@ -364,7 +364,15 @@ if (!doNotTrack) {
     
     
 	
-<li>4.2: <a href="#pg-fb885bb9e042e5f183dbbe1462da53d7">iptables命令</a></li>
+<li>4.2: <a href="#pg-2e853cd9731a1b7fa5f3d4955c5ceda3">iptables介绍</a></li>
+
+
+    
+  
+    
+    
+	
+<li>4.3: <a href="#pg-fb885bb9e042e5f183dbbe1462da53d7">iptables命令</a></li>
 
 
     
@@ -3316,7 +3324,183 @@ if (!doNotTrack) {
 
 <div class="td-content" style="">
     
-	<h1 id="pg-2e853cd9731a1b7fa5f3d4955c5ceda3">4.1 - iptables介绍</h1>
+	<h1 id="pg-699fefc6af767e2525a21bee111a7f03">4.1 - tcpdump抓包流程</h1>
+    
+	<h1 id="1-简介">1. 简介</h1>
+<p>linux系统上常用tcpdump抓包来分析网络问题。本文基于网络文章整理，主要介绍tcpdump抓包的常用命令及参数。</p>
+<p>以下是数据包在操作系统层面的流程：</p>
+<p><code>网卡nic</code> -&gt; <code>tcpdump</code> -&gt; <code>iptables(netfilter)</code> -&gt; <code>app</code> -&gt; <code>iptables(netfilter)</code> -&gt; <code>tcpdump</code> -&gt; <code>网卡nic</code></p>
+<h1 id="2-tcpdump常用参数及命令">2. tcpdump常用参数及命令</h1>
+<h2 id="2-1-指定网卡-i-和主机-host">2.1. 指定网卡(-i)和主机(host)</h2>
+<p>tcpdump默认会将IP反向解析为域名，可以用<code>-nn</code>禁止反向解析。</p>
+<ul>
+<li>
+<p><code>-i</code>：指定网卡</p>
+</li>
+<li>
+<p><code>host</code>：指定主机</p>
+</li>
+<li>
+<p><code>-nn</code>：禁止反向解析域名</p>
+</li>
+<li>
+<p><code>-v或-vv</code>：显示抓包的详细信息</p>
+</li>
+<li>
+<p><code>-w:</code> 写入文件（.pcap或.cap），供wireshark分析。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>tcpdump -i any host 192.168.1.1      <span style="color:#8f5902;font-style:italic">#-i指定网卡为所有</span>
+</span></span><span style="display:flex;"><span>tcpdump -i eth0 host 192.168.1.1      <span style="color:#8f5902;font-style:italic">#-i指定网卡为eth0</span>
+</span></span><span style="display:flex;"><span>tcpdump -i eth0 host 192.168.1.1 -nn -v -w client.pcap     <span style="color:#8f5902;font-style:italic"># 写入文件</span>
+</span></span></code></pre></div><h2 id="2-2-指定来源ip或目的ip-网段">2.2. 指定来源IP或目的IP、网段</h2>
+<ul>
+<li>
+<p><code>src</code>：指定来源IP</p>
+</li>
+<li>
+<p><code>dst</code>: 指定目标IP</p>
+</li>
+<li>
+<p><code>net</code>: 指定网段</p>
+</li>
+<li>
+<p><code>-s</code> : 指定抓包字节数，<code>-s 0</code>不限字节数，抓完整的包。例如icmp 大小为84字节</p>
+</li>
+<li>
+<p><code>port</code>: 指定端口</p>
+</li>
+<li>
+<p><code>portrange</code>: 指定端口范围</p>
+</li>
+<li>
+<p><code>协议</code>：tcp, udp, icmp</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 指定源IP</span>
+</span></span><span style="display:flex;"><span>tcpdump -nn -i any src host 192.168.1.1 
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#  指定目标IP</span>
+</span></span><span style="display:flex;"><span>tcpdump -nn -i any dst 192.168.1.1 
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 指定网段</span>
+</span></span><span style="display:flex;"><span>tcpdump -nn -i any net 192.168.1.1/32
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 指定字节数</span>
+</span></span><span style="display:flex;"><span>tcpdump -nn -i any -s <span style="color:#0000cf;font-weight:bold">84</span> host 192.168.1.1  <span style="color:#8f5902;font-style:italic"># 84表示icmp的包</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 指定协议</span>
+</span></span><span style="display:flex;"><span>tcpdump -nn -i any -s <span style="color:#0000cf;font-weight:bold">0</span> icmp  <span style="color:#8f5902;font-style:italic">#只抓icmp协议</span>
+</span></span><span style="display:flex;"><span>tcpdump -nn -i any -s <span style="color:#0000cf;font-weight:bold">60</span> tcp port <span style="color:#0000cf;font-weight:bold">80</span>  <span style="color:#8f5902;font-style:italic">#tcp协议，这里只抓60个头部字节</span>
+</span></span><span style="display:flex;"><span>tcpdump -nn -i any -s <span style="color:#0000cf;font-weight:bold">0</span> udp port <span style="color:#0000cf;font-weight:bold">22</span> <span style="color:#8f5902;font-style:italic"># udp协议</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 指定端口或范围</span>
+</span></span><span style="display:flex;"><span>tcpdump -nn -i any -s <span style="color:#0000cf;font-weight:bold">0</span> port <span style="color:#0000cf;font-weight:bold">22</span>
+</span></span><span style="display:flex;"><span>tcpdump -nn -i any tcp portrange 53-80 
+</span></span></code></pre></div><h2 id="2-3-指定抓包数量-抓包大小-及轮询抓包">2.3. 指定抓包数量、抓包大小、及轮询抓包</h2>
+<ul>
+<li>
+<p>-c: 指定抓多少个包</p>
+</li>
+<li>
+<p>-W: 最多写入多少个抓包文件，以MB为单位</p>
+</li>
+<li>
+<p>-C：写入到抓包文件的大小上限</p>
+</li>
+<li>
+<p>-G：参数指定间隔多少秒轮询保存一次文件，通常是以时间格式命令</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 指定抓2个包</span>
+</span></span><span style="display:flex;"><span>tcpdump -i any -s <span style="color:#0000cf;font-weight:bold">0</span> net 192.168.1.1/32 -c <span style="color:#0000cf;font-weight:bold">2</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 指定写入到文件的大小上限为1M</span>
+</span></span><span style="display:flex;"><span>tcpdump -i any -s <span style="color:#0000cf;font-weight:bold">0</span> -C <span style="color:#0000cf;font-weight:bold">1</span> -v -w client.pcap
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 指定写入到10个抓包文件，每个文件只抓1M，循环写入</span>
+</span></span><span style="display:flex;"><span>tcpdump -i any -s <span style="color:#0000cf;font-weight:bold">0</span> -C 1M -v -W <span style="color:#0000cf;font-weight:bold">10</span> -w client.pcap
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 参数指定间隔多少秒轮询保存一次文件，通常是以时间格式命令</span>
+</span></span><span style="display:flex;"><span>tcpdump -nn -i any -s <span style="color:#0000cf;font-weight:bold">0</span> -G <span style="color:#0000cf;font-weight:bold">5</span> -Z root -v -w %m-%d-%H:%M:%S.pcap  <span style="color:#8f5902;font-style:italic">#每隔五秒保存一次文件</span>
+</span></span></code></pre></div><h2 id="2-4-tcpdump的逻辑表达式-or-and-not">2.4. tcpdump的逻辑表达式(or、and、not)</h2>
+<ul>
+<li>
+<p><code>and</code>: 与</p>
+</li>
+<li>
+<p><code>or</code>: 或</p>
+</li>
+<li>
+<p><code>not</code>: 非</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 与</span>
+</span></span><span style="display:flex;"><span>tcpdump -nn -i any -s <span style="color:#0000cf;font-weight:bold">0</span> host 192.168.1.1 and icmp
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 或</span>
+</span></span><span style="display:flex;"><span>tcpdump -nn -i any -s <span style="color:#0000cf;font-weight:bold">0</span> host 192.168.1.1 or icmp or src net 192.168.1.1/32 
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 非</span>
+</span></span><span style="display:flex;"><span>tcpdump -nn -i any -s <span style="color:#0000cf;font-weight:bold">0</span> ! net 172.16.0.0/16 and icmp and ! tcp
+</span></span></code></pre></div><h1 id="3-flags标记解读">3. Flags标记解读</h1>
+<table>
+<thead>
+<tr>
+<th>Flags</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[S]</code></td>
+<td>SYN</td>
+</tr>
+<tr>
+<td><code>[.]</code></td>
+<td>ACK</td>
+</tr>
+<tr>
+<td><code>[S.]</code></td>
+<td>SYN、ACK</td>
+</tr>
+<tr>
+<td><code>[P.]</code></td>
+<td>PUSH</td>
+</tr>
+<tr>
+<td><code>[R.]</code></td>
+<td>RST</td>
+</tr>
+<tr>
+<td><code>[F.]</code></td>
+<td>FIN</td>
+</tr>
+<tr>
+<td><code>[DF]</code></td>
+<td>Don't Fragment(不分片)，当DF=0时，允许分片</td>
+</tr>
+<tr>
+<td><code>[FP.]</code></td>
+<td>FIN、PUSH、ACK</td>
+</tr>
+</tbody>
+</table>
+<p>参考：</p>
+<ul>
+<li>
+<p><a href="https://www.tcpdump.org/manpages/tcpdump.1.html">https://www.tcpdump.org/manpages/tcpdump.1.html</a></p>
+</li>
+<li>
+<p><a href="https://cloud.tencent.com/developer/article/1858612">抓包神器TCPDUMP的分析总结-涵盖各大使用场景、高级用法</a></p>
+</li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-2e853cd9731a1b7fa5f3d4955c5ceda3">4.2 - iptables介绍</h1>
     
 	<h1 id="1-简介">1. 简介</h1>
 <p>iptables是一个设置防火墙（<strong>netfilter</strong>）规则的命令工具。网络规则包括源地址、目的地址、传输协议（如TCP、UDP、ICMP）和服务类型（如HTTP、FTP和SMTP）等，当数据包与规则匹配时，iptables就根据规则所定义的方法来处理这些数据包，如放行（accept）、拒绝（reject）和丢弃（drop）等。配置防火墙的主要工作就是添加、修改和删除这些规则。</p>
@@ -3459,7 +3643,7 @@ if (!doNotTrack) {
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-fb885bb9e042e5f183dbbe1462da53d7">4.2 - iptables命令</h1>
+	<h1 id="pg-fb885bb9e042e5f183dbbe1462da53d7">4.3 - iptables命令</h1>
     
 	<h2 id="添加iptables规则">添加iptables规则</h2>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 单个端口</span>

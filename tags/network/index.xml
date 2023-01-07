@@ -4,7 +4,7 @@
     <link>https://blog.huweihuang.com/tags/network/</link>
     <description>Recent content in Network on 胡伟煌</description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Thu, 29 Dec 2022 18:50:57 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 06 Jan 2023 10:50:57 +0000</lastBuildDate>
     
 	  <atom:link href="https://blog.huweihuang.com/tags/network/index.xml" rel="self" type="application/rss+xml" />
     
@@ -13,6 +13,178 @@
         
       
     
+    
+    <item>
+      <title>Linux-Notes: tcpdump抓包流程</title>
+      <link>https://blog.huweihuang.com/linux-notes/network/tcpdump/</link>
+      <pubDate>Fri, 06 Jan 2023 10:50:57 +0000</pubDate>
+      
+      <guid>https://blog.huweihuang.com/linux-notes/network/tcpdump/</guid>
+      <description>
+        
+        
+        &lt;h1 id=&#34;1-简介&#34;&gt;1. 简介&lt;/h1&gt;
+&lt;p&gt;linux系统上常用tcpdump抓包来分析网络问题。本文基于网络文章整理，主要介绍tcpdump抓包的常用命令及参数。&lt;/p&gt;
+&lt;p&gt;以下是数据包在操作系统层面的流程：&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;网卡nic&lt;/code&gt; -&amp;gt; &lt;code&gt;tcpdump&lt;/code&gt; -&amp;gt; &lt;code&gt;iptables(netfilter)&lt;/code&gt; -&amp;gt; &lt;code&gt;app&lt;/code&gt; -&amp;gt; &lt;code&gt;iptables(netfilter)&lt;/code&gt; -&amp;gt; &lt;code&gt;tcpdump&lt;/code&gt; -&amp;gt; &lt;code&gt;网卡nic&lt;/code&gt;&lt;/p&gt;
+&lt;h1 id=&#34;2-tcpdump常用参数及命令&#34;&gt;2. tcpdump常用参数及命令&lt;/h1&gt;
+&lt;h2 id=&#34;2-1-指定网卡-i-和主机-host&#34;&gt;2.1. 指定网卡(-i)和主机(host)&lt;/h2&gt;
+&lt;p&gt;tcpdump默认会将IP反向解析为域名，可以用&lt;code&gt;-nn&lt;/code&gt;禁止反向解析。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;-i&lt;/code&gt;：指定网卡&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;host&lt;/code&gt;：指定主机&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;-nn&lt;/code&gt;：禁止反向解析域名&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;-v或-vv&lt;/code&gt;：显示抓包的详细信息&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;-w:&lt;/code&gt; 写入文件（.pcap或.cap），供wireshark分析。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -i any host 192.168.1.1      &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#-i指定网卡为所有&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -i eth0 host 192.168.1.1      &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#-i指定网卡为eth0&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -i eth0 host 192.168.1.1 -nn -v -w client.pcap     &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 写入文件&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;2-2-指定来源ip或目的ip-网段&#34;&gt;2.2. 指定来源IP或目的IP、网段&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;src&lt;/code&gt;：指定来源IP&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;dst&lt;/code&gt;: 指定目标IP&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;net&lt;/code&gt;: 指定网段&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;-s&lt;/code&gt; : 指定抓包字节数，&lt;code&gt;-s 0&lt;/code&gt;不限字节数，抓完整的包。例如icmp 大小为84字节&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;port&lt;/code&gt;: 指定端口&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;portrange&lt;/code&gt;: 指定端口范围&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;协议&lt;/code&gt;：tcp, udp, icmp&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 指定源IP&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -nn -i any src host 192.168.1.1 
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#  指定目标IP&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -nn -i any dst 192.168.1.1 
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 指定网段&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -nn -i any net 192.168.1.1/32
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 指定字节数&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -nn -i any -s &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;84&lt;/span&gt; host 192.168.1.1  &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 84表示icmp的包&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 指定协议&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -nn -i any -s &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; icmp  &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#只抓icmp协议&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -nn -i any -s &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;60&lt;/span&gt; tcp port &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;80&lt;/span&gt;  &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#tcp协议，这里只抓60个头部字节&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -nn -i any -s &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; udp port &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;22&lt;/span&gt; &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# udp协议&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 指定端口或范围&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -nn -i any -s &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; port &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;22&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -nn -i any tcp portrange 53-80 
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;2-3-指定抓包数量-抓包大小-及轮询抓包&#34;&gt;2.3. 指定抓包数量、抓包大小、及轮询抓包&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;-c: 指定抓多少个包&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;-W: 最多写入多少个抓包文件，以MB为单位&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;-C：写入到抓包文件的大小上限&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;-G：参数指定间隔多少秒轮询保存一次文件，通常是以时间格式命令&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 指定抓2个包&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -i any -s &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; net 192.168.1.1/32 -c &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;2&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 指定写入到文件的大小上限为1M&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -i any -s &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; -C &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; -v -w client.pcap
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 指定写入到10个抓包文件，每个文件只抓1M，循环写入&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -i any -s &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; -C 1M -v -W &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;10&lt;/span&gt; -w client.pcap
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 参数指定间隔多少秒轮询保存一次文件，通常是以时间格式命令&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -nn -i any -s &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; -G &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;5&lt;/span&gt; -Z root -v -w %m-%d-%H:%M:%S.pcap  &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#每隔五秒保存一次文件&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;2-4-tcpdump的逻辑表达式-or-and-not&#34;&gt;2.4. tcpdump的逻辑表达式(or、and、not)&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;and&lt;/code&gt;: 与&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;or&lt;/code&gt;: 或&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;not&lt;/code&gt;: 非&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 与&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -nn -i any -s &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; host 192.168.1.1 and icmp
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 或&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -nn -i any -s &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; host 192.168.1.1 or icmp or src net 192.168.1.1/32 
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 非&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -nn -i any -s &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; ! net 172.16.0.0/16 and icmp and ! tcp
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;3-flags标记解读&#34;&gt;3. Flags标记解读&lt;/h1&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Flags&lt;/th&gt;
+&lt;th&gt;含义&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;[S]&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;SYN&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;[.]&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;ACK&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;[S.]&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;SYN、ACK&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;[P.]&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;PUSH&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;[R.]&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;RST&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;[F.]&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;FIN&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;[DF]&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Don&#39;t Fragment(不分片)，当DF=0时，允许分片&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;[FP.]&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;FIN、PUSH、ACK&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;参考：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.tcpdump.org/manpages/tcpdump.1.html&#34;&gt;https://www.tcpdump.org/manpages/tcpdump.1.html&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://cloud.tencent.com/developer/article/1858612&#34;&gt;抓包神器TCPDUMP的分析总结-涵盖各大使用场景、高级用法&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+
+      </description>
+    </item>
     
     <item>
       <title>Kubernetes-Notes: Pod的DNS策略</title>
