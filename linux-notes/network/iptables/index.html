@@ -18,33 +18,134 @@
 <link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
 <link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
 
-<title>iptables命令 | 胡伟煌</title>
-<meta name="description" content="添加iptables规则
-# 单个端口
-iptables -A INPUT -p tcp --dport 22 -j ACCEPT
-
-# 多个端口
-iptables -A INPUT -p tcp -m multiport --dports 6443,8443,2379,2380,10250 -j …">
-<meta property="og:title" content="iptables命令" />
-<meta property="og:description" content="添加iptables规则 # 单个端口 iptables -A INPUT -p tcp --dport 22 -j ACCEPT # 多个端口 iptables -A INPUT -p tcp -m multiport --dports 6443,8443,2379,2380,10250 -j ACCEPT 删除iptables规则 # 显示iptables规则行号 iptables -nL --line-numbers # 删除某行规则 iptables -D INPUT 11 持久化iptables（重启仍生效） 持久化iptables规则，添加规则到文件中/etc/sysconfig/iptables
-# vi /etc/sysconfig/iptables -A INPUT -p vrrp -j ACCEPT -A OUTPUT -p vrrp -j ACCEPT 或者
-apt-get install iptables-persistent netfilter-persistent save netfilter-persistent reload # 生成的规则存储在以下文件 /etc/iptables/rules.v4 /etc/iptables/rules.v6 " />
+<title>iptables介绍 | 胡伟煌</title>
+<meta name="description" content="1. 简介
+iptables是一个设置防火墙（netfilter）规则的命令工具。网络规则包括源地址、目的地址、传输协议（如TCP、UDP、ICMP）和服务类型（如HTTP、FTP和SMTP）等，当数据包与规则匹配时，iptables就根据规则所定义的方法来处理这些数据包，如放行（accept）、拒 …">
+<meta property="og:title" content="iptables介绍" />
+<meta property="og:description" content="1. 简介 iptables是一个设置防火墙（netfilter）规则的命令工具。网络规则包括源地址、目的地址、传输协议（如TCP、UDP、ICMP）和服务类型（如HTTP、FTP和SMTP）等，当数据包与规则匹配时，iptables就根据规则所定义的方法来处理这些数据包，如放行（accept）、拒绝（reject）和丢弃（drop）等。配置防火墙的主要工作就是添加、修改和删除这些规则。
+2. 基本概念 2.1. 链(Chain) 网络设置的”关卡“一般有多个网络规则，称为链。
+INPUT
+OUTPUT
+FORWORD
+PREROUTING
+POSTROUTING
+2.2. 表 具有相同功能的规则的集合叫做”表”。iptables定义了四类表。
+filter表：负责过滤功能，防火墙；内核模块：iptables_filter
+nat表：network address translation，网络地址转换功能；内核模块：iptable_nat
+mangle表：拆解报文，做出修改，并重新封装 的功能；iptable_mangle
+raw表：关闭nat表上启用的连接追踪机制；iptable_raw
+2.3. 表和链的关系 PREROUTING的规则可以存在于：raw表，mangle表，nat表。
+INPUT的规则可以存在于：mangle表，filter表。
+FORWARD的规则可以存在于：mangle表，filter表。
+OUTPUT的规则可以存在于：raw表mangle表，nat表，filter表。
+POSTROUTING的规则可以存在于：mangle表，nat表。
+3. 规则匹配条件 基本匹配条件
+源地址Source IP
+目标地址 Destination IP
+扩展匹配条件
+源端口Source Port,
+目标端口Destination Port
+处理操作
+ACCEPT：允许数据包通过。
+DROP：直接丢弃数据包，不给任何回应信息，这时候客户端会感觉自己的请求泥牛入海了，过了超时时间才会有反应。
+REJECT：拒绝数据包通过，必要时会给数据发送端一个响应的信息，客户端刚请求就会收到拒绝的信息。
+SNAT：源地址转换，解决内网用户用同一个公网地址上网的问题。
+MASQUERADE：是SNAT的一种特殊形式，适用于动态的、临时会变的ip上。
+DNAT：目标地址转换。
+REDIRECT：在本机做端口映射。l
+4. 数据包经过防火墙的流程 图片来自：https://www.zsythink.net/archives/1199
+到本机某进程的报文：PREROUTING –&gt; INPUT
+由本机转发的报文：PREROUTING –&gt; FORWARD –&gt; POSTROUTING
+由本机的某进程发出报文（通常为响应报文）：OUTPUT –&gt; POSTROUTING
+参考：
+IPtables-朱双印博客
+iptables详解（1）：iptables概念-朱双印博客" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://blog.huweihuang.com/linux-notes/network/iptables/" /><meta property="article:section" content="linux-notes" />
 <meta property="article:published_time" content="2020-08-13T10:50:57+00:00" />
-<meta property="article:modified_time" content="2020-08-13T10:50:57+00:00" /><meta property="og:site_name" content="胡伟煌" />
+<meta property="article:modified_time" content="2022-12-30T19:02:04+08:00" /><meta property="og:site_name" content="胡伟煌" />
 
-<meta itemprop="name" content="iptables命令">
-<meta itemprop="description" content="添加iptables规则 # 单个端口 iptables -A INPUT -p tcp --dport 22 -j ACCEPT # 多个端口 iptables -A INPUT -p tcp -m multiport --dports 6443,8443,2379,2380,10250 -j ACCEPT 删除iptables规则 # 显示iptables规则行号 iptables -nL --line-numbers # 删除某行规则 iptables -D INPUT 11 持久化iptables（重启仍生效） 持久化iptables规则，添加规则到文件中/etc/sysconfig/iptables
-# vi /etc/sysconfig/iptables -A INPUT -p vrrp -j ACCEPT -A OUTPUT -p vrrp -j ACCEPT 或者
-apt-get install iptables-persistent netfilter-persistent save netfilter-persistent reload # 生成的规则存储在以下文件 /etc/iptables/rules.v4 /etc/iptables/rules.v6 "><meta itemprop="datePublished" content="2020-08-13T10:50:57+00:00" />
-<meta itemprop="dateModified" content="2020-08-13T10:50:57+00:00" />
-<meta itemprop="wordCount" content="66">
+<meta itemprop="name" content="iptables介绍">
+<meta itemprop="description" content="1. 简介 iptables是一个设置防火墙（netfilter）规则的命令工具。网络规则包括源地址、目的地址、传输协议（如TCP、UDP、ICMP）和服务类型（如HTTP、FTP和SMTP）等，当数据包与规则匹配时，iptables就根据规则所定义的方法来处理这些数据包，如放行（accept）、拒绝（reject）和丢弃（drop）等。配置防火墙的主要工作就是添加、修改和删除这些规则。
+2. 基本概念 2.1. 链(Chain) 网络设置的”关卡“一般有多个网络规则，称为链。
+INPUT
+OUTPUT
+FORWORD
+PREROUTING
+POSTROUTING
+2.2. 表 具有相同功能的规则的集合叫做”表”。iptables定义了四类表。
+filter表：负责过滤功能，防火墙；内核模块：iptables_filter
+nat表：network address translation，网络地址转换功能；内核模块：iptable_nat
+mangle表：拆解报文，做出修改，并重新封装 的功能；iptable_mangle
+raw表：关闭nat表上启用的连接追踪机制；iptable_raw
+2.3. 表和链的关系 PREROUTING的规则可以存在于：raw表，mangle表，nat表。
+INPUT的规则可以存在于：mangle表，filter表。
+FORWARD的规则可以存在于：mangle表，filter表。
+OUTPUT的规则可以存在于：raw表mangle表，nat表，filter表。
+POSTROUTING的规则可以存在于：mangle表，nat表。
+3. 规则匹配条件 基本匹配条件
+源地址Source IP
+目标地址 Destination IP
+扩展匹配条件
+源端口Source Port,
+目标端口Destination Port
+处理操作
+ACCEPT：允许数据包通过。
+DROP：直接丢弃数据包，不给任何回应信息，这时候客户端会感觉自己的请求泥牛入海了，过了超时时间才会有反应。
+REJECT：拒绝数据包通过，必要时会给数据发送端一个响应的信息，客户端刚请求就会收到拒绝的信息。
+SNAT：源地址转换，解决内网用户用同一个公网地址上网的问题。
+MASQUERADE：是SNAT的一种特殊形式，适用于动态的、临时会变的ip上。
+DNAT：目标地址转换。
+REDIRECT：在本机做端口映射。l
+4. 数据包经过防火墙的流程 图片来自：https://www.zsythink.net/archives/1199
+到本机某进程的报文：PREROUTING –&gt; INPUT
+由本机转发的报文：PREROUTING –&gt; FORWARD –&gt; POSTROUTING
+由本机的某进程发出报文（通常为响应报文）：OUTPUT –&gt; POSTROUTING
+参考：
+IPtables-朱双印博客
+iptables详解（1）：iptables概念-朱双印博客"><meta itemprop="datePublished" content="2020-08-13T10:50:57+00:00" />
+<meta itemprop="dateModified" content="2022-12-30T19:02:04+08:00" />
+<meta itemprop="wordCount" content="68">
 <meta itemprop="keywords" content="iptables," /><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="iptables命令"/>
-<meta name="twitter:description" content="添加iptables规则 # 单个端口 iptables -A INPUT -p tcp --dport 22 -j ACCEPT # 多个端口 iptables -A INPUT -p tcp -m multiport --dports 6443,8443,2379,2380,10250 -j ACCEPT 删除iptables规则 # 显示iptables规则行号 iptables -nL --line-numbers # 删除某行规则 iptables -D INPUT 11 持久化iptables（重启仍生效） 持久化iptables规则，添加规则到文件中/etc/sysconfig/iptables
-# vi /etc/sysconfig/iptables -A INPUT -p vrrp -j ACCEPT -A OUTPUT -p vrrp -j ACCEPT 或者
-apt-get install iptables-persistent netfilter-persistent save netfilter-persistent reload # 生成的规则存储在以下文件 /etc/iptables/rules.v4 /etc/iptables/rules.v6 "/>
+<meta name="twitter:title" content="iptables介绍"/>
+<meta name="twitter:description" content="1. 简介 iptables是一个设置防火墙（netfilter）规则的命令工具。网络规则包括源地址、目的地址、传输协议（如TCP、UDP、ICMP）和服务类型（如HTTP、FTP和SMTP）等，当数据包与规则匹配时，iptables就根据规则所定义的方法来处理这些数据包，如放行（accept）、拒绝（reject）和丢弃（drop）等。配置防火墙的主要工作就是添加、修改和删除这些规则。
+2. 基本概念 2.1. 链(Chain) 网络设置的”关卡“一般有多个网络规则，称为链。
+INPUT
+OUTPUT
+FORWORD
+PREROUTING
+POSTROUTING
+2.2. 表 具有相同功能的规则的集合叫做”表”。iptables定义了四类表。
+filter表：负责过滤功能，防火墙；内核模块：iptables_filter
+nat表：network address translation，网络地址转换功能；内核模块：iptable_nat
+mangle表：拆解报文，做出修改，并重新封装 的功能；iptable_mangle
+raw表：关闭nat表上启用的连接追踪机制；iptable_raw
+2.3. 表和链的关系 PREROUTING的规则可以存在于：raw表，mangle表，nat表。
+INPUT的规则可以存在于：mangle表，filter表。
+FORWARD的规则可以存在于：mangle表，filter表。
+OUTPUT的规则可以存在于：raw表mangle表，nat表，filter表。
+POSTROUTING的规则可以存在于：mangle表，nat表。
+3. 规则匹配条件 基本匹配条件
+源地址Source IP
+目标地址 Destination IP
+扩展匹配条件
+源端口Source Port,
+目标端口Destination Port
+处理操作
+ACCEPT：允许数据包通过。
+DROP：直接丢弃数据包，不给任何回应信息，这时候客户端会感觉自己的请求泥牛入海了，过了超时时间才会有反应。
+REJECT：拒绝数据包通过，必要时会给数据发送端一个响应的信息，客户端刚请求就会收到拒绝的信息。
+SNAT：源地址转换，解决内网用户用同一个公网地址上网的问题。
+MASQUERADE：是SNAT的一种特殊形式，适用于动态的、临时会变的ip上。
+DNAT：目标地址转换。
+REDIRECT：在本机做端口映射。l
+4. 数据包经过防火墙的流程 图片来自：https://www.zsythink.net/archives/1199
+到本机某进程的报文：PREROUTING –&gt; INPUT
+由本机转发的报文：PREROUTING –&gt; FORWARD –&gt; POSTROUTING
+由本机的某进程发出报文（通常为响应报文）：OUTPUT –&gt; POSTROUTING
+参考：
+IPtables-朱双印博客
+iptables详解（1）：iptables概念-朱双印博客"/>
 
 
 
@@ -156,7 +257,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.f043f65e6bd084162569d168aa0d2ea7.json"
+  data-offline-search-index-json-src="/offline-search-index.d61e73305e2c59bfa9ebd0d9b7a98cb4.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -178,7 +279,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.f043f65e6bd084162569d168aa0d2ea7.json"
+  data-offline-search-index-json-src="/offline-search-index.d61e73305e2c59bfa9ebd0d9b7a98cb4.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -267,7 +368,11 @@ if (!doNotTrack) {
   <ul class="ul-2 foldable">
     <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-network-iptables-li">
   <input type="checkbox" id="m-linux-notes-network-iptables-check"/>
-  <label for="m-linux-notes-network-iptables-check"><a href="/linux-notes/network/iptables/" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-linux-notes-network-iptables"><span class="td-sidebar-nav-active-item">iptables命令</span></a></label>
+  <label for="m-linux-notes-network-iptables-check"><a href="/linux-notes/network/iptables/" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-linux-notes-network-iptables"><span class="td-sidebar-nav-active-item">iptables介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-network-iptables-command-li">
+  <input type="checkbox" id="m-linux-notes-network-iptables-command-check"/>
+  <label for="m-linux-notes-network-iptables-command-check"><a href="/linux-notes/network/iptables-command/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-network-iptables-command"><span class="">iptables命令</span></a></label>
   
 </li>
   </ul>
@@ -475,6 +580,21 @@ if (!doNotTrack) {
   
 </li>
   </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-ide-li">
+  <input type="checkbox" id="m-linux-notes-ide-check"/>
+  <label for="m-linux-notes-ide-check"><a href="/linux-notes/ide/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-ide"><span class="">IDE配置</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-ide-goland-li">
+  <input type="checkbox" id="m-linux-notes-ide-goland-check"/>
+  <label for="m-linux-notes-ide-goland-check"><a href="/linux-notes/ide/goland/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-ide-goland"><span class="">Goland配置</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-ide-vscode-li">
+  <input type="checkbox" id="m-linux-notes-ide-vscode-check"/>
+  <label for="m-linux-notes-ide-vscode-check"><a href="/linux-notes/ide/vscode/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-ide-vscode"><span class="">vscode远程开发</span></a></label>
+  
+</li>
+  </ul>
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-keymap-li">
   <input type="checkbox" id="m-linux-notes-keymap-check"/>
   <label for="m-linux-notes-keymap-check"><a href="/linux-notes/keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-keymap"><span class="">快捷键</span></a></label>
@@ -499,21 +619,6 @@ if (!doNotTrack) {
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keymap-iterm2-rzsz-li">
   <input type="checkbox" id="m-linux-notes-keymap-iterm2-rzsz-check"/>
   <label for="m-linux-notes-keymap-iterm2-rzsz-check"><a href="/linux-notes/keymap/iterm2-rzsz/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keymap-iterm2-rzsz"><span class="">iterm2 rz与sz的使用</span></a></label>
-  
-</li>
-  </ul>
-</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-ide-li">
-  <input type="checkbox" id="m-linux-notes-ide-check"/>
-  <label for="m-linux-notes-ide-check"><a href="/linux-notes/ide/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-ide"><span class="">IDE配置</span></a></label>
-  
-  <ul class="ul-2 foldable">
-    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-ide-goland-li">
-  <input type="checkbox" id="m-linux-notes-ide-goland-check"/>
-  <label for="m-linux-notes-ide-goland-check"><a href="/linux-notes/ide/goland/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-ide-goland"><span class="">Goland配置</span></a></label>
-  
-</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-ide-vscode-li">
-  <input type="checkbox" id="m-linux-notes-ide-vscode-check"/>
-  <label for="m-linux-notes-ide-vscode-check"><a href="/linux-notes/ide/vscode/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-ide-vscode"><span class="">vscode远程开发</span></a></label>
   
 </li>
   </ul>
@@ -554,7 +659,7 @@ if (!doNotTrack) {
 <a href="https://github.com/huweihuang/blog.huweihuang.com/tree/master/content/zh-cn/linux-notes/network/iptables.md" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa fa-file-alt fa-fw"></i> 查看页面源码</a>
   <a href="https://github.com/huweihuang/blog.huweihuang.com/edit/master/content/zh-cn/linux-notes/network/iptables.md" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 编辑此页</a>
   <a href="https://github.com/huweihuang/blog.huweihuang.com/new/master/content/zh-cn/linux-notes/network/iptables.md?filename=change-me.md&amp;value=---%0Atitle%3A&#43;%22Long&#43;Page&#43;Title%22%0AlinkTitle%3A&#43;%22Short&#43;Nav&#43;Title%22%0Aweight%3A&#43;100%0Adescription%3A&#43;%3E-%0A&#43;&#43;&#43;&#43;&#43;Page&#43;description&#43;for&#43;heading&#43;and&#43;indexes.%0A---%0A%0A%23%23&#43;Heading%0A%0AEdit&#43;this&#43;template&#43;to&#43;create&#43;your&#43;new&#43;page.%0A%0A%2A&#43;Give&#43;it&#43;a&#43;good&#43;name%2C&#43;ending&#43;in&#43;%60.md%60&#43;-&#43;e.g.&#43;%60getting-started.md%60%0A%2A&#43;Edit&#43;the&#43;%22front&#43;matter%22&#43;section&#43;at&#43;the&#43;top&#43;of&#43;the&#43;page&#43;%28weight&#43;controls&#43;how&#43;its&#43;ordered&#43;amongst&#43;other&#43;pages&#43;in&#43;the&#43;same&#43;directory%3B&#43;lowest&#43;number&#43;first%29.%0A%2A&#43;Add&#43;a&#43;good&#43;commit&#43;message&#43;at&#43;the&#43;bottom&#43;of&#43;the&#43;page&#43;%28%3C80&#43;characters%3B&#43;use&#43;the&#43;extended&#43;description&#43;field&#43;for&#43;more&#43;detail%29.%0A%2A&#43;Create&#43;a&#43;new&#43;branch&#43;so&#43;you&#43;can&#43;preview&#43;your&#43;new&#43;file&#43;and&#43;request&#43;a&#43;review&#43;via&#43;Pull&#43;Request.%0A" class="td-page-meta--child" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 添加子页面</a>
-  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new?title=iptables%e5%91%bd%e4%bb%a4" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new?title=iptables%e4%bb%8b%e7%bb%8d" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
   <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new" class="td-page-meta--project-issue" target="_blank" rel="noopener"><i class="fas fa-tasks fa-fw"></i> 提交项目问题</a>
   <a id="print" href="https://blog.huweihuang.com/linux-notes/network/_print/"><i class="fa fa-print fa-fw"></i> 整节打印</a>
 
@@ -565,13 +670,16 @@ if (!doNotTrack) {
 
 <div class="td-toc"><nav id="TableOfContents">
   <ul>
-    <li>
+    <li><a href="#1-简介">1. 简介</a></li>
+    <li><a href="#2-基本概念">2. 基本概念</a>
       <ul>
-        <li><a href="#添加iptables规则">添加iptables规则</a></li>
-        <li><a href="#删除iptables规则">删除iptables规则</a></li>
-        <li><a href="#持久化iptables-重启仍生效">持久化iptables（重启仍生效）</a></li>
+        <li><a href="#2-1-链-chain">2.1. 链(Chain)</a></li>
+        <li><a href="#2-2-表">2.2. 表</a></li>
+        <li><a href="#2-3-表和链的关系">2.3. 表和链的关系</a></li>
       </ul>
     </li>
+    <li><a href="#3-规则匹配条件">3. 规则匹配条件</a></li>
+    <li><a href="#4-数据包经过防火墙的流程">4. 数据包经过防火墙的流程</a></li>
   </ul>
 </nav></div>
 
@@ -614,7 +722,7 @@ if (!doNotTrack) {
         
           <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/golang/" data-taxonomy-term="golang"><span class="taxonomy-label">Golang</span><span class="taxonomy-count">40</span></a></li>
         
-          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/iptables/" data-taxonomy-term="iptables"><span class="taxonomy-label">iptables</span><span class="taxonomy-count">1</span></a></li>
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/iptables/" data-taxonomy-term="iptables"><span class="taxonomy-label">iptables</span><span class="taxonomy-count">2</span></a></li>
         
           <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/karmada/" data-taxonomy-term="karmada"><span class="taxonomy-label">Karmada</span><span class="taxonomy-count">1</span></a></li>
         
@@ -690,13 +798,13 @@ if (!doNotTrack) {
     <a href="https://blog.huweihuang.com/linux-notes/network/">网络</a>
   </li>
   <li class="breadcrumb-item active" aria-current="page">
-    <a href="https://blog.huweihuang.com/linux-notes/network/iptables/">iptables命令</a>
+    <a href="https://blog.huweihuang.com/linux-notes/network/iptables/">iptables介绍</a>
   </li>
   </ol>
 </nav>
             
 <div class="td-content">
-	<h1>iptables命令</h1>
+	<h1>iptables介绍</h1>
 	
 	<header class="article-meta">
 		
@@ -724,34 +832,133 @@ if (!doNotTrack) {
 
 		
 	</header>    
-	<h2 id="添加iptables规则">添加iptables规则</h2>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 单个端口</span>
-</span></span><span style="display:flex;"><span>iptables -A INPUT -p tcp --dport <span style="color:#0000cf;font-weight:bold">22</span> -j ACCEPT
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 多个端口</span>
-</span></span><span style="display:flex;"><span>iptables -A INPUT -p tcp -m multiport --dports 6443,8443,2379,2380,10250 -j ACCEPT
-</span></span></code></pre></div><h2 id="删除iptables规则">删除iptables规则</h2>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 显示iptables规则行号</span>
-</span></span><span style="display:flex;"><span>iptables -nL --line-numbers
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 删除某行规则</span>
-</span></span><span style="display:flex;"><span>iptables -D INPUT <span style="color:#0000cf;font-weight:bold">11</span>
-</span></span></code></pre></div><h2 id="持久化iptables-重启仍生效">持久化iptables（重启仍生效）</h2>
-<p>持久化iptables规则，添加规则到文件中/etc/sysconfig/iptables</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># vi /etc/sysconfig/iptables</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>-A INPUT -p vrrp -j ACCEPT
-</span></span><span style="display:flex;"><span>-A OUTPUT -p vrrp -j ACCEPT
-</span></span></code></pre></div><p>或者</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>apt-get install iptables-persistent
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>netfilter-persistent save
-</span></span><span style="display:flex;"><span>netfilter-persistent reload
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 生成的规则存储在以下文件</span>
-</span></span><span style="display:flex;"><span>/etc/iptables/rules.v4
-</span></span><span style="display:flex;"><span>/etc/iptables/rules.v6
-</span></span></code></pre></div>
+	<h1 id="1-简介">1. 简介</h1>
+<p>iptables是一个设置防火墙（<strong>netfilter</strong>）规则的命令工具。网络规则包括源地址、目的地址、传输协议（如TCP、UDP、ICMP）和服务类型（如HTTP、FTP和SMTP）等，当数据包与规则匹配时，iptables就根据规则所定义的方法来处理这些数据包，如放行（accept）、拒绝（reject）和丢弃（drop）等。配置防火墙的主要工作就是添加、修改和删除这些规则。</p>
+<h1 id="2-基本概念">2. 基本概念</h1>
+<h2 id="2-1-链-chain">2.1. 链(Chain)</h2>
+<p>网络设置的”关卡“一般有多个网络规则，称为链。</p>
+<ul>
+<li>
+<p>INPUT</p>
+</li>
+<li>
+<p>OUTPUT</p>
+</li>
+<li>
+<p>FORWORD</p>
+</li>
+<li>
+<p>PREROUTING</p>
+</li>
+<li>
+<p>POSTROUTING</p>
+</li>
+</ul>
+<h2 id="2-2-表">2.2. 表</h2>
+<p>具有相同功能的规则的集合叫做”表”。iptables定义了四类表。</p>
+<ul>
+<li>
+<p>filter表：负责过滤功能，防火墙；内核模块：iptables_filter</p>
+</li>
+<li>
+<p>nat表：network address translation，网络地址转换功能；内核模块：iptable_nat</p>
+</li>
+<li>
+<p>mangle表：拆解报文，做出修改，并重新封装 的功能；iptable_mangle</p>
+</li>
+<li>
+<p>raw表：关闭nat表上启用的连接追踪机制；iptable_raw</p>
+</li>
+</ul>
+<h2 id="2-3-表和链的关系">2.3. 表和链的关系</h2>
+<ul>
+<li>
+<p><code>PREROUTING</code>的规则可以存在于：raw表，mangle表，nat表。</p>
+</li>
+<li>
+<p><code>INPUT</code>的规则可以存在于：mangle表，filter表。</p>
+</li>
+<li>
+<p><code>FORWARD</code>的规则可以存在于：mangle表，filter表。</p>
+</li>
+<li>
+<p><code>OUTPUT</code>的规则可以存在于：raw表mangle表，nat表，filter表。</p>
+</li>
+<li>
+<p><code>POSTROUTING</code>的规则可以存在于：mangle表，nat表。</p>
+</li>
+</ul>
+<h1 id="3-规则匹配条件">3. 规则匹配条件</h1>
+<p><strong>基本匹配条件</strong></p>
+<ul>
+<li>
+<p>源地址Source IP</p>
+</li>
+<li>
+<p>目标地址 Destination IP</p>
+</li>
+</ul>
+<p><strong>扩展匹配条件</strong></p>
+<ul>
+<li>
+<p>源端口Source Port,</p>
+</li>
+<li>
+<p>目标端口Destination Port</p>
+</li>
+</ul>
+<p><strong>处理操作</strong></p>
+<ul>
+<li>
+<p><strong>ACCEPT</strong>：允许数据包通过。</p>
+</li>
+<li>
+<p><strong>DROP</strong>：直接丢弃数据包，不给任何回应信息，这时候客户端会感觉自己的请求泥牛入海了，过了超时时间才会有反应。</p>
+</li>
+<li>
+<p><strong>REJECT</strong>：拒绝数据包通过，必要时会给数据发送端一个响应的信息，客户端刚请求就会收到拒绝的信息。</p>
+</li>
+<li>
+<p><strong>SNAT</strong>：源地址转换，解决内网用户用同一个公网地址上网的问题。</p>
+</li>
+<li>
+<p><strong>MASQUERADE</strong>：是SNAT的一种特殊形式，适用于动态的、临时会变的ip上。</p>
+</li>
+<li>
+<p><strong>DNAT</strong>：目标地址转换。</p>
+</li>
+<li>
+<p><strong>REDIRECT</strong>：在本机做端口映射。l</p>
+</li>
+</ul>
+<h1 id="4-数据包经过防火墙的流程">4. 数据包经过防火墙的流程</h1>
+<blockquote>
+<p>图片来自：https://www.zsythink.net/archives/1199</p>
+</blockquote>
+<ul>
+<li>
+<p>到本机某进程的报文：PREROUTING –&gt; INPUT</p>
+</li>
+<li>
+<p>由本机转发的报文：PREROUTING –&gt; FORWARD –&gt; POSTROUTING</p>
+</li>
+<li>
+<p>由本机的某进程发出报文（通常为响应报文）：OUTPUT –&gt; POSTROUTING</p>
+</li>
+</ul>
+<p><img src="https://www.zsythink.net/wp-content/uploads/2017/02/021217_0051_2.png" alt=""></p>
+<p><img src="https://www.zsythink.net/wp-content/uploads/2017/02/021217_0051_6.png" alt=""></p>
+<p>参考：</p>
+<ul>
+<li>
+<p><a href="https://www.zsythink.net/archives/category/%e8%bf%90%e7%bb%b4%e7%9b%b8%e5%85%b3/iptables/">IPtables-朱双印博客</a></p>
+</li>
+<li>
+<p><a href="https://www.zsythink.net/archives/1199">iptables详解（1）：iptables概念-朱双印博客</a></p>
+</li>
+</ul>
+<p>    </p>
+
 	
 		<style>
   .feedback--answer {
@@ -816,7 +1023,10 @@ if (!doNotTrack) {
 		<br />
 	
 	
-	
+	<div class="text-muted mt-5 pt-3 border-top">
+  最后修改 December 30, 2022: <a href="https://github.com/huweihuang/blog.huweihuang.com/commit/85fc35b35478f9f1525b145de4600720ec70d140">add linux notes (85fc35b)</a>
+</div>
+
 </div>
 
 
@@ -886,7 +1096,7 @@ if (!doNotTrack) {
         
       </div>
       <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
-        <small class="text-white">&copy; 2022 www.huweihuang.com 保留所有权利</small>
+        <small class="text-white">&copy; 2023 www.huweihuang.com 保留所有权利</small>
         <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
 	
 		<p class="mt-2"><a href="/about/">About</a></p>
