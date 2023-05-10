@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.1ffe2e72d0a089d4b40d079d8a0604fd.json"
+  data-offline-search-index-json-src="/offline-search-index.e516b666348682c7f36dfba57a8b0ed4.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -226,6 +226,14 @@ if (!doNotTrack) {
   
 
     </ul>
+    
+  
+    
+    
+	
+<li>2: <a href="#pg-90d3042b02510958c3ff4d2692b71a2e">性能分析之go pprof工具使用</a></li>
+
+
     
   
 
@@ -676,6 +684,187 @@ if (!doNotTrack) {
     
 	
   
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-90d3042b02510958c3ff4d2692b71a2e">2 - 性能分析之go pprof工具使用</h1>
+    
+	<h1 id="1-go-pprof工具简介">1. go pprof工具简介</h1>
+<p>在 Go 语言中，PProf 是用于可视化和分析性能分析数据的工具，PProf 以 profile.proto 读取分析样本的集合，并生成报告以可视化并帮助分析数据（支持文本和图形报告）。</p>
+<ul>
+<li>runtime/pprof：采集程序（非 Server）的指定区块的运行数据进行分析。</li>
+<li>net/http/pprof：基于 HTTP Server 运行，并且可以采集运行时数据进行分析。</li>
+</ul>
+<h2 id="1-1-分析内容">1.1. 分析内容</h2>
+<ul>
+<li>cpu（CPU Profiling）: <code>$HOST/debug/pprof/profile</code>，默认进行 30s 的 CPU Profiling，得到一个分析用的 profile 文件</li>
+<li>block（Block Profiling）：<code>$HOST/debug/pprof/block</code>，查看导致阻塞同步的堆栈跟踪</li>
+<li>goroutine：<code>$HOST/debug/pprof/goroutine</code>，查看当前所有运行的 goroutines 堆栈跟踪</li>
+<li>heap（Memory Profiling）: <code>$HOST/debug/pprof/heap</code>，查看活动对象的内存分配情况</li>
+<li>mutex（Mutex Profiling）：<code>$HOST/debug/pprof/mutex</code>，查看导致互斥锁的竞争持有者的堆栈跟踪</li>
+<li>threadcreate：<code>$HOST/debug/pprof/threadcreate</code>，查看创建新OS线程的堆栈跟踪</li>
+</ul>
+<h2 id="1-2-分析方式">1.2. 分析方式</h2>
+<ul>
+<li>
+<p>go tool pprof命令交互方式</p>
+</li>
+<li>
+<p>web网页方式查看</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span> http://ip:port/debug/pprof/
+</span></span></code></pre></div><h1 id="2-代码配置pprof">2. 代码配置pprof</h1>
+<h2 id="2-1-gin框架集成pprof">2.1. Gin框架集成pprof</h2>
+<p>调用<code>github.com/gin-contrib/pprof</code>，执行pprof.Register(*gin.Engine)。</p>
+<p>示例代码：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;github.com/gin-contrib/pprof&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;github.com/gin-gonic/gin&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">server</span> <span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">conf</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">config</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Config</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">gin</span>  <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">gin</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Engine</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">s</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">server</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">setupServer</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">gin</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Engine</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 注册pprof
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">pprof</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Register</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">gin</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// register routers
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">setupRoutes</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">gin</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-2-非gin框架集成pprof">2.2. 非Gin框架集成pprof</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;net/http&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;net/http/pprof&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;github.com/gorilla/mux&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Install adds the Profiling webservice to the given mux.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">Install</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">mux</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Router</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HandleFunc</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;/debug/pprof/profile&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">pprof</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Profile</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HandleFunc</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;/debug/pprof/symbol&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">pprof</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Symbol</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HandleFunc</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;/debug/pprof/trace&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">pprof</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Trace</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HandleFunc</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;/debug/pprof&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">redirectTo</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;/debug/pprof/&#34;</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">PathPrefix</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;/debug/pprof/&#34;</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">HandlerFunc</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">pprof</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Index</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">RegisterPprof</span><span style="color:#000;font-weight:bold">(){</span>
+</span></span><span style="display:flex;"><span>     <span style="color:#8f5902;font-style:italic">//    NewRouter
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">muxHandler</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">mux</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewRouter</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// register handler for pprof
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">Install</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">muxHandler</span><span style="color:#000;font-weight:bold">)</span>   
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="3-go-tool-pprof">3. go tool pprof</h1>
+<h2 id="3-1-内存">3.1. 内存</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go tool pprof http://ip:port/debug/pprof/heap
+</span></span></code></pre></div><p>示例：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># go tool pprof http://ip:port/debug/pprof/heap</span>
+</span></span><span style="display:flex;"><span>Fetching profile over HTTP from http://ip:port/debug/pprof/heap
+</span></span><span style="display:flex;"><span>Saved profile in /root/pprof/pprof.yurt-tunnel-server.alloc_objects.alloc_space.inuse_objects.inuse_space.001.pb.gz
+</span></span><span style="display:flex;"><span>File: yurt-tunnel-server
+</span></span><span style="display:flex;"><span>Type: inuse_space
+</span></span><span style="display:flex;"><span>Time: May 10, <span style="color:#0000cf;font-weight:bold">2023</span> at 11:03am <span style="color:#ce5c00;font-weight:bold">(</span>+08<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>Entering interactive mode <span style="color:#ce5c00;font-weight:bold">(</span><span style="color:#204a87">type</span> <span style="color:#4e9a06">&#34;help&#34;</span> <span style="color:#204a87;font-weight:bold">for</span> commands, <span style="color:#4e9a06">&#34;o&#34;</span> <span style="color:#204a87;font-weight:bold">for</span> options<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">(</span>pprof<span style="color:#ce5c00;font-weight:bold">)</span> top
+</span></span><span style="display:flex;"><span>Showing nodes accounting <span style="color:#204a87;font-weight:bold">for</span> 46.08GB, 94.72% of 48.65GB total
+</span></span><span style="display:flex;"><span>Dropped <span style="color:#0000cf;font-weight:bold">319</span> nodes <span style="color:#ce5c00;font-weight:bold">(</span>cum &lt;<span style="color:#ce5c00;font-weight:bold">=</span> 0.24GB<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>Showing top <span style="color:#0000cf;font-weight:bold">10</span> nodes out of <span style="color:#0000cf;font-weight:bold">31</span>
+</span></span><span style="display:flex;"><span>      flat  flat%   sum%        cum   cum%
+</span></span><span style="display:flex;"><span>   25.91GB 53.27% 53.27%    25.91GB 53.27%  bufio.NewWriterSize <span style="color:#ce5c00;font-weight:bold">(</span>inline<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>   12.91GB 26.54% 79.80%    12.91GB 26.54%  bufio.NewReaderSize
+</span></span><span style="display:flex;"><span>    1.67GB  3.43% 83.23%     1.74GB  3.59%  net/textproto.<span style="color:#ce5c00;font-weight:bold">(</span>*Reader<span style="color:#ce5c00;font-weight:bold">)</span>.ReadMIMEHeader
+</span></span><span style="display:flex;"><span>    1.26GB  2.59% 85.83%     1.26GB  2.59%  runtime.malg
+</span></span><span style="display:flex;"><span>    1.22GB  2.51% 88.34%     5.72GB 11.75%  net/http.<span style="color:#ce5c00;font-weight:bold">(</span>*conn<span style="color:#ce5c00;font-weight:bold">)</span>.readRequest
+</span></span><span style="display:flex;"><span>    0.86GB  1.77% 90.11%     3.39GB  6.96%  net/http.readRequest
+</span></span><span style="display:flex;"><span>    0.68GB  1.39% 91.50%    13.72GB 28.20%  sigs.k8s.io/apiserver-network-proxy/pkg/server.<span style="color:#ce5c00;font-weight:bold">(</span>*Tunnel<span style="color:#ce5c00;font-weight:bold">)</span>.ServeHTTP
+</span></span><span style="display:flex;"><span>    0.58GB  1.20% 92.70%     0.86GB  1.78%  context.propagateCancel
+</span></span><span style="display:flex;"><span>    0.51GB  1.06% 93.76%     0.51GB  1.06%  net/http.<span style="color:#ce5c00;font-weight:bold">(</span>*Server<span style="color:#ce5c00;font-weight:bold">)</span>.newConn
+</span></span><span style="display:flex;"><span>    0.47GB  0.96% 94.72%     1.33GB  2.74%  context.WithCancel
+</span></span></code></pre></div><h2 id="3-2-cpu">3.2. CPU</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>go tool pprof http://ip:port/debug/pprof/profile
+</span></span></code></pre></div><p>示例：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># go tool pprof http://ip:port/debug/pprof/profile</span>
+</span></span><span style="display:flex;"><span>Fetching profile over HTTP from http://ip:port/debug/pprof/profile
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Saved profile in /root/pprof/pprof.yurt-tunnel-server.samples.cpu.001.pb.gz
+</span></span><span style="display:flex;"><span>File: yurt-tunnel-server
+</span></span><span style="display:flex;"><span>Type: cpu
+</span></span><span style="display:flex;"><span>Time: May 10, <span style="color:#0000cf;font-weight:bold">2023</span> at 10:58am <span style="color:#ce5c00;font-weight:bold">(</span>+08<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>Duration: 30.14s, Total <span style="color:#000">samples</span> <span style="color:#ce5c00;font-weight:bold">=</span> 35.72s <span style="color:#ce5c00;font-weight:bold">(</span>118.52%<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>Entering interactive mode <span style="color:#ce5c00;font-weight:bold">(</span><span style="color:#204a87">type</span> <span style="color:#4e9a06">&#34;help&#34;</span> <span style="color:#204a87;font-weight:bold">for</span> commands, <span style="color:#4e9a06">&#34;o&#34;</span> <span style="color:#204a87;font-weight:bold">for</span> options<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">(</span>pprof<span style="color:#ce5c00;font-weight:bold">)</span> top
+</span></span><span style="display:flex;"><span>Showing nodes accounting <span style="color:#204a87;font-weight:bold">for</span> 25120ms, 70.32% of 35720ms total
+</span></span><span style="display:flex;"><span>Dropped <span style="color:#0000cf;font-weight:bold">240</span> nodes <span style="color:#ce5c00;font-weight:bold">(</span>cum &lt;<span style="color:#ce5c00;font-weight:bold">=</span> 178.60ms<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>Showing top <span style="color:#0000cf;font-weight:bold">10</span> nodes out of <span style="color:#0000cf;font-weight:bold">58</span>
+</span></span><span style="display:flex;"><span>      flat  flat%   sum%        cum   cum%
+</span></span><span style="display:flex;"><span>   12100ms 33.87% 33.87%    12120ms 33.93%  runtime.<span style="color:#ce5c00;font-weight:bold">(</span>*lfstack<span style="color:#ce5c00;font-weight:bold">)</span>.pop <span style="color:#ce5c00;font-weight:bold">(</span>inline<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    3360ms  9.41% 43.28%     3360ms  9.41%  runtime.<span style="color:#ce5c00;font-weight:bold">(</span>*lfstack<span style="color:#ce5c00;font-weight:bold">)</span>.push
+</span></span><span style="display:flex;"><span>    2200ms  6.16% 49.44%     2200ms  6.16%  runtime.pageIndexOf <span style="color:#ce5c00;font-weight:bold">(</span>inline<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    1350ms  3.78% 53.22%     1520ms  4.26%  runtime.findObject
+</span></span><span style="display:flex;"><span>    1350ms  3.78% 57.00%     3490ms  9.77%  runtime.scanobject
+</span></span><span style="display:flex;"><span>    1120ms  3.14% 60.13%     3550ms  9.94%  runtime.sweepone
+</span></span><span style="display:flex;"><span>    1000ms  2.80% 62.93%    10850ms 30.38%  runtime.scanblock
+</span></span><span style="display:flex;"><span>     910ms  2.55% 65.48%     1310ms  3.67%  runtime.step
+</span></span><span style="display:flex;"><span>     890ms  2.49% 67.97%      890ms  2.49%  runtime.markBits.isMarked <span style="color:#ce5c00;font-weight:bold">(</span>inline<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>     840ms  2.35% 70.32%    20300ms 56.83%  runtime.gentraceback
+</span></span></code></pre></div><h1 id="4-生成火焰图">4. 生成火焰图</h1>
+<p>安装graphviz，用于生成火焰图。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span> <span style="color:#8f5902;font-style:italic"># ubuntu</span>
+</span></span><span style="display:flex;"><span> apt-get install -y graphviz
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span> <span style="color:#8f5902;font-style:italic"># centos</span>
+</span></span><span style="display:flex;"><span> yum install -y graphviz
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span> <span style="color:#8f5902;font-style:italic"># mac</span>
+</span></span><span style="display:flex;"><span> brew install graphviz
+</span></span></code></pre></div><p>当执行go pprof的命令时，会自动生成<code>.pb.gz</code>文件，例如：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 内存</span>
+</span></span><span style="display:flex;"><span>Saved profile in /root/pprof/pprof.yurt-tunnel-server.alloc_objects.alloc_space.inuse_objects.inuse_space.001.pb.gz
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># CPU</span>
+</span></span><span style="display:flex;"><span>Saved profile in /root/pprof/pprof.yurt-tunnel-server.samples.cpu.001.pb.gz
+</span></span></code></pre></div><p>将<code>.pb.gz</code>文件拷贝到mac本地，执行以下命令，在浏览器查看相关视图。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ go tool pprof -http<span style="color:#ce5c00;font-weight:bold">=</span>:8081 pprof.yurt-tunnel-server.alloc_objects.alloc_space.inuse_objects.inuse_space.001.pb.gz
+</span></span><span style="display:flex;"><span>Serving web UI on http://localhost:8081
+</span></span></code></pre></div><h2 id="4-1-内存分布图">4.1. 内存分布图</h2>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1683701710/article/golang/pprof/profile001.png" alt=""></p>
+<h2 id="4-2-火焰图">4.2. 火焰图</h2>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1683701425/article/golang/pprof/graph.png" alt=""></p>
+<p>参考：</p>
+<ul>
+<li>
+<p><a href="https://segmentfault.com/a/1190000016412013">Golang 大杀器之性能剖析 PProf - SegmentFault 思否</a></p>
+</li>
+<li>
+<p><a href="https://geektutu.com/post/hpg-pprof.html">https://geektutu.com/post/hpg-pprof.html</a></p>
+</li>
+<li>
+<p><a href="https://coder.today/tech/2018-11-10_profiling-your-golang-app-in-3-steps/">https://coder.today/tech/2018-11-10_profiling-your-golang-app-in-3-steps/</a></p>
+</li>
+<li>
+<p><a href="https://go.dev/blog/pprof">Profiling Go Programs - The Go Programming Language</a></p>
+</li>
+<li>
+<p><a href="https://golang2.eddycjy.com/posts/ch6/01-pprof-1/">Go 大杀器之性能剖析 PProf（上） | Go 语言编程之旅</a></p>
+</li>
+</ul>
+
+</div>
+
+
 
     
 	

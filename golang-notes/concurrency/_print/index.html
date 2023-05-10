@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.1ffe2e72d0a089d4b40d079d8a0604fd.json"
+  data-offline-search-index-json-src="/offline-search-index.e516b666348682c7f36dfba57a8b0ed4.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -188,31 +188,7 @@ if (!doNotTrack) {
     
     
 	
-<li>1: <a href="#pg-b5e17ca94b86825092a8e43cd61b8554">并发基础</a></li>
-
-
-    
-  
-    
-    
-	
-<li>2: <a href="#pg-1660b18b42d691950dd8f524cf53897a">Goroutine</a></li>
-
-
-    
-  
-    
-    
-	
-<li>3: <a href="#pg-f14ce38fc554304a81c935663d81bec5">Channel</a></li>
-
-
-    
-  
-    
-    
-	
-<li>4: <a href="#pg-d6890ff3be5dc6e0523e6ea1a20affaa">并行化</a></li>
+<li>1: <a href="#pg-4c8372e52fa75cb824e9855efd347543">Golang系列（三）之并发编程</a></li>
 
 
     
@@ -243,20 +219,12 @@ if (!doNotTrack) {
 
 <div class="td-content" style="">
     
-	<h1 id="pg-b5e17ca94b86825092a8e43cd61b8554">1 - 并发基础</h1>
+	<h1 id="pg-4c8372e52fa75cb824e9855efd347543">1 - Golang系列（三）之并发编程</h1>
     
-	<h1 id="并发基础">并发基础</h1>
-<h2 id="1-概念">1. 概念</h2>
+	<h2 id="一-并发基础">（一）并发基础</h2>
+<h3 id="1-概念">1.概念</h3>
 <p>并发意味着程序在运行时有多个执行上下文，对应多个调用栈。</p>
 <p>并发与并行的区别：</p>
-<ul>
-<li>
-<p>并发: 逻辑上具有处理多个同时性任务的能力。即看起来是多个任务同时执行，但并不一定同一个时刻执行，例如单核CPU，通过多线程共享CPU时间片串行执行(并发非并行)。</p>
-</li>
-<li>
-<p>并行: 物理上同一时刻执行多个并发任务。一般依赖多核CPU达到多个任务在同一个时刻执行(并发且并行)。</p>
-</li>
-</ul>
 <p>并发的主流实现模型：</p>
 <table>
 <thead>
@@ -291,28 +259,12 @@ if (!doNotTrack) {
 </table>
 <p>共享内存系统：线程之间采用共享内存的方式通信，通过加锁来避免死锁或资源竞争。</p>
 <p>消息传递系统：将线程间共享状态封装在消息中，通过发送消息来共享内存，而非通过共享内存来通信。</p>
-<h2 id="2-协程">2. 协程</h2>
+<h3 id="2-协程">2.协程</h3>
 <p>执行体是个抽象的概念，在操作系统中分为三个级别：进程（process），进程内的线程（thread），进程内的协程（coroutine，轻量级线程）。协程的数量级可达到上百万个，进程和线程的数量级最多不超过一万个。Go语言中的协程叫goroutine，Go标准库提供的调用操作，IO操作都会出让CPU给其他goroutine，让协程间的切换管理不依赖系统的线程和进程，不依赖CPU的核心数量。</p>
-<h2 id="3-并发通信">3. 并发通信</h2>
+<h3 id="3-并发通信">3.并发通信</h3>
 <p>并发编程的难度在于协调，协调需要通过通信，并发通信模型分为共享数据和消息。共享数据即多个并发单元保持对同一个数据的引用，数据可以是内存数据块，磁盘文件，网络数据等。数据共享通过加锁的方式来避免死锁和资源竞争。Go语言则采取消息机制来通信，每个并发单元是独立的个体，有独立的变量，不同并发单元间这些变量不共享，每个并发单元的输入输出只通过消息的方式。</p>
-
-</div>
-
-
-
-    
-	
-  
-    
-    
-	
-    
-
-<div class="td-content" style="page-break-before: always">
-    
-	<h1 id="pg-1660b18b42d691950dd8f524cf53897a">2 - Goroutine</h1>
-    
-	<h1 id="1-goroutine">1. Goroutine</h1>
+<h2 id="二-goroutine">（二）goroutine</h2>
+<h3 id="1-go关键字">1. go关键字</h3>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//定义调用体
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">Add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">x</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">y</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">){</span>
 </span></span><span style="display:flex;"><span>  <span style="color:#000">z</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#000">x</span><span style="color:#ce5c00;font-weight:bold">+</span><span style="color:#000">y</span>
@@ -327,7 +279,7 @@ if (!doNotTrack) {
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#204a87;font-weight:bold">go</span> <span style="color:#000">Add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">)</span>     <span style="color:#8f5902;font-style:italic">//所以需要通过channel通信来保证其他goroutine可以顺利执行
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000;font-weight:bold">}</span>
 </span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
-</span></span></code></pre></div><h1 id="2-sync-waitgroup">2. sync.WaitGroup</h1>
+</span></span></code></pre></div><h3 id="2-sync-waitgroup">2. sync.WaitGroup</h3>
 <p>sync.WaitGroup用来实现启动一组goroutine，并等待任务做完再结束goroutine。</p>
 <p>使用方法是：</p>
 <ul>
@@ -366,7 +318,7 @@ if (!doNotTrack) {
 3
 4
 2
-</code></pre><h1 id="3-sync-map">3. sync.Map</h1>
+</code></pre><h3 id="3-sync-map">3. sync.Map</h3>
 <p>Go 语言原生 map 并不是线程安全的，对它进行并发读写操作的时候，需要加锁。sync.map 则是一种并发安全的 map，可以使用在并发读写map的场景中。</p>
 <p>sync.Map常见操作：</p>
 <ul>
@@ -412,7 +364,7 @@ if (!doNotTrack) {
 </span></span><span style="display:flex;"><span>	<span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">age</span><span style="color:#000;font-weight:bold">)</span>
 </span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
 </span></span></code></pre></div><p>示例：</p>
-<h2 id="3-1-不加锁的map并发读写">3.1. 不加锁的map并发读写</h2>
+<h4 id="3-1-不加锁的map并发读写">3.1. 不加锁的map并发读写</h4>
 <p>以下使用线程不安全的map，进行并发写入，就会出现并发报错。可以通过加锁来解决并发问题，但更推荐使用sync.Map来实现。</p>
 <p>示例1：</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">package</span> <span style="color:#000">main</span>
@@ -449,7 +401,7 @@ if (!doNotTrack) {
 </span></span></code></pre></div><p>输出异常：</p>
 <p>map不能并发写入。</p>
 <pre tabindex="0"><code>fatal error: concurrent map writes
-</code></pre><h2 id="3-2-加锁的并发读写">3.2. 加锁的并发读写</h2>
+</code></pre><h4 id="3-2-加锁的并发读写">3.2. 加锁的并发读写</h4>
 <p>示例2：</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">package</span> <span style="color:#000">main</span>
 </span></span><span style="display:flex;"><span>
@@ -504,7 +456,7 @@ if (!doNotTrack) {
 </span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
 </span></span></code></pre></div><p>正常输出</p>
 <pre tabindex="0"><code>map[0:52 1:16 2:86 3:50 4:97 5:38 6:54 7:75 8:26 9:32]
-</code></pre><h2 id="3-3-使用sync-map并发读写">3.3. 使用sync.Map并发读写</h2>
+</code></pre><h4 id="3-3-使用sync-map并发读写">3.3. 使用sync.Map并发读写</h4>
 <p>示例3：</p>
 <p>以下使用线程安全的sync.Map来实现对map的值进行并发的读写。</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">package</span> <span style="color:#000">main</span>
@@ -552,43 +504,25 @@ if (!doNotTrack) {
 7 86
 3 59
 5 57
-</code></pre>
-</div>
-
-
-
-    
-	
-  
-    
-    
-	
-    
-
-<div class="td-content" style="page-break-before: always">
-    
-	<h1 id="pg-f14ce38fc554304a81c935663d81bec5">3 - Channel</h1>
-    
-	<h1 id="channel">Channel</h1>
-<p>channel就像管道的形式，是goroutine之间的通信方式，是进程内的通信方式，跨进程通信建议用分布式系统的方法来解决，例如Socket或http等通信协议。channel是类型相关，即一个channel只能传递一种类型的值，在声明时指定。</p>
-<h1 id="1-基本语法">1. 基本语法</h1>
-<h2 id="1-1-channel的声明">1.1. channel的声明</h2>
+</code></pre><h2 id="三-channel">（三）channel</h2>
+<p>​       channel就像管道的形式，是goroutine之间的通信方式，是进程内的通信方式，跨进程通信建议用分布式系统的方法来解决，例如Socket或http等通信协议。channel是类型相关，即一个channel只能传递一种类型的值，在声明时指定。</p>
+<h3 id="1-基本语法">1、基本语法</h3>
+<h4 id="1-channel的声明">1）channel的声明</h4>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、channel声明，声明一个管道chanName，该管道可以传递的类型是ElementType
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//管道是一种复合类型，[chan ElementType],表示可以传递ElementType类型的管道[类似定语从句的修饰方法]
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">chanName</span> <span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#000">ElementType</span>
 </span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">ch</span> <span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">int</span>                  <span style="color:#8f5902;font-style:italic">//声明一个可以传递int类型的管道
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">m</span> <span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">bool</span>      <span style="color:#8f5902;font-style:italic">//声明一个map，值的类型为可以传递bool类型的管道
-</span></span></span></code></pre></div><h2 id="1-2-初始化">1.2. 初始化</h2>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、初始化
-</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">ch</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">)</span>   <span style="color:#8f5902;font-style:italic">//make一般用来声明一个复合类型，参数为复合类型的属性
-</span></span></span></code></pre></div><h2 id="1-3-管道读写">1.3. 管道读写</h2>
+</span></span></span></code></pre></div><h4 id="2-初始化">2）初始化</h4>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、初始化ch:=make(chan int)   //make一般用来声明一个复合类型，参数为复合类型的属性
+</span></span></span></code></pre></div><h4 id="3-管道读写">3）管道读写</h4>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//3、管道写入,把值想象成一个球，&#34;&lt;-&#34;的方向，表示球的流向，ch即为管道
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//写入时，当管道已满（管道有缓冲长度）则会导致程序堵塞，直到有goroutine从中读取出值
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">ch</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span> <span style="color:#000">value</span>
 </span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//管道读取，&#34;&lt;-&#34;表示从管道把球倒出来赋值给一个变量
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//当管道为空，读取数据会导致程序阻塞，直到有goroutine写入值
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">value</span><span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#000">ch</span> 
-</span></span></code></pre></div><h2 id="1-4-select">1.4. select</h2>
+</span></span></code></pre></div><h4 id="4-select">4）select</h4>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//4、每个case必须是一个IO操作，面向channel的操作，只执行其中的一个case操作，一旦满足则结束select过程
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//面向channel的操作无非三种情况：成功读出；成功写入；即没有读出也没有写入
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">select</span><span style="color:#000;font-weight:bold">{</span>
@@ -599,15 +533,15 @@ if (!doNotTrack) {
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#204a87;font-weight:bold">default</span><span style="color:#000;font-weight:bold">:</span>
 </span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">//如果上面都没有成功，则进入default处理流程
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
-</span></span></code></pre></div><h1 id="2-缓冲和超时机制">2. 缓冲和超时机制</h1>
-<h2 id="2-1-缓冲机制">2.1. 缓冲机制</h2>
+</span></span></code></pre></div><h3 id="2-缓冲和超时机制">2、缓冲和超时机制</h3>
+<h4 id="1-缓冲机制">1）缓冲机制</h4>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、缓冲机制：为管道指定空间长度，达到类似消息队列的效果
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">c</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">1024</span><span style="color:#000;font-weight:bold">)</span>  <span style="color:#8f5902;font-style:italic">//第二个参数为缓冲区大小，与切片的空间大小类似
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//通过range关键字来实现依次读取管道的数据，与数组或切片的range使用方法类似
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">{</span>
 </span></span><span style="display:flex;"><span>  <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Received:&#34;</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">i</span><span style="color:#000;font-weight:bold">)</span>
 </span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
-</span></span></code></pre></div><h2 id="2-2-超时机制">2.2. 超时机制</h2>
+</span></span></code></pre></div><h4 id="2-超时机制">2）超时机制</h4>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、超时机制：利用select只要一个case满足，程序就继续执行而不考虑其他case的情况的特性实现超时机制
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">timeout</span><span style="color:#ce5c00;font-weight:bold">:=</span><span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">bool</span><span style="color:#000;font-weight:bold">,</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>    <span style="color:#8f5902;font-style:italic">//设置一个超时管道
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">go</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(){</span>
@@ -621,7 +555,7 @@ if (!doNotTrack) {
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#000">timeout</span><span style="color:#000;font-weight:bold">:</span>      <span style="color:#8f5902;font-style:italic">//如果前面的case没有调用到，必定会读到true值，结束select，避免永久等待
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#8f5902;font-style:italic">//一直没有从ch中读取到数据，但从timeout中读取到了数据
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
-</span></span></code></pre></div><h2 id="2-3-channel的传递">2.3. channel的传递</h2>
+</span></span></code></pre></div><h3 id="3-channel的传递">3、channel的传递</h3>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//1、channel的传递，来实现Linux系统中管道的功能，以插件的方式增加数据处理的流程
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">PipeData</span> <span style="color:#204a87;font-weight:bold">struct</span><span style="color:#000;font-weight:bold">{</span>
 </span></span><span style="display:flex;"><span>  <span style="color:#000">value</span> <span style="color:#204a87;font-weight:bold">int</span>
@@ -633,7 +567,7 @@ if (!doNotTrack) {
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">data</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">next</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span> <span style="color:#000">data</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">handler</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">data</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">value</span><span style="color:#000;font-weight:bold">)</span>    <span style="color:#8f5902;font-style:italic">//该方法实现将PipeData的value值存放到next的管道中
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000;font-weight:bold">}</span>
 </span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
-</span></span></code></pre></div><h2 id="2-4-单向channel">2.4. 单向channel</h2>
+</span></span></code></pre></div><h3 id="4-单向channel">4、单向channel</h3>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//2、单向channel：只能用于接收或发送数据，是对channel的一种使用限制
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//单向channel的声明
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">ch1</span> <span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">int</span>    <span style="color:#8f5902;font-style:italic">//正常channel，可读写
@@ -648,7 +582,7 @@ if (!doNotTrack) {
 </span></span><span style="display:flex;"><span>    <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Parsing value&#34;</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">value</span><span style="color:#000;font-weight:bold">)</span>
 </span></span><span style="display:flex;"><span>  <span style="color:#000;font-weight:bold">}</span>
 </span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
-</span></span></code></pre></div><h2 id="2-5-关闭channel">2.5. 关闭channel</h2>
+</span></span></code></pre></div><h3 id="5-关闭channel">5、关闭channel</h3>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//3、关闭channel，使用内置函数close()函数即可
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87">close</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ch</span><span style="color:#000;font-weight:bold">)</span>
 </span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//判断channel是否关闭
@@ -656,31 +590,14 @@ if (!doNotTrack) {
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">!</span><span style="color:#000">ok</span> <span style="color:#000;font-weight:bold">{</span>   <span style="color:#8f5902;font-style:italic">//如果channel关闭，ok==false，!ok==true
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#8f5902;font-style:italic">//执行体
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
-</span></span></code></pre></div>
-</div>
-
-
-
-    
-	
-  
-    
-    
-	
-    
-
-<div class="td-content" style="page-break-before: always">
-    
-	<h1 id="pg-d6890ff3be5dc6e0523e6ea1a20affaa">4 - 并行化</h1>
-    
-	<h1 id="多核并行化与同步锁">多核并行化与同步锁</h1>
-<h2 id="1-多核并行化">1. 多核并行化</h2>
+</span></span></code></pre></div><h2 id="四-多核并行化与同步锁">（四）多核并行化与同步锁</h2>
+<h3 id="1-多核并行化">1、多核并行化</h3>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//多核并行化
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">runtime</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GOMAXPROCS</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">16</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#8f5902;font-style:italic">//设置环境变量GOMAXPROCS的值来控制使用多少个CPU核心
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">runtime</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NumCPU</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#8f5902;font-style:italic">//来获取核心数
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//出让时间片
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">runtime</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Gosched</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#8f5902;font-style:italic">//在每个goroutine中控制何时出让时间片给其他goroutine
-</span></span></span></code></pre></div><h2 id="2-同步锁">2. 同步锁</h2>
+</span></span></span></code></pre></div><h3 id="2-同步锁">2、同步锁</h3>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//同步锁
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">sync</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Mutex</span> <span style="color:#8f5902;font-style:italic">//单读单写：占用Mutex后，其他goroutine只能等到其释放该Mutex
 </span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">sync</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">RWMutex</span> <span style="color:#8f5902;font-style:italic">//单写多读：会阻止写，不会阻止读
