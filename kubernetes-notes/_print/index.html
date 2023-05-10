@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.008f2c9b5beb578a48a48f93d6b77d70.json"
+  data-offline-search-index-json-src="/offline-search-index.1ffe2e72d0a089d4b40d079d8a0604fd.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -1024,6 +1024,14 @@ if (!doNotTrack) {
 
     
   
+    
+    
+	
+<li>8.2.6: <a href="#pg-ada877dc6e2d7b482edcb6caffb98648">kubeconfig的使用</a></li>
+
+
+    
+  
 
     </ul>
     
@@ -1848,7 +1856,15 @@ if (!doNotTrack) {
     
     
 	
-<li>14.2.2: <a href="#pg-6d600212dc5f4e80d93baefe76275030">OpenYurt源码分析</a></li>
+<li>14.2.2: <a href="#pg-7f94c71d7e452edb45aebaf5597df77f">OpenYurt 安装相关Kubernetes配置调整</a></li>
+
+
+    
+  
+    
+    
+	
+<li>14.2.3: <a href="#pg-6d600212dc5f4e80d93baefe76275030">OpenYurt源码分析</a></li>
 
 
     
@@ -1863,21 +1879,13 @@ if (!doNotTrack) {
     
     
 	
-<li>14.2.2.1: <a href="#pg-44aac785c423d0dcd0ca0cfde0575633">OpenYurt之YurtHub源码分析</a></li>
+<li>14.2.3.1: <a href="#pg-44aac785c423d0dcd0ca0cfde0575633">OpenYurt之YurtHub源码分析</a></li>
 
 
     
   
 
     </ul>
-    
-  
-    
-    
-	
-<li>14.2.3: <a href="#pg-7f94c71d7e452edb45aebaf5597df77f">OpenYurt 安装相关Kubernetes配置调整</a></li>
-
-
     
   
 
@@ -13285,6 +13293,89 @@ yum localinstall -y flannel-0.2.0-10.el7.x86_64.rpm
     
 	
   
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-ada877dc6e2d7b482edcb6caffb98648">8.2.6 - kubeconfig的使用</h1>
+    
+	<h1 id="1-kubeconfig说明">1. kubeconfig说明</h1>
+<p>默认情况下，<code>kubectl</code> 在 <code>$HOME/.kube</code> 目录下查找名为 <code>config</code> 的文件。 你可以通过设置 <code>KUBECONFIG</code> 环境变量或者设置 <a href="https://kubernetes.io/docs/reference/generated/kubectl/kubectl/"><code>--kubeconfig</code></a>参数来指定其他 kubeconfig 文件。</p>
+<p>kubeconfig内容示例：</p>
+<p>以下证书以文件的形式读取。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Config</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">clusters</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span>- <span style="color:#204a87;font-weight:bold">cluster</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">certificate-authority</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic">*/ca.crt</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">server</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">https://******</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">contexts</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span>- <span style="color:#204a87;font-weight:bold">context</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">cluster</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">user</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">current-context</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">preferences</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span>{}<span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">users</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">user</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">client-certificate</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic">*/client.crt</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">client-key</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic">*/client.key</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h1 id="2-将-kubeconfig-中的证书文件转为证书数据">2. 将 Kubeconfig 中的证书文件转为证书数据</h1>
+<p>如果需要将证书文件替换为证书数据格式，可以通过base64的命令解码成data数据，同时修改相应的参数。</p>
+<p>获取证书文件的 base64 编码：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>cat <span style="color:#4e9a06">&#34;证书文件&#34;</span> <span style="color:#000;font-weight:bold">|</span> base64
+</span></span></code></pre></div><p>将输出结果的换行符去掉，填到对应证书的data中。</p>
+<ol>
+<li>
+<p>将 <code>certificate-authority</code> 改为 <code>certificate-authority-data</code>，并且将 <code>*/ca.crt</code> 证书文件经 base64 编码后的字符串填入该位置。</p>
+</li>
+<li>
+<p>将 <code>client-certificate</code> 改为 <code>client-certificate-data</code>，并且将 <code>*/client.crt</code> 证书文件经 base64 编码后的字符串填入该位置。</p>
+</li>
+<li>
+<p>将 <code>client-key</code> 改为 <code>client-key-data</code>，并且将 <code>*/client.key</code> 证书文件 base64 编码后的字符串填入该位置。</p>
+</li>
+</ol>
+<p>例如：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Config</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">clusters</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span>- <span style="color:#204a87;font-weight:bold">cluster</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">certificate-authority-data</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">LS0tLS1CRUdJTiBDRVJUSUZADQFURS0tLS0tCk1JSUM1ekNDQWMrZ0F3SUJBZ0lCQVRBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwdGFXNXAKYTNWaVpVTkJNQjRYRFRJd01ESXhNREEwTURJMU1Wb1hEVE13TURJd09EQTBNREkxTVZvd0ZURVRNQkVHQTFVRQpBeE1LYldsdWFXdDFZbVZEUVRDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTUc1CjYwU0txcHVXeE1mWlVabmVFakM5bjFseHFQSzdUTlVQbzROejFWcWxaQkt6NzJDVVErZjBtVGNQLy9oS3BQUVAKaG9pNndyaXJRUmVERTErRFIrOTZHVDIrSGZ3L2VHQTI5ZmErNS80UG5PWlpTUEVpS3MxVVdhc0VqSDJVZG4xTwpEejVRZk1ESkFjZlBoTzV0eUZFaGZNa2hid0Y2QkJONnh5RmJJdXl4OThmZGx5SWJJUnpLSml6VWZQcUx2WUZoCmFQbjF4WFZyT2QyMnFtblgzL2VxZXM4aG51SmpJdlVPbWRDRlhjQVRYdE00Wmw2bERvWUs2VS9vaEFzM0x4VzAKWUV4ZkcxMzFXdjIrR0t4WWV2Q0FuMitSQ3NBdFpTZk9zcVljMmorYS9FODVqdzcySlFkNGd6eGlHMCszaU14WApWaGhpcWFrY1owZlRCc0FtZHY4Q0F3RUFBYU5DTUVBd0RnWURWUjBQQVFIL0JBUURBZ0trTUIwR0ExVWRKUVFXCk1CUUdDQ3NHQVFVRkJ3TUNCZ2dyQmdFRkJRY0RBVEFQQmdOVkhSTUJBZjhFQlRBREFRSC9NQTBHQ1NxR1NJYjMKRFFFQkN3VUFBNElCQVFDKzFuU2w0dnJDTEV6eWg0VWdXR3ZWSldtV2ltM2dBWFFJU1R2WG56NXZqOXE3Z0JYSwpCRVUyakVHTFF2UEJQWUZwUjhmZllCZCtqT2xtYS9IdU9ISmw0RUxhaHJKbnIwaU9YcytoeVlpV0ZUKzZ2R05RCmY4QnAvNTlkYzY1ejVVMnlUQjd4VkhMcGYzRTRZdUN2NmZhdy9PZTNUUzZUbThZdFBXREgxNDBOR2ZKMHlWRlYKSzZsQnl5THMwMzZzT1V5ZUJpcEduOUxyKytvb09mTVZIU2dpaEJlcEl3ZVVvYk05YU1ram1Hb2VjNk5HTUN3NwpkaFNWTmdMNGxMSnRvRktoVDdTZHFjMmk2SWlwbkJrdUlHUWRJUFliQnF6MkN5eVMyRkZmeEJsV2lmNmcxMTFTClphSUlpQ0lLbXNqeDJvTFBhOUdNSjR6bERNR1hLY1ZyNnhhVQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">server</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">https://******</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">contexts</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span>- <span style="color:#204a87;font-weight:bold">context</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">cluster</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">user</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">current-context</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">preferences</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span>{}<span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">users</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">user</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">client-certificate-data</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURBRENDQWVpZ0F3SUJBZ0lCQWpBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwdGFXNXAKYTNWaVpVTkJNQjRYRFRJd01ESXhNekV5TXpreU5sb1hEVEl4TURJeE16RXlNemt5Tmxvd01URVhNQlVHQTFVRQpDaE1PYzNsemRHVnRPbTFoYzNSbGNuTXhGakFVQmdOVkJBTVREVzFwYm1scmRXSmxMWFZ6WlhJd2dnRWlNQTBHCkNTcUdTSWIzRFFFQkFRVUFBNElCRHdBd2dnRUtBb0lCQVFDdEp5MThYOGVBaVlJc1g3Z0xQazBOZEFuRlNJU0kKeXNGMGIzS21CTk9VclRIcGtnaUFwRldmZDJaVXNZR3Iwd0VBL0FIWm9PMUxPUHdqYzEyb2o1bGIwWlNNWTlMaQpVeW9UQ3huREZIVDJIQnlPNCtGRk5pVCtXTU5FTURURWxERXhlano1WVIwb1pZVjN2V2Z5T3l2SlBna1dFU29IClVVcnVvQmRRbU5LUzhCeXhIUmFvcnFJUFRVRGkzUFJIbTlGZERKV1lNTWpnbDZmbmdHWkRQMnpjTlNFZjRGNzYKc2FUK0VhMU1kbjV5akRCNXczaHJvZXBBclc0QVUyR3NTRFZyTHY2UDFiSWV0RDdONjZrT1BBNklIUlRKbUNLLwp2aEJrbGVPMGFwcERzTERDT3hpMkc2Q1BRNDZVYVZUOEhZMk9sQU5nSmtRRDNwYjFXTnlhQlVpRkFnTUJBQUdqClB6QTlNQTRHQTFVZER3RUIvd1FFQXdJRm9EQWRCZ05WSFNVRUZqQVVCZ2dyQmdFRkJRY0RBUVlJS3dZQkJRVUgKQXdJd0RBWURWUjBUQVFIL0JBSXdBREFOQmdrcWhraUc5dzBCQVFzRkFBT0NBUUVBTHVrZ1dxWnRtbkZITlcxYgpqL012ekcxTmJyUEtWYXVobml5RzRWWnRZYzR1Uk5iSGhicEhEdThyamc2dVB1Y0xMdHAzblU2UGw4S2J2WFpiCmplNmJQR2xvV3VBcFIrVW9KRFQ2VEpDK2o2Qm5CSXpWQkNOL21lSWVPQ0hEK1k5L2dtbzRnd2Q4c2F3U0Z1bjMKZTFVekF2cHBwdTVZY05wcU92aUkxT2NjNGdxNTd2V1h1MFRIdUJkM0VtQ2JZRXUzYXhOL25ldnhOYnYxbDFRSQovSzRaOWw3MXFqaEp3SVlBaHUzek5pTWpCU1VTRjJkZnd2NmFnclhSUnN6b1Z4ejE5Mm9qM2pWU215cXZxeVFrCmZXckpsc3VhY1NDdTlKUE44OUQrVXkwVnZXZmhPdmp4cXVRSktwUW9hMzlQci81Q3YweXFKUkFIMkk5Wk1IZEYKNkJQRVBRPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">client-key-data</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVQSLS0tLQpNSUlFcEFJQkFBS0NBUUVBclNjdGZGL0hnSW1DTEYrNEN6NU5EWFFKeFVpRWlNckJkRzl5cGdUVGxLMHg2WklJCmdLUlZuM2RtVkxHQnE5TUJBUHdCMmFEdFN6ajhJM05kcUkrWlc5R1VqR1BTNGxNcUV3c1p3eFIwOWh3Y2p1UGgKUlRZay9sakRSREEweEpReE1YbzgrV0VkS0dXRmQ3MW44anNyeVQ0SkZoRXFCMUZLN3FBWFVKalNrdkFjc1IwVwpxSzZpRDAxQTR0ejBSNXZSWFF5Vm1EREk0SmVuNTRCbVF6OXMzRFVoSCtCZStyR2svaEd0VEhaK2Nvd3dlY040CmE2SHFRSzF1QUZOaHJFZzFheTcrajlXeUhyUSt6ZXVwRGp3T2lCMFV5Wmdpdjc0UVpKWGp0R3FhUTdDd3dqc1kKdGh1Z2owT09sR2xVL0IwdGpwUURZQ1pFQTk2VzlWamNtZ1ZJaFFJREFRQUJBb0lCQUdDazVGTnVGaWtkRndYegphd01EZy9oRlV3ckZIZ3hIdHRCcFFBRi80aVF5d3hBT0RTYllFbDVPUTFSME90OFBoNWpvRDVSTHFRWjZTT2owCmhFc0gwMTRYVFNWS3RqTFNua0pBeU9GRWNyL0hFdjJDSFlNRzVJRCtSQWEwTFUrbk13bmRvMWpCcG9lY21uRXAKeTNHOUt3Ukkxc04xVXhNQWdhVk12NWFocGE2UzRTdENpalh3VGVVWUxpc1pSZGp5UGljUWlQN0xaSnhBcjRLTgpTUHlDNE1IZTJtV3F3cjM5cnBrMWZ3WkViMTRPMjR2Z3dMYmROTFJYdVhZSTdicEpOUGRJbEQvRExOQkJSL0FVCjhJYjNDaTZwZ2M4dFA4VzJCeW9TQUJVZUNpWDRFM21wQUttVytKbzFuU3FwQ1FnM2JGV0RpRjFrKzdEZjJZM3IKc09UT0srVUNnWUVBMTBEb3BtRVcrNnowanZadVFZdFlPWlVQQzZwV0dBaDFLWlVHZndYVWVLQ3dnNlNuQW9qRwpuMjR4bWJVdTlzRzBjd2syK0VVcXh3S2IrR2NJVTdyNVdOaUNXNVZYQzV5ZUp3OFZiMWtQekRzMSs4YzA4VjNhCkkzNHluOHpjZm1WTkZOUm1ZS1FMK1FGbnZ3ZXM4NFRleGVBb1hGY2FQcVZTNDNVV2JHRW02ZThDZ1lFQXplNFkKeUxYQ2pWNVppajFsUTdkQ2FweEQvL0dCT2JsemRocXRuSjl1OWxyVkQ4Y3RvUEVKYVkwVFFWc3FaNVhCdTNtVApLb0w4bmZjWHg4cWR3Z3gvZFRHa2c3d00rZFkrUTFuVDNOWnRFSVdVUkR3T0hLT1N1Tm5kdnU1a1Q4aXRrdHhhCktrYVlSMlNOT25iMlFzb1ZHa3F5OS9QK0xWL0FyeWdScmtaYXVNc0NnWUVBaGpUTkdUYzltaXNxeTV2d0FHTzkKM1NFSG9YRlJmbWgvakM2RFAxMUdMUE9iT21qRlREbzFCS0F5d3JBSm1RWUsyUkpzdUh4L2dGY3JJY1F6bCtqaQpvRGRWaDM1a0tEUTlFd00valE0TllIdW1XOVhITjVvWmNMbTFISmNnL3Bsd1pzVkxFNFFVaHVzT1lUZUs2TVgyCkU0OS8rcHJBSFVEOG5oNlpuWGN4U1BjQ2dZRUFub0lQcDZab1MwSjliMi9VbTJ2YS9vNnJ0TDBpOTlpc2JCTWEKNFR6RFAzTXBIc3owYlRZN1JYaW1ncDcybytiY3lUNUtMZVhISnB3RVBPL1R3SUs0Tk8veUxzZzN3TExOR0RCegphRC9Ra1hBUWNQazg3NFJrc2s1WVpkZS9kTDRHQk00QnhScXpxZmhXME5LeXVUUXRUQ0NGWTEvMm5OeGdSekp6CmNZNkwxRU1DZ1lCdXpHRkJVeXM4TFpHekFNTWdmN1VRQ0dVZERrT2dJRHdzd0dxVVlxQ2ZLcnlGYVdCOUJvSi8KMnJMVmVYNDVXTnFpa0tCMlgvckdRbGFIK25YalRBaDlpN0NrWGRySUQzeXA1cGJBa0VnYjg3dGo2Y3hONlBOcQo5cnhzOU1lR0NleFhsdjBkUUpMUkowNXU2OEVxYm44Q0RIOXFRSWZaTml0NXA0S0JFVkp3L1E9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h1 id="3-生成admin的kubeconfig">3. 生成admin的kubeconfig</h1>
+<h1 id="4-生成namespace的kubeconfig">4. 生成namespace的kubeconfig</h1>
+<h1 id="5-创建token来访问apiserver">5. 创建token来访问apiserver</h1>
+<p>参考：</p>
+<ul>
+<li><a href="https://coding.net/help/docs/cd/question/convert-certfile-to-certdata.html">如何将 Kubeconfig 中的证书文件转为证书数据 - CODING 帮助中心</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
 
     
 	
@@ -21796,7 +21887,105 @@ etcdctl --endpoints <a href="http://172.16.22.36:2379/">http://172.16.22.36:2379
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-6d600212dc5f4e80d93baefe76275030">14.2.2 - OpenYurt源码分析</h1>
+	<h1 id="pg-7f94c71d7e452edb45aebaf5597df77f">14.2.2 - OpenYurt 安装相关Kubernetes配置调整</h1>
+    
+	<p>安装openyurt，为了适配边缘场景，需要对k8s组件进行调整。其中包括：</p>
+<ul>
+<li>
+<p>kube-apiserver</p>
+</li>
+<li>
+<p>kube-controller-manager</p>
+</li>
+<li>
+<p>kube-proxy</p>
+</li>
+<li>
+<p>CoreDNS</p>
+</li>
+</ul>
+<h1 id="1-kube-apiserver">1. kube-apiserver</h1>
+<p>为了实现云边通信，即用户可以正常使用kubectl exec/logs的功能来登录或查看边缘容器的信息。需要将kube-apiserver访问kubelet的地址调整为hostname优先。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#000">$ vi /etc/kubernetes/manifests/kube-apiserver.yaml</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Pod</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#000">...</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">dnsPolicy</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;None&#34;</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># 1. dnsPolicy修改为None</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">dnsConfig</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#8f5902;font-style:italic"># 2. 增加dnsConfig配置</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">nameservers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#0000cf;font-weight:bold">1.2.3.4</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># 使用yurt-tunnel-dns service的clusterIP替换</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">searches</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#000">kube-system.svc.cluster.local</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#000">svc.cluster.local</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#000">cluster.local</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">options</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">ndots</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">value</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;5&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">command</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">kube-apiserver</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#000">...</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- --<span style="color:#000">kubelet-preferred-address-types=Hostname,InternalIP,ExternalIP</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># 3. 把Hostname放在第一位</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#000">...</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h1 id="2-kube-controller-manager">2. kube-controller-manager</h1>
+<p>禁用默认的 <code>nodelifecycle</code> 控制器，当节点断连时不驱逐pod。</p>
+<p><code>nodelifecycle</code>控制器主要用来根据node的status及lease的更新时间来决定是否要<code>驱逐节点上的pod</code>。为了让 <code>yurt-controller-mamanger</code> 能够正常工作，因此需要禁用controller的驱逐功能。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>vim /etc/kubernetes/manifests/kube-controller-manager.yaml
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 在--controllers=*,bootstrapsigner,tokencleaner后面添加,-nodelifecycle </span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 即参数为： --controllers=*,bootstrapsigner,tokencleaner,-nodelifecycle</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果kube-controller-manager是以static pod部署，修改yaml文件后会自动重启。</span>
+</span></span></code></pre></div><h1 id="3-coredns">3. CoreDNS</h1>
+<p>将coredns从deployment部署改为daemonset部署。</p>
+<p>将deployment的coredns副本数调整为0。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl scale --replicas<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">0</span> deployment/coredns -n kube-system
+</span></span></code></pre></div><p>创建daemonset的coredns。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>wget https://raw.githubusercontent.com/huweihuang/kubeadm-scripts/main/openyurt/yurt-tunnel/coredns.ds.yaml
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>kubectl apply -f 
+</span></span></code></pre></div><p>支持流量拓扑：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 利用openyurt实现endpoint过滤</span>
+</span></span><span style="display:flex;"><span>kubectl annotate svc kube-dns -n kube-system openyurt.io/topologyKeys<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;openyurt.io/nodepool&#39;</span>
+</span></span></code></pre></div><h1 id="4-kube-proxy">4. kube-proxy</h1>
+<p>云边端场景下，边缘节点间很有可能无法互通，因此需要endpoints基于nodepool进行拓扑。直接将kube-proxy的kubeconfig配置删除，将apiserver请求经过yurthub即可解决服务拓扑问题。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl edit cm -n kube-system kube-proxy
+</span></span></code></pre></div><p>示例：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">data</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">config.conf</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000;font-weight:bold">|-</span><span style="color:#8f5902;font-style:italic">
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    apiVersion: kubeproxy.config.k8s.io/v1alpha1
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    bindAddress: 0.0.0.0
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    bindAddressHardFail: false
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    clientConnection:
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      acceptContentTypes: &#34;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      burst: 0
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      contentType: &#34;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      #kubeconfig: /var/lib/kube-proxy/kubeconfig.conf &lt;-- 删除这个配置
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      qps: 0
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    clusterCIDR: 100.64.0.0/10
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    configSyncPeriod: 0s</span><span style="color:#f8f8f8;text-decoration:underline">    
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#000">// 省略</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="https://openyurt.io/zh/docs/installation/openyurt-prepare/">https://openyurt.io/zh/docs/installation/openyurt-prepare/</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-6d600212dc5f4e80d93baefe76275030">14.2.3 - OpenYurt源码分析</h1>
     
 	
 </div>
@@ -21821,7 +22010,7 @@ etcdctl --endpoints <a href="http://172.16.22.36:2379/">http://172.16.22.36:2379
 
 <div class="td-content" style="">
     
-	<h1 id="pg-44aac785c423d0dcd0ca0cfde0575633">14.2.2.1 - OpenYurt之YurtHub源码分析</h1>
+	<h1 id="pg-44aac785c423d0dcd0ca0cfde0575633">14.2.3.1 - OpenYurt之YurtHub源码分析</h1>
     
 	<blockquote>
 <p>本文分析<code>yurthub</code>源码，第一部分。</p>
@@ -22499,104 +22688,6 @@ etcdctl --endpoints <a href="http://172.16.22.36:2379/">http://172.16.22.36:2379
     
 	
   
-
-    
-	
-  
-    
-    
-	
-    
-
-<div class="td-content" style="page-break-before: always">
-    
-	<h1 id="pg-7f94c71d7e452edb45aebaf5597df77f">14.2.3 - OpenYurt 安装相关Kubernetes配置调整</h1>
-    
-	<p>安装openyurt，为了适配边缘场景，需要对k8s组件进行调整。其中包括：</p>
-<ul>
-<li>
-<p>kube-apiserver</p>
-</li>
-<li>
-<p>kube-controller-manager</p>
-</li>
-<li>
-<p>kube-proxy</p>
-</li>
-<li>
-<p>CoreDNS</p>
-</li>
-</ul>
-<h1 id="1-kube-apiserver">1. kube-apiserver</h1>
-<p>为了实现云边通信，即用户可以正常使用kubectl exec/logs的功能来登录或查看边缘容器的信息。需要将kube-apiserver访问kubelet的地址调整为hostname优先。</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#000">$ vi /etc/kubernetes/manifests/kube-apiserver.yaml</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Pod</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#000">...</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">dnsPolicy</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;None&#34;</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># 1. dnsPolicy修改为None</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">dnsConfig</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#8f5902;font-style:italic"># 2. 增加dnsConfig配置</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">nameservers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#0000cf;font-weight:bold">1.2.3.4</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># 使用yurt-tunnel-dns service的clusterIP替换</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">searches</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#000">kube-system.svc.cluster.local</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#000">svc.cluster.local</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#000">cluster.local</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">options</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">ndots</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">value</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;5&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">command</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">kube-apiserver</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#000">...</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- --<span style="color:#000">kubelet-preferred-address-types=Hostname,InternalIP,ExternalIP</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># 3. 把Hostname放在第一位</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#000">...</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span></code></pre></div><h1 id="2-kube-controller-manager">2. kube-controller-manager</h1>
-<p>禁用默认的 <code>nodelifecycle</code> 控制器，当节点断连时不驱逐pod。</p>
-<p><code>nodelifecycle</code>控制器主要用来根据node的status及lease的更新时间来决定是否要<code>驱逐节点上的pod</code>。为了让 <code>yurt-controller-mamanger</code> 能够正常工作，因此需要禁用controller的驱逐功能。</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>vim /etc/kubernetes/manifests/kube-controller-manager.yaml
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 在--controllers=*,bootstrapsigner,tokencleaner后面添加,-nodelifecycle </span>
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 即参数为： --controllers=*,bootstrapsigner,tokencleaner,-nodelifecycle</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果kube-controller-manager是以static pod部署，修改yaml文件后会自动重启。</span>
-</span></span></code></pre></div><h1 id="3-coredns">3. CoreDNS</h1>
-<p>将coredns从deployment部署改为daemonset部署。</p>
-<p>将deployment的coredns副本数调整为0。</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl scale --replicas<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">0</span> deployment/coredns -n kube-system
-</span></span></code></pre></div><p>创建daemonset的coredns。</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>wget https://raw.githubusercontent.com/huweihuang/kubeadm-scripts/main/openyurt/yurt-tunnel/coredns.ds.yaml
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>kubectl apply -f 
-</span></span></code></pre></div><p>支持流量拓扑：</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 利用openyurt实现endpoint过滤</span>
-</span></span><span style="display:flex;"><span>kubectl annotate svc kube-dns -n kube-system openyurt.io/topologyKeys<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;openyurt.io/nodepool&#39;</span>
-</span></span></code></pre></div><h1 id="4-kube-proxy">4. kube-proxy</h1>
-<p>云边端场景下，边缘节点间很有可能无法互通，因此需要endpoints基于nodepool进行拓扑。直接将kube-proxy的kubeconfig配置删除，将apiserver请求经过yurthub即可解决服务拓扑问题。</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl edit cm -n kube-system kube-proxy
-</span></span></code></pre></div><p>示例：</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">data</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">config.conf</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000;font-weight:bold">|-</span><span style="color:#8f5902;font-style:italic">
-</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    apiVersion: kubeproxy.config.k8s.io/v1alpha1
-</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    bindAddress: 0.0.0.0
-</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    bindAddressHardFail: false
-</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    clientConnection:
-</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      acceptContentTypes: &#34;&#34;
-</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      burst: 0
-</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      contentType: &#34;&#34;
-</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      #kubeconfig: /var/lib/kube-proxy/kubeconfig.conf &lt;-- 删除这个配置
-</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      qps: 0
-</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    clusterCIDR: 100.64.0.0/10
-</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    configSyncPeriod: 0s</span><span style="color:#f8f8f8;text-decoration:underline">    
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#000">// 省略</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span></code></pre></div><p>参考：</p>
-<ul>
-<li><a href="https://openyurt.io/zh/docs/installation/openyurt-prepare/">https://openyurt.io/zh/docs/installation/openyurt-prepare/</a></li>
-</ul>
-
-</div>
-
-
 
     
 	
