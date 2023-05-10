@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.e516b666348682c7f36dfba57a8b0ed4.json"
+  data-offline-search-index-json-src="/offline-search-index.246f0be02c4c84ec225b2adf3c1be20a.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -373,6 +373,14 @@ if (!doNotTrack) {
     
 	
 <li>4.3: <a href="#pg-fb885bb9e042e5f183dbbe1462da53d7">iptables命令</a></li>
+
+
+    
+  
+    
+    
+	
+<li>4.4: <a href="#pg-05f4d807ce9b3245e03b30114a0acab5">wrk的使用</a></li>
 
 
     
@@ -3673,6 +3681,90 @@ if (!doNotTrack) {
 </span></span><span style="display:flex;"><span>/etc/iptables/rules.v4
 </span></span><span style="display:flex;"><span>/etc/iptables/rules.v6
 </span></span></code></pre></div>
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-05f4d807ce9b3245e03b30114a0acab5">4.4 - wrk的使用</h1>
+    
+	<h1 id="1-installation">1. Installation</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># mac</span>
+</span></span><span style="display:flex;"><span>brew install wrk
+</span></span></code></pre></div><h1 id="2-usage">2. Usage</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ wrk --help
+</span></span><span style="display:flex;"><span>Usage: wrk &lt;options&gt; &lt;url&gt;
+</span></span><span style="display:flex;"><span>  Options:
+</span></span><span style="display:flex;"><span>    -c, --connections &lt;N&gt;  Connections to keep open <span style="color:#8f5902;font-style:italic"># 跟服务器建立并保持的TCP连接数量  </span>
+</span></span><span style="display:flex;"><span>    -d, --duration    &lt;T&gt;  Duration of <span style="color:#204a87">test</span> <span style="color:#8f5902;font-style:italic"># 压测时间    </span>
+</span></span><span style="display:flex;"><span>    -t, --threads     &lt;N&gt;  Number of threads to use <span style="color:#8f5902;font-style:italic"># 使用多少个线程进行压测 </span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    -s, --script      &lt;S&gt;  Load Lua script file <span style="color:#8f5902;font-style:italic"># 指定Lua脚本路径 </span>
+</span></span><span style="display:flex;"><span>    -H, --header      &lt;H&gt;  Add header to request  <span style="color:#8f5902;font-style:italic"># 为每一个HTTP请求添加HTTP头  </span>
+</span></span><span style="display:flex;"><span>        --latency          Print latency statistics <span style="color:#8f5902;font-style:italic"># 在压测结束后，打印延迟统计信息 </span>
+</span></span><span style="display:flex;"><span>        --timeout     &lt;T&gt;  Socket/request timeout  <span style="color:#8f5902;font-style:italic"># 超时时间  </span>
+</span></span><span style="display:flex;"><span>    -v, --version          Print version details <span style="color:#8f5902;font-style:italic"># 打印正在使用的wrk的详细版本信息</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  Numeric arguments may include a SI unit <span style="color:#ce5c00;font-weight:bold">(</span>1k, 1M, 1G<span style="color:#ce5c00;font-weight:bold">)</span> <span style="color:#8f5902;font-style:italic"># 代表数字参数，支持国际单位 (1k, 1M, 1G)</span>
+</span></span><span style="display:flex;"><span>  Time arguments may include a <span style="color:#204a87">time</span> unit <span style="color:#ce5c00;font-weight:bold">(</span>2s, 2m, 2h<span style="color:#ce5c00;font-weight:bold">)</span> <span style="color:#8f5902;font-style:italic"># 代表时间参数，支持时间单位 (2s, 2m, 2h)</span>
+</span></span></code></pre></div><p>参数设置说明：</p>
+<p>一般设置线程数t，并发数c，压测时间d，--latency四个通用的参数。</p>
+<ul>
+<li>
+<p>线程数：一般设置为压测机器CPU核数的2-4倍，过大会导致线程切换频繁，效果下降。</p>
+</li>
+<li>
+<p>并发数：根据压测结果，动态调整并发数使得压测达到瓶颈。</p>
+</li>
+</ul>
+<p>示例：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>wrk -t12 -c400 -d30s --latency http://www.baidu.com
+</span></span></code></pre></div><h1 id="3-压测结果">3. 压测结果</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># wrk -t12 -c400 -d30s --latency http://www.baidu.com</span>
+</span></span><span style="display:flex;"><span>Running 30s <span style="color:#204a87">test</span> @ http://www.baidu.com
+</span></span><span style="display:flex;"><span>  <span style="color:#0000cf;font-weight:bold">12</span> threads and <span style="color:#0000cf;font-weight:bold">400</span> connections
+</span></span><span style="display:flex;"><span>               （平均值） （标准差）  （最大值）（正负一个标准差所占比例）
+</span></span><span style="display:flex;"><span>  Thread Stats   Avg      Stdev     Max   +/- Stdev
+</span></span><span style="display:flex;"><span>    （延迟）
+</span></span><span style="display:flex;"><span>    Latency   568.16ms  250.70ms   2.00s    83.49%
+</span></span><span style="display:flex;"><span>   <span style="color:#ce5c00;font-weight:bold">(</span>每秒请求数<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    Req/Sec    28.26     14.99    90.00     65.71%
+</span></span><span style="display:flex;"><span>  Latency Distribution （延迟分布）
+</span></span><span style="display:flex;"><span>     50%  530.91ms
+</span></span><span style="display:flex;"><span>     75%  585.73ms
+</span></span><span style="display:flex;"><span>     90%  691.64ms
+</span></span><span style="display:flex;"><span>     99%    1.78s
+</span></span><span style="display:flex;"><span>  <span style="color:#0000cf;font-weight:bold">9842</span> requests in 30.10s, 99.03MB <span style="color:#204a87">read</span>  <span style="color:#ce5c00;font-weight:bold">(</span>30.10s内处理了9842个请求，耗费流量99.03MB<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  Socket errors: connect 158, <span style="color:#204a87">read</span> 0, write 0, timeout <span style="color:#0000cf;font-weight:bold">580</span>  <span style="color:#ce5c00;font-weight:bold">(</span>发生错误数<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>Requests/sec:    327.00  <span style="color:#ce5c00;font-weight:bold">(</span>QPS ,即平均每秒处理请求数<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>Transfer/sec:      3.29MB  <span style="color:#ce5c00;font-weight:bold">(</span>平均每秒流量<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span></code></pre></div><h1 id="4-lua脚本定制压测参数">4. Lua脚本定制压测参数</h1>
+<p>例如：压测post请求，需要设置指定参数。</p>
+<p>写入以下lua脚本，login.lua</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-lua" data-lang="lua"><span style="display:flex;"><span><span style="color:#000">wrk.method</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;POST&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">wrk.body</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#39;{&#34;username&#34;:&#34;xxx&#34;,&#34;password&#34;:&#34;xxx&#34;}&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">wrk.headers</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#34;Content-Type&#34;</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;application/x-www-form-urlencoded&#34;</span>
+</span></span></code></pre></div><p>发起压测请求：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>wrk -t12 -c1000 -d30s --latency  http://127.0.0.1:8081/login -s login.lua
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li>
+<p><a href="https://github.com/wg/wrk">GitHub - wg/wrk: Modern HTTP benchmarking tool</a></p>
+</li>
+<li>
+<p><a href="https://www.cnblogs.com/quanxiaoha/p/10661650.html">https://www.cnblogs.com/quanxiaoha/p/10661650.html</a></p>
+</li>
+</ul>
+
 </div>
 
 
