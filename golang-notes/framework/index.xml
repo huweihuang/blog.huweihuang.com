@@ -181,6 +181,51 @@
 &lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1683701710/article/golang/pprof/profile001.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
 &lt;h2 id=&#34;4-2-火焰图&#34;&gt;4.2. 火焰图&lt;/h2&gt;
 &lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1683701425/article/golang/pprof/graph.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;h1 id=&#34;5-查看goroutine泄露&#34;&gt;5. 查看goroutine泄露&lt;/h1&gt;
+&lt;p&gt;可以通过访问web地址的&lt;code&gt;/debug/pprof/goroutine&lt;/code&gt;路径，查看goroutine的详细分布情况。goroutine数量分布过多的地方可能会存在内存泄露的情况。&lt;/p&gt;
+&lt;p&gt;示例：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;goroutine profile: total &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;3337450&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;3336630&lt;/span&gt; @ 0x437fb6 0x40640c 0x405e38 0x1406b18 0x7c19bb 0x7bd528 0x4684c1
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#    0x1406b17    sigs.k8s.io/apiserver-network-proxy/pkg/server.(*Tunnel).ServeHTTP+0xbb7    /go/pkg/mod/github.com/openyurtio/apiserver-network-proxy@v1.18.8/pkg/server/tunnel.go:105&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#    0x7c19ba    net/http.serverHandler.ServeHTTP+0x43a                        /usr/local/go/src/net/http/server.go:2878&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#    0x7bd527    net/http.(*conn).serve+0xb07                            /usr/local/go/src/net/http/server.go:1929&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;195&lt;/span&gt; @ 0x437fb6 0x43095e 0x462d69 0x4c90b2 0x4ca41a 0x4ca408 0x525649 0x536665 0x7b7b8d 0x4fd5e6 0x140709a 0x7c19bb 0x7bd528 0x4684c1
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#    0x462d68    internal/poll.runtime_pollWait+0x88                        /usr/local/go/src/runtime/netpoll.go:229&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#    0x4c90b1    internal/poll.(*pollDesc).wait+0x31                        /usr/local/go/src/internal/poll/fd_poll_runtime.go:84&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#    0x4ca419    internal/poll.(*pollDesc).waitRead+0x259                    /usr/local/go/src/internal/poll/fd_poll_runtime.go:89&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#    0x4ca407    internal/poll.(*FD).Read+0x247                            /usr/local/go/src/internal/poll/fd_unix.go:167&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#    0x525648    net.(*netFD).Read+0x28                                /usr/local/go/src/net/fd_posix.go:56&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#    0x536664    net.(*conn).Read+0x44                                /usr/local/go/src/net/net.go:183&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#    0x7b7b8c    net/http.(*connReader).Read+0x16c                        /usr/local/go/src/net/http/server.go:780&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#    0x4fd5e5    bufio.(*Reader).Read+0x105                            /usr/local/go/src/bufio/bufio.go:213&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#    0x1407099    sigs.k8s.io/apiserver-network-proxy/pkg/server.(*Tunnel).ServeHTTP+0x1139    /go/pkg/mod/github.com/openyurtio/apiserver-network-proxy@v1.18.8/pkg/server/tunnel.go:138&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#    0x7c19ba    net/http.serverHandler.ServeHTTP+0x43a                        /usr/local/go/src/net/http/server.go:2878&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#    0x7bd527    net/http.(*conn).serve+0xb07                            /usr/local/go/src/net/http/server.go:1929&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;上述goroutine的分布超过300万个，主要都分布在第一个部分，因此可以得出以下可能的结论：&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;/go/pkg/mod/github.com/openyurtio/apiserver-network-proxy@v1.18.8/pkg/server/tunnel.go:105&lt;/code&gt; 代码可能存在内存泄露的情况。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#    0x1406b17    sigs.k8s.io/apiserver-network-proxy/pkg/server.(*Tunnel).ServeHTTP+0xbb7    /go/pkg/mod/github.com/openyurtio/apiserver-network-proxy@v1.18.8/pkg/server/tunnel.go:105&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;因此我们追踪tunnel.go:105的源码:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-go&#34; data-lang=&#34;go&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;select&lt;/span&gt; &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a40000&#34;&gt;#&lt;/span&gt;&lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;105&lt;/span&gt;    &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;case&lt;/span&gt; &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;&amp;lt;-&lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;connection&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;connected&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;// Waiting for response before we begin full communication.
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;&lt;/span&gt;    &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;select 没有返回，导致goroutine不断累计。&lt;/p&gt;
+&lt;h2 id=&#34;5-1-解决goroutine泄露&#34;&gt;5.1. 解决goroutine泄露&lt;/h2&gt;
+&lt;p&gt;以上分析的代码来自&lt;a href=&#34;https://github.com/kubernetes-sigs/apiserver-network-proxy&#34;&gt;apiserver-network-proxy&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;我们可以查看该内存泄露的issue:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/kubernetes-sigs/apiserver-network-proxy/pull/270&#34;&gt;https://github.com/kubernetes-sigs/apiserver-network-proxy/pull/270&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;修复内存泄露的commit：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/kubernetes-sigs/apiserver-network-proxy/pull/270/files#diff-eea155e8345014451f10cb525235e3a66c9d0223b9927184a6b4b0a52dfeacc4R116&#34;&gt;Fix obscure HTTP CONNECT goroutine leak by jveski · Pull Request #270 · kubernetes-sigs/apiserver-network-proxy · GitHub&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;涉及代码修改如下：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-go&#34; data-lang=&#34;go&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;	&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;select&lt;/span&gt; &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;	&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;case&lt;/span&gt; &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;&amp;lt;-&lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;connection&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;.&lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;connected&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;// Waiting for response before we begin full communication.
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;case&lt;/span&gt; &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;&amp;lt;-&lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;closed&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;// Connection was closed before being established
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;&lt;/span&gt;	&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;增加closed类型，退出goroutine。&lt;/p&gt;
 &lt;p&gt;参考：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;
@@ -197,6 +242,9 @@
 &lt;/li&gt;
 &lt;li&gt;
 &lt;p&gt;&lt;a href=&#34;https://golang2.eddycjy.com/posts/ch6/01-pprof-1/&#34;&gt;Go 大杀器之性能剖析 PProf（上） | Go 语言编程之旅&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.likakuli.com/posts/docker-leak3/&#34;&gt;Dockerd资源泄露系列&lt;/a&gt;&lt;/p&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
 

@@ -33,7 +33,7 @@ import ( &#34;github.com/gin-contrib/pprof&#34; &#34;github.com/gin-gonic/gin&#3
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://blog.huweihuang.com/golang-notes/framework/go-pprof-usage/" /><meta property="article:section" content="golang-notes" />
 
-<meta property="og:site_name" content="胡伟煌" />
+<meta property="article:modified_time" content="2023-05-10T15:36:39+08:00" /><meta property="og:site_name" content="胡伟煌" />
 
 <meta itemprop="name" content="性能分析之go pprof工具使用">
 <meta itemprop="description" content="1. go pprof工具简介 在 Go 语言中，PProf 是用于可视化和分析性能分析数据的工具，PProf 以 profile.proto 读取分析样本的集合，并生成报告以可视化并帮助分析数据（支持文本和图形报告）。
@@ -42,8 +42,8 @@ web网页方式查看
 http://ip:port/debug/pprof/ 2. 代码配置pprof 2.1. Gin框架集成pprof 调用github.com/gin-contrib/pprof，执行pprof.Register(*gin.Engine)。
 示例代码：
 import ( &#34;github.com/gin-contrib/pprof&#34; &#34;github.com/gin-gonic/gin&#34; ) type server struct { conf *config.Config gin *gin.Engine } func (s *server) setupServer() *gin.Engine { // 注册pprof pprof.">
-
-<meta itemprop="wordCount" content="479">
+<meta itemprop="dateModified" content="2023-05-10T15:36:39+08:00" />
+<meta itemprop="wordCount" content="641">
 <meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="性能分析之go pprof工具使用"/>
 <meta name="twitter:description" content="1. go pprof工具简介 在 Go 语言中，PProf 是用于可视化和分析性能分析数据的工具，PProf 以 profile.proto 读取分析样本的集合，并生成报告以可视化并帮助分析数据（支持文本和图形报告）。
@@ -163,7 +163,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.ee4775ec6dbe1616475a73bf70d4a385.json"
+  data-offline-search-index-json-src="/offline-search-index.da138e394e5b94f5b66f2cf4e5a7a76a.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -185,7 +185,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.ee4775ec6dbe1616475a73bf70d4a385.json"
+  data-offline-search-index-json-src="/offline-search-index.da138e394e5b94f5b66f2cf4e5a7a76a.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -489,6 +489,11 @@ if (!doNotTrack) {
         <li><a href="#4-2-火焰图">4.2. 火焰图</a></li>
       </ul>
     </li>
+    <li><a href="#5-查看goroutine泄露">5. 查看goroutine泄露</a>
+      <ul>
+        <li><a href="#5-1-解决goroutine泄露">5.1. 解决goroutine泄露</a></li>
+      </ul>
+    </li>
   </ul>
 </nav></div>
 
@@ -553,7 +558,7 @@ if (!doNotTrack) {
         
           <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/nginx/" data-taxonomy-term="nginx"><span class="taxonomy-label">Nginx</span><span class="taxonomy-count">3</span></a></li>
         
-          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/openyurt/" data-taxonomy-term="openyurt"><span class="taxonomy-label">OpenYurt</span><span class="taxonomy-count">3</span></a></li>
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/openyurt/" data-taxonomy-term="openyurt"><span class="taxonomy-label">OpenYurt</span><span class="taxonomy-count">4</span></a></li>
         
           <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/redis/" data-taxonomy-term="redis"><span class="taxonomy-label">Redis</span><span class="taxonomy-count">5</span></a></li>
         
@@ -778,6 +783,51 @@ if (!doNotTrack) {
 <p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1683701710/article/golang/pprof/profile001.png" alt=""></p>
 <h2 id="4-2-火焰图">4.2. 火焰图</h2>
 <p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1683701425/article/golang/pprof/graph.png" alt=""></p>
+<h1 id="5-查看goroutine泄露">5. 查看goroutine泄露</h1>
+<p>可以通过访问web地址的<code>/debug/pprof/goroutine</code>路径，查看goroutine的详细分布情况。goroutine数量分布过多的地方可能会存在内存泄露的情况。</p>
+<p>示例：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>goroutine profile: total <span style="color:#0000cf;font-weight:bold">3337450</span>
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">3336630</span> @ 0x437fb6 0x40640c 0x405e38 0x1406b18 0x7c19bb 0x7bd528 0x4684c1
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#    0x1406b17    sigs.k8s.io/apiserver-network-proxy/pkg/server.(*Tunnel).ServeHTTP+0xbb7    /go/pkg/mod/github.com/openyurtio/apiserver-network-proxy@v1.18.8/pkg/server/tunnel.go:105</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#    0x7c19ba    net/http.serverHandler.ServeHTTP+0x43a                        /usr/local/go/src/net/http/server.go:2878</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#    0x7bd527    net/http.(*conn).serve+0xb07                            /usr/local/go/src/net/http/server.go:1929</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">195</span> @ 0x437fb6 0x43095e 0x462d69 0x4c90b2 0x4ca41a 0x4ca408 0x525649 0x536665 0x7b7b8d 0x4fd5e6 0x140709a 0x7c19bb 0x7bd528 0x4684c1
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#    0x462d68    internal/poll.runtime_pollWait+0x88                        /usr/local/go/src/runtime/netpoll.go:229</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#    0x4c90b1    internal/poll.(*pollDesc).wait+0x31                        /usr/local/go/src/internal/poll/fd_poll_runtime.go:84</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#    0x4ca419    internal/poll.(*pollDesc).waitRead+0x259                    /usr/local/go/src/internal/poll/fd_poll_runtime.go:89</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#    0x4ca407    internal/poll.(*FD).Read+0x247                            /usr/local/go/src/internal/poll/fd_unix.go:167</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#    0x525648    net.(*netFD).Read+0x28                                /usr/local/go/src/net/fd_posix.go:56</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#    0x536664    net.(*conn).Read+0x44                                /usr/local/go/src/net/net.go:183</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#    0x7b7b8c    net/http.(*connReader).Read+0x16c                        /usr/local/go/src/net/http/server.go:780</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#    0x4fd5e5    bufio.(*Reader).Read+0x105                            /usr/local/go/src/bufio/bufio.go:213</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#    0x1407099    sigs.k8s.io/apiserver-network-proxy/pkg/server.(*Tunnel).ServeHTTP+0x1139    /go/pkg/mod/github.com/openyurtio/apiserver-network-proxy@v1.18.8/pkg/server/tunnel.go:138</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#    0x7c19ba    net/http.serverHandler.ServeHTTP+0x43a                        /usr/local/go/src/net/http/server.go:2878</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#    0x7bd527    net/http.(*conn).serve+0xb07                            /usr/local/go/src/net/http/server.go:1929</span>
+</span></span></code></pre></div><p>上述goroutine的分布超过300万个，主要都分布在第一个部分，因此可以得出以下可能的结论：</p>
+<p><code>/go/pkg/mod/github.com/openyurtio/apiserver-network-proxy@v1.18.8/pkg/server/tunnel.go:105</code> 代码可能存在内存泄露的情况。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#    0x1406b17    sigs.k8s.io/apiserver-network-proxy/pkg/server.(*Tunnel).ServeHTTP+0xbb7    /go/pkg/mod/github.com/openyurtio/apiserver-network-proxy@v1.18.8/pkg/server/tunnel.go:105</span>
+</span></span></code></pre></div><p>因此我们追踪tunnel.go:105的源码:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">select</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span><span style="color:#a40000">#</span><span style="color:#0000cf;font-weight:bold">105</span>    <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#000">connection</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">connected</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#8f5902;font-style:italic">// Waiting for response before we begin full communication.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>select 没有返回，导致goroutine不断累计。</p>
+<h2 id="5-1-解决goroutine泄露">5.1. 解决goroutine泄露</h2>
+<p>以上分析的代码来自<a href="https://github.com/kubernetes-sigs/apiserver-network-proxy">apiserver-network-proxy</a>。</p>
+<p>我们可以查看该内存泄露的issue:</p>
+<ul>
+<li><a href="https://github.com/kubernetes-sigs/apiserver-network-proxy/pull/270">https://github.com/kubernetes-sigs/apiserver-network-proxy/pull/270</a></li>
+</ul>
+<p>修复内存泄露的commit：</p>
+<ul>
+<li><a href="https://github.com/kubernetes-sigs/apiserver-network-proxy/pull/270/files#diff-eea155e8345014451f10cb525235e3a66c9d0223b9927184a6b4b0a52dfeacc4R116">Fix obscure HTTP CONNECT goroutine leak by jveski · Pull Request #270 · kubernetes-sigs/apiserver-network-proxy · GitHub</a></li>
+</ul>
+<p>涉及代码修改如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">select</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">case</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#000">connection</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">connected</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#8f5902;font-style:italic">// Waiting for response before we begin full communication.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#204a87;font-weight:bold">case</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#000">closed</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#8f5902;font-style:italic">// Connection was closed before being established
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>增加closed类型，退出goroutine。</p>
 <p>参考：</p>
 <ul>
 <li>
@@ -794,6 +844,9 @@ if (!doNotTrack) {
 </li>
 <li>
 <p><a href="https://golang2.eddycjy.com/posts/ch6/01-pprof-1/">Go 大杀器之性能剖析 PProf（上） | Go 语言编程之旅</a></p>
+</li>
+<li>
+<p><a href="https://www.likakuli.com/posts/docker-leak3/">Dockerd资源泄露系列</a></p>
 </li>
 </ul>
 
@@ -861,7 +914,10 @@ if (!doNotTrack) {
 		<br />
 	
 	
-	
+	<div class="text-muted mt-5 pt-3 border-top">
+  最后修改 May 10, 2023: <a href="https://github.com/huweihuang/blog.huweihuang.com/commit/7f583d9a8ac56c2d68071372b3ef7e54014a6d0e">add code (7f583d9)</a>
+</div>
+
 </div>
 
 

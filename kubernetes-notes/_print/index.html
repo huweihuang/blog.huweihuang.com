@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.ee4775ec6dbe1616475a73bf70d4a385.json"
+  data-offline-search-index-json-src="/offline-search-index.da138e394e5b94f5b66f2cf4e5a7a76a.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -1880,6 +1880,14 @@ if (!doNotTrack) {
     
 	
 <li>14.2.3.1: <a href="#pg-44aac785c423d0dcd0ca0cfde0575633">OpenYurt之YurtHub源码分析</a></li>
+
+
+    
+  
+    
+    
+	
+<li>14.2.3.2: <a href="#pg-3b9e3758058f48d61627e36fd3599ee0">OpenYurt之Tunnel-Agent源码分析</a></li>
 
 
     
@@ -22679,6 +22687,171 @@ etcdctl --endpoints <a href="http://172.16.22.36:2379/">http://172.16.22.36:2379
 </span></span></code></pre></div><p>参考：</p>
 <ul>
 <li><a href="https://github.com/openyurtio/openyurt">https://github.com/openyurtio/openyurt</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-3b9e3758058f48d61627e36fd3599ee0">14.2.3.2 - OpenYurt之Tunnel-Agent源码分析</h1>
+    
+	<h1 id="1-tunnel-agent简介">1. Tunnel-Agent简介</h1>
+<p>tunnel-agent是通过daemonset部署在每个worker节点，通过grpc协议与云端的tunnel-server建立连接。以下分析tunnel-agent的源码逻辑。</p>
+<p>常用的启动参数：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>      - args:
+</span></span><span style="display:flex;"><span>        - --node-name<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">$(</span>NODE_NAME<span style="color:#204a87;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        - --node-ip<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">$(</span>POD_IP<span style="color:#204a87;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        - --tunnelserver-addr<span style="color:#ce5c00;font-weight:bold">=</span>tunnel-server-address<span style="color:#ce5c00;font-weight:bold">[</span>ip:port<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>        - --v<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">2</span>
+</span></span><span style="display:flex;"><span>        command:
+</span></span><span style="display:flex;"><span>        - yurt-tunnel-agent
+</span></span></code></pre></div><h1 id="2-newyurttunnelagentcommand">2. NewYurttunnelAgentCommand</h1>
+<p>NewYurttunnelAgentCommand还是常用命令代码三板斧，此处不做展开，直接分析Run函数。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// NewYurttunnelAgentCommand creates a new yurttunnel-agent command
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">NewYurttunnelAgentCommand</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">stopCh</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">struct</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">cobra</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Command</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">agentOptions</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">options</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewAgentOptions</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 已经删除非重要的代码
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">cmd</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">cobra</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Command</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">RunE</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">cobra</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Command</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">args</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">agentOptions</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Config</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">Run</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Complete</span><span style="color:#000;font-weight:bold">(),</span> <span style="color:#000">stopCh</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">agentOptions</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">AddFlags</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cmd</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Flags</span><span style="color:#000;font-weight:bold">())</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">cmd</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="3-run">3. Run</h1>
+<p>Run函数即启动一个agent服务，主要包含以下几个步骤：</p>
+<ol>
+<li>
+<p>先获取配置项tunnelserver-addr中的地址，如果地址不存在，则获取x-tunnel-server-svc的service 地址。（说明：一般情况下，tunnel-server跟agent不在同一个网络域，因此网络会不通，所以一般需要配置独立且可连通的地址，可以通过Nginx转发）</p>
+</li>
+<li>
+<p>agent通过host的网络模式运行在宿主机上，启动证书manager。并等待证书生成。</p>
+</li>
+<li>
+<p>生成连接tunnel-server的证书。</p>
+</li>
+<li>
+<p>启动 yurttunnel-agent。</p>
+</li>
+<li>
+<p>启动meta server。</p>
+</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Run starts the yurttunel-agent
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">Run</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cfg</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">config</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">CompletedConfig</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">stopCh</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">struct</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 1. get the address of the yurttunnel-server
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">tunnelServerAddr</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">TunnelServerAddr</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">tunnelServerAddr</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#4e9a06">&#34;&#34;</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">tunnelServerAddr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">serveraddr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetTunnelServerAddr</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Client</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 2. create a certificate manager
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#8f5902;font-style:italic">// As yurttunnel-agent will run on the edge node with Host network mode,
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#8f5902;font-style:italic">// we can use the status.podIP as the node IP
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">nodeIP</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Getenv</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">constants</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">YurttunnelAgentPodIPEnv</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">agentCertMgr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">certfactory</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewCertManagerFactory</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Client</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">New</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">certfactory</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">CertManagerConfig</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">ComponentName</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">projectinfo</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetAgentName</span><span style="color:#000;font-weight:bold">(),</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">CertDir</span><span style="color:#000;font-weight:bold">:</span>       <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">CertDir</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">SignerName</span><span style="color:#000;font-weight:bold">:</span>    <span style="color:#000">certificatesv1</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">KubeAPIServerClientSignerName</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">CommonName</span><span style="color:#000;font-weight:bold">:</span>    <span style="color:#000">constants</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">YurtTunnelAgentCSRCN</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">Organizations</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span><span style="color:#000">constants</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">YurtTunnelCSROrg</span><span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">DNSNames</span><span style="color:#000;font-weight:bold">:</span>      <span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span><span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Getenv</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;NODE_NAME&#34;</span><span style="color:#000;font-weight:bold">)},</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">IPs</span><span style="color:#000;font-weight:bold">:</span>           <span style="color:#000;font-weight:bold">[]</span><span style="color:#000">net</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">IP</span><span style="color:#000;font-weight:bold">{</span><span style="color:#000">net</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ParseIP</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">nodeIP</span><span style="color:#000;font-weight:bold">)},</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">})</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">agentCertMgr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Start</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 2.1. waiting for the certificate is generated
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">_</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">wait</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">PollUntil</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Second</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">bool</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">agentCertMgr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Current</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">true</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Infof</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;certificate %s not signed, waiting...&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">projectinfo</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetAgentName</span><span style="color:#000;font-weight:bold">())</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">false</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">},</span> <span style="color:#000">stopCh</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 3. generate a TLS configuration for securing the connection to server
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">tlsCfg</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">certmanager</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GenTLSConfigUseCertMgrAndCA</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">agentCertMgr</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">tunnelServerAddr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">constants</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">YurttunnelCAFile</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 4. start the yurttunnel-agent
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">ta</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">agent</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewTunnelAgent</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">tlsCfg</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">tunnelServerAddr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NodeName</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">AgentIdentifiers</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">ta</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Run</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">stopCh</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 5. start meta server
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">util</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">RunMetaServer</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">AgentMetaAddr</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#000">stopCh</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="4-tunnelagent">4. TunnelAgent</h1>
+<p>TunnelAgent与tunnel-server建立tunnel，接收server的请求，并转发给kubelet。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// TunnelAgent sets up tunnel to TunnelServer, receive requests
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// from tunnel, and forwards requests to kubelet
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">TunnelAgent</span> <span style="color:#204a87;font-weight:bold">interface</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">Run</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">struct</span><span style="color:#000;font-weight:bold">{})</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// NewTunnelAgent generates a new TunnelAgent
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">NewTunnelAgent</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">tlsCfg</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">tls</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Config</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">tunnelServerAddr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">nodeName</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">agentIdentifiers</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">TunnelAgent</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">ata</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">anpTunnelAgent</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">tlsCfg</span><span style="color:#000;font-weight:bold">:</span>           <span style="color:#000">tlsCfg</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">tunnelServerAddr</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">tunnelServerAddr</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">nodeName</span><span style="color:#000;font-weight:bold">:</span>         <span style="color:#000">nodeName</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">agentIdentifiers</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">agentIdentifiers</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">ata</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="5-anptunnelagent-run">5. anpTunnelAgent.Run</h1>
+<p>anpTunnelAgent使用apiserver-network-proxy包来实现tunnel逻辑。项目具体参考：<a href="https://github.com/kubernetes-sigs/apiserver-network-proxy">https://github.com/kubernetes-sigs/apiserver-network-proxy</a>)</p>
+<blockquote>
+<p>代码：<a href="https://github.com/openyurtio/openyurt/blob/180282663457080119a1bc6076cce20c922b5c50/pkg/yurttunnel/agent/anpagent.go">/pkg/yurttunnel/agent/anpagent.go</a></p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// RunAgent runs the yurttunnel-agent which will try to connect yurttunnel-server
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">ata</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">anpTunnelAgent</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Run</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">stopChan</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">struct</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">dialOption</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">grpc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">WithTransportCredentials</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">credentials</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewTLS</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ata</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">tlsCfg</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">cc</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">anpagent</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ClientSetConfig</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">Address</span><span style="color:#000;font-weight:bold">:</span>                 <span style="color:#000">ata</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">tunnelServerAddr</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">AgentID</span><span style="color:#000;font-weight:bold">:</span>                 <span style="color:#000">ata</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">nodeName</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">AgentIdentifiers</span><span style="color:#000;font-weight:bold">:</span>        <span style="color:#000">ata</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">agentIdentifiers</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">SyncInterval</span><span style="color:#000;font-weight:bold">:</span>            <span style="color:#0000cf;font-weight:bold">5</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Second</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">ProbeInterval</span><span style="color:#000;font-weight:bold">:</span>           <span style="color:#0000cf;font-weight:bold">5</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Second</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">DialOptions</span><span style="color:#000;font-weight:bold">:</span>             <span style="color:#000;font-weight:bold">[]</span><span style="color:#000">grpc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">DialOption</span><span style="color:#000;font-weight:bold">{</span><span style="color:#000">dialOption</span><span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">ServiceAccountTokenPath</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#4e9a06">&#34;&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">cs</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewAgentClientSet</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">stopChan</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">cs</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Serve</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Infof</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;start serving grpc request redirected from %s: %s&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">projectinfo</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetServerName</span><span style="color:#000;font-weight:bold">(),</span> <span style="color:#000">ata</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">tunnelServerAddr</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>以下是apiserver-network-proxy的源码分析，待补充。</p>
+<p>参考：</p>
+<ul>
+<li><a href="https://github.com/openyurtio/openyurt/blob/180282663457080119a1bc6076cce20c922b5c50/pkg/yurttunnel/agent/anpagent.go">/pkg/yurttunnel/agent/anpagent.go</a></li>
 </ul>
 
 </div>
