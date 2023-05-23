@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.a2d265132cb6ec2be20db3b75e1fe2c0.json"
+  data-offline-search-index-json-src="/offline-search-index.f254ebdcad7c3664eb2e7e9ce4cf81c0.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -188,7 +188,7 @@ if (!doNotTrack) {
     
     
 	
-<li>1: <a href="#pg-ba6ff3e130589d9a22b217a89ee69d71">Kubernetes集群监控</a></li>
+<li>1: <a href="#pg-0246871f1f5b13bc1876ca30494b9e94">kube-prometheus-stack的使用</a></li>
 
 
     
@@ -196,7 +196,7 @@ if (!doNotTrack) {
     
     
 	
-<li>2: <a href="#pg-063a156fcf744316e09eb6d743179121">cAdvisor介绍</a></li>
+<li>2: <a href="#pg-ba6ff3e130589d9a22b217a89ee69d71">Kubernetes集群监控</a></li>
 
 
     
@@ -204,7 +204,7 @@ if (!doNotTrack) {
     
     
 	
-<li>3: <a href="#pg-c35df90033980941ba5c63379e5cfcbe">Heapster介绍</a></li>
+<li>3: <a href="#pg-063a156fcf744316e09eb6d743179121">cAdvisor介绍</a></li>
 
 
     
@@ -212,7 +212,23 @@ if (!doNotTrack) {
     
     
 	
-<li>4: <a href="#pg-5a2ec7c9c0c23b6304b5fdd306263b4c">Influxdb介绍</a></li>
+<li>4: <a href="#pg-c35df90033980941ba5c63379e5cfcbe">Heapster介绍</a></li>
+
+
+    
+  
+    
+    
+	
+<li>5: <a href="#pg-5a2ec7c9c0c23b6304b5fdd306263b4c">Influxdb介绍</a></li>
+
+
+    
+  
+    
+    
+	
+<li>6: <a href="#pg-92606946619161c3d94670cf180b1a17">Kubernetes集群监控</a></li>
 
 
     
@@ -243,7 +259,129 @@ if (!doNotTrack) {
 
 <div class="td-content" style="">
     
-	<h1 id="pg-ba6ff3e130589d9a22b217a89ee69d71">1 - Kubernetes集群监控</h1>
+	<h1 id="pg-0246871f1f5b13bc1876ca30494b9e94">1 - kube-prometheus-stack的使用</h1>
+    
+	<h1 id="1-kube-prometheus-stack简介">1. kube-prometheus-stack简介</h1>
+<p>kube-prometheus-stack是prometheus监控k8s集群的套件，可以通过helm一键安装，同时带有监控的模板。</p>
+<p>各组件包括</p>
+<ul>
+<li>grafana</li>
+<li>kube-state-metrics</li>
+<li>prometheus</li>
+<li>alertmanager</li>
+<li>node-exporter</li>
+</ul>
+<h1 id="2-安装kube-prometheus-stack">2. 安装kube-prometheus-stack</h1>
+<p>执行以下命令</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+</span></span><span style="display:flex;"><span>helm repo update
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack -n prometheus
+</span></span></code></pre></div><p>示例：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># helm install kube-prometheus-stack  prometheus-community/kube-prometheus-stack -n prometheus</span>
+</span></span><span style="display:flex;"><span>NAME: kube-prometheus-stack
+</span></span><span style="display:flex;"><span>LAST DEPLOYED: Wed May <span style="color:#0000cf;font-weight:bold">17</span> 17:12:24 <span style="color:#0000cf;font-weight:bold">2023</span>
+</span></span><span style="display:flex;"><span>NAMESPACE: prometheus
+</span></span><span style="display:flex;"><span>STATUS: deployed
+</span></span><span style="display:flex;"><span>REVISION: <span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span>NOTES:
+</span></span><span style="display:flex;"><span>kube-prometheus-stack has been installed. Check its status by running:
+</span></span><span style="display:flex;"><span>  kubectl --namespace prometheus get pods -l <span style="color:#4e9a06">&#34;release=kube-prometheus-stack&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Visit https://github.com/prometheus-operator/kube-prometheus <span style="color:#204a87;font-weight:bold">for</span> instructions on how to create <span style="color:#000;font-weight:bold">&amp;</span> configure Alertmanager and Prometheus instances using the Operator.
+</span></span></code></pre></div><h1 id="查看安装结果">. 查看安装结果</h1>
+<ul>
+<li>
+<p>deployment</p>
+<ul>
+<li>kube-prometheus-stack-grafana</li>
+<li>kube-prometheus-stack-kube-state-metrics</li>
+<li>kube-prometheus-stack-operator</li>
+</ul>
+</li>
+<li>
+<p>statefulset</p>
+<ul>
+<li>prometheus-kube-prometheus-stack-prometheus</li>
+<li>alertmanager-kube-prometheus-stack-alertmanager</li>
+</ul>
+</li>
+<li>
+<p>daemonset</p>
+<ul>
+<li>kube-prometheus-stack-prometheus-node-exporter</li>
+</ul>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kg all -n prometheus</span>
+</span></span><span style="display:flex;"><span>NAME                                                            READY   STATUS    RESTARTS   AGE
+</span></span><span style="display:flex;"><span>pod/alertmanager-kube-prometheus-stack-alertmanager-0           2/2     Running   <span style="color:#0000cf;font-weight:bold">0</span>          9m34s
+</span></span><span style="display:flex;"><span>pod/kube-prometheus-stack-grafana-5bb7689dc8-lgrws              3/3     Running   <span style="color:#0000cf;font-weight:bold">0</span>          9m35s
+</span></span><span style="display:flex;"><span>pod/kube-prometheus-stack-kube-state-metrics-5d6578867c-25xbq   1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          9m35s
+</span></span><span style="display:flex;"><span>pod/kube-prometheus-stack-operator-9c5fbdc68-nrn7h              1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          9m35s
+</span></span><span style="display:flex;"><span>pod/kube-prometheus-stack-prometheus-node-exporter-8ghd8        1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          48s
+</span></span><span style="display:flex;"><span>pod/kube-prometheus-stack-prometheus-node-exporter-brtp9        1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          29s
+</span></span><span style="display:flex;"><span>pod/kube-prometheus-stack-prometheus-node-exporter-n4kdp        1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          88s
+</span></span><span style="display:flex;"><span>pod/kube-prometheus-stack-prometheus-node-exporter-ttksv        1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          35s
+</span></span><span style="display:flex;"><span>pod/prometheus-kube-prometheus-stack-prometheus-0               2/2     Running   <span style="color:#0000cf;font-weight:bold">0</span>          9m34s
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME                                                     TYPE        CLUSTER-IP       EXTERNAL-IP   PORT<span style="color:#ce5c00;font-weight:bold">(</span>S<span style="color:#ce5c00;font-weight:bold">)</span>                      AGE
+</span></span><span style="display:flex;"><span>service/alertmanager-operated                            ClusterIP   None             &lt;none&gt;        9093/TCP,9094/TCP,9094/UDP   9m34s
+</span></span><span style="display:flex;"><span>service/kube-prometheus-stack-alertmanager               ClusterIP   10.99.108.180    &lt;none&gt;        9093/TCP                     9m36s
+</span></span><span style="display:flex;"><span>service/kube-prometheus-stack-grafana                    ClusterIP   10.110.62.28     &lt;none&gt;        80/TCP                       9m36s
+</span></span><span style="display:flex;"><span>service/kube-prometheus-stack-kube-state-metrics         ClusterIP   10.110.105.139   &lt;none&gt;        8080/TCP                     9m35s
+</span></span><span style="display:flex;"><span>service/kube-prometheus-stack-operator                   ClusterIP   10.96.147.204    &lt;none&gt;        443/TCP                      9m36s
+</span></span><span style="display:flex;"><span>service/kube-prometheus-stack-prometheus                 ClusterIP   10.98.235.203    &lt;none&gt;        9090/TCP                     9m36s
+</span></span><span style="display:flex;"><span>service/kube-prometheus-stack-prometheus-node-exporter   ClusterIP   10.105.99.77     &lt;none&gt;        9100/TCP                     9m36s
+</span></span><span style="display:flex;"><span>service/prometheus-operated                              ClusterIP   None             &lt;none&gt;        9090/TCP                     9m34s
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME                                                            DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+</span></span><span style="display:flex;"><span>daemonset.apps/kube-prometheus-stack-prometheus-node-exporter   <span style="color:#0000cf;font-weight:bold">4</span>         <span style="color:#0000cf;font-weight:bold">4</span>         <span style="color:#0000cf;font-weight:bold">4</span>       <span style="color:#0000cf;font-weight:bold">4</span>            <span style="color:#0000cf;font-weight:bold">4</span>           &lt;none&gt;          9m35s
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME                                                       READY   UP-TO-DATE   AVAILABLE   AGE
+</span></span><span style="display:flex;"><span>deployment.apps/kube-prometheus-stack-grafana              1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           9m35s
+</span></span><span style="display:flex;"><span>deployment.apps/kube-prometheus-stack-kube-state-metrics   1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           9m35s
+</span></span><span style="display:flex;"><span>deployment.apps/kube-prometheus-stack-operator             1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           9m35s
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME                                                               READY   AGE
+</span></span><span style="display:flex;"><span>statefulset.apps/alertmanager-kube-prometheus-stack-alertmanager   1/1     9m34s
+</span></span><span style="display:flex;"><span>statefulset.apps/prometheus-kube-prometheus-stack-prometheus       1/1     9m34s
+</span></span></code></pre></div><h1 id="4-登录grafana">4. 登录grafana</h1>
+<p>默认账号密码</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>账号：admin
+</span></span><span style="display:flex;"><span>密码：prom-operator
+</span></span></code></pre></div><p>默认账号密码位于secret中，通过base64解码可得上述密码。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kg secret -n prometheus kube-prometheus-stack-grafana -oyaml
+</span></span><span style="display:flex;"><span>apiVersion: v1
+</span></span><span style="display:flex;"><span>data:
+</span></span><span style="display:flex;"><span>  admin-password: <span style="color:#000">cHJvbS1vcGVyYXRvcg</span><span style="color:#ce5c00;font-weight:bold">==</span>
+</span></span><span style="display:flex;"><span>  admin-user: <span style="color:#000">YWRtaW4</span><span style="color:#ce5c00;font-weight:bold">=</span>
+</span></span></code></pre></div><p>模板内容：</p>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1684392039/article/kubernetes/monitor/grafana.png" alt=""></p>
+<p>pod数据：</p>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1684392101/article/kubernetes/monitor/pod-stats.png" alt=""></p>
+<p>参考：</p>
+<ul>
+<li><a href="https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack">https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack</a></li>
+<li><a href="https://github.com/prometheus-operator/kube-prometheus">https://github.com/prometheus-operator/kube-prometheus</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-ba6ff3e130589d9a22b217a89ee69d71">2 - Kubernetes集群监控</h1>
     
 	<h1 id="1-概述">1. 概述</h1>
 <h2 id="1-1-cadvisor">1.1. cAdvisor</h2>
@@ -467,7 +605,7 @@ if (!doNotTrack) {
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-063a156fcf744316e09eb6d743179121">2 - cAdvisor介绍</h1>
+	<h1 id="pg-063a156fcf744316e09eb6d743179121">3 - cAdvisor介绍</h1>
     
 	<h1 id="1-cadvisor简介">1. cAdvisor简介</h1>
 <p>​    cAdvisor对Node机器上的资源及容器进行实时监控和性能数据采集，包括CPU使用情况、内存使用情况、网络吞吐量及文件系统使用情况，cAdvisor集成在Kubelet中，当kubelet启动时会自动启动cAdvisor，即一个cAdvisor仅对一台Node机器进行监控。kubelet的启动参数--cadvisor-port可以定义cAdvisor对外提供服务的端口，默认为4194。可以通过浏览器&lt;Node_IP:port&gt;访问。项目主页：<a href="">http://github.com/google/cadvisor。</a></p>
@@ -702,7 +840,7 @@ if (!doNotTrack) {
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-c35df90033980941ba5c63379e5cfcbe">3 - Heapster介绍</h1>
+	<h1 id="pg-c35df90033980941ba5c63379e5cfcbe">4 - Heapster介绍</h1>
     
 	<h1 id="1-heapster简介">1. heapster简介</h1>
 <p>Heapster是容器集群监控和性能分析工具，天然的支持Kubernetes和CoreOS。
@@ -1035,7 +1173,7 @@ withfields： 使用InfluxDB fields(默认：false)。</p>
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-5a2ec7c9c0c23b6304b5fdd306263b4c">4 - Influxdb介绍</h1>
+	<h1 id="pg-5a2ec7c9c0c23b6304b5fdd306263b4c">5 - Influxdb介绍</h1>
     
 	<h1 id="1-influxdb简介">1. InfluxDB简介</h1>
 <p>InfluxDB是一个当下比较流行的时序数据库，InfluxDB使用 Go 语言编写，无需外部依赖，安装配置非常方便，适合构建大型分布式系统的监控系统。</p>
@@ -1176,6 +1314,42 @@ withfields： 使用InfluxDB fields(默认：false)。</p>
 </tr>
 </tbody>
 </table>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-92606946619161c3d94670cf180b1a17">6 - Kubernetes集群监控</h1>
+    
+	<h1 id="docker部署">Docker部署</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>docker run -d -p 3000:3000 grafana/grafana:latest
+</span></span></code></pre></div><h1 id="k8s部署">K8S部署</h1>
+<p>helm部署</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>helm repo add grafana https://grafana.github.io/helm-charts
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>helm search repo grafana
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li>
+<p><a href="https://grafana.com/docs/grafana/latest/setup-grafana/installation/">Install Grafana | Grafana documentation</a></p>
+</li>
+<li>
+<p><a href="https://grafana.com/docs/grafana/latest/setup-grafana/installation/kubernetes/">Deploy Grafana on Kubernetes | Grafana documentation</a></p>
+</li>
+<li>
+<p><a href="https://github.com/grafana/helm-charts">GitHub - grafana/helm-charts</a></p>
+</li>
+</ul>
 
 </div>
 

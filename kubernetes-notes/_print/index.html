@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.a2d265132cb6ec2be20db3b75e1fe2c0.json"
+  data-offline-search-index-json-src="/offline-search-index.f254ebdcad7c3664eb2e7e9ce4cf81c0.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -1887,7 +1887,15 @@ if (!doNotTrack) {
     
     
 	
-<li>14.2.3.2: <a href="#pg-3b9e3758058f48d61627e36fd3599ee0">OpenYurt之Tunnel-Agent源码分析</a></li>
+<li>14.2.3.2: <a href="#pg-1069f62a63aea9ada9ee4b47caf8d66a">OpenYurt之TunnelServer源码分析</a></li>
+
+
+    
+  
+    
+    
+	
+<li>14.2.3.3: <a href="#pg-3b9e3758058f48d61627e36fd3599ee0">OpenYurt之Tunnel-Agent源码分析</a></li>
 
 
     
@@ -1984,7 +1992,7 @@ if (!doNotTrack) {
     
     
 	
-<li>16.1: <a href="#pg-ba6ff3e130589d9a22b217a89ee69d71">Kubernetes集群监控</a></li>
+<li>16.1: <a href="#pg-0246871f1f5b13bc1876ca30494b9e94">kube-prometheus-stack的使用</a></li>
 
 
     
@@ -1992,7 +2000,7 @@ if (!doNotTrack) {
     
     
 	
-<li>16.2: <a href="#pg-063a156fcf744316e09eb6d743179121">cAdvisor介绍</a></li>
+<li>16.2: <a href="#pg-ba6ff3e130589d9a22b217a89ee69d71">Kubernetes集群监控</a></li>
 
 
     
@@ -2000,7 +2008,7 @@ if (!doNotTrack) {
     
     
 	
-<li>16.3: <a href="#pg-c35df90033980941ba5c63379e5cfcbe">Heapster介绍</a></li>
+<li>16.3: <a href="#pg-063a156fcf744316e09eb6d743179121">cAdvisor介绍</a></li>
 
 
     
@@ -2008,7 +2016,23 @@ if (!doNotTrack) {
     
     
 	
-<li>16.4: <a href="#pg-5a2ec7c9c0c23b6304b5fdd306263b4c">Influxdb介绍</a></li>
+<li>16.4: <a href="#pg-c35df90033980941ba5c63379e5cfcbe">Heapster介绍</a></li>
+
+
+    
+  
+    
+    
+	
+<li>16.5: <a href="#pg-5a2ec7c9c0c23b6304b5fdd306263b4c">Influxdb介绍</a></li>
+
+
+    
+  
+    
+    
+	
+<li>16.6: <a href="#pg-92606946619161c3d94670cf180b1a17">Kubernetes集群监控</a></li>
 
 
     
@@ -22695,7 +22719,356 @@ etcdctl --endpoints <a href="http://172.16.22.36:2379/">http://172.16.22.36:2379
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-3b9e3758058f48d61627e36fd3599ee0">14.2.3.2 - OpenYurt之Tunnel-Agent源码分析</h1>
+	<h1 id="pg-1069f62a63aea9ada9ee4b47caf8d66a">14.2.3.2 - OpenYurt之TunnelServer源码分析</h1>
+    
+	<blockquote>
+<p>本文以commit id：<code>180282663457080119a1bc6076cce20c922b5c50</code>， 对应版本tag: <code>v1.2.1</code> 的源码分析tunnel-server的实现逻辑。</p>
+</blockquote>
+<h1 id="1-tunnel-server简介">1. Tunnel-server简介</h1>
+<p>云与边一般位于不同网络平面，同时边缘节点普遍位于防火墙内部，采用云(中心)边协同架构，将导致原生 K8s 系统的运维监控能力面临如下挑战:</p>
+<ul>
+<li>K8s 原生运维能力缺失(如 kubectl logs/exec 等无法执行)</li>
+<li>社区主流监控运维组件无法工作(如 Prometheus/metrics-server )</li>
+</ul>
+<p>在 OpenYurt 中，引入了专门的组件 YurtTunnel 负责解决云边通信问题。反向通道是解决跨网络通信的一种常见方式，而 YurtTunnel 的本质也是一个反向通道。 它是一个典型的C/S结构的组件，由部署于云端的 YurtTunnelServer 和部署于边缘节点上的 YurtTunnelAgent组成。</p>
+<p>本文主要分析tunnel-server的代理逻辑。</p>
+<p>以下是基本架构图：</p>
+<img title="" src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1682566581/article/openyurt/tunnel_components.jpg" alt="" width="628">
+<p>pkg中的目录结构：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>yurttunnel
+</span></span><span style="display:flex;"><span>├── agent  <span style="color:#8f5902;font-style:italic"># tunnel agent代码</span>
+</span></span><span style="display:flex;"><span>├── constants <span style="color:#8f5902;font-style:italic"># 常量值</span>
+</span></span><span style="display:flex;"><span>├── handlerwrapper
+</span></span><span style="display:flex;"><span>├── informers
+</span></span><span style="display:flex;"><span>├── kubernetes  <span style="color:#8f5902;font-style:italic"># k8s clientset工具包</span>
+</span></span><span style="display:flex;"><span>├── server  <span style="color:#8f5902;font-style:italic"># 核心代码： tunnel server逻辑</span>
+</span></span><span style="display:flex;"><span>├── trafficforward  <span style="color:#8f5902;font-style:italic"># iptables和dns操作</span>
+</span></span><span style="display:flex;"><span>└── util
+</span></span></code></pre></div><h1 id="2-newyurttunnelservercommand">2. NewYurttunnelServerCommand</h1>
+<p>main函数入口：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">main</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">cmd</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">app</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewYurttunnelServerCommand</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">stop</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">cmd</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Flags</span><span style="color:#000;font-weight:bold">().</span><span style="color:#000">AddGoFlagSet</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">flag</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">CommandLine</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cmd</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Execute</span><span style="color:#000;font-weight:bold">();</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Fatalf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;%s failed: %s&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">projectinfo</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetServerName</span><span style="color:#000;font-weight:bold">(),</span> <span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>以下是NewYurttunnelServerCommand构造函数，常见的三件套，不做展开：</p>
+<ul>
+<li>
+<p>读取参数：serverOptions.AddFlags(cmd.Flags())</p>
+</li>
+<li>
+<p>生成配置：cfg.Complete()</p>
+</li>
+<li>
+<p>执行Run函数：核心逻辑</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">NewYurttunnelServerCommand</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">stopCh</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">struct</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">cobra</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Command</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">serverOptions</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">options</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewServerOptions</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">cmd</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">cobra</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Command</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">Use</span><span style="color:#000;font-weight:bold">:</span>   <span style="color:#4e9a06">&#34;Launch &#34;</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#000">projectinfo</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetServerName</span><span style="color:#000;font-weight:bold">(),</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">Short</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">projectinfo</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetServerName</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#4e9a06">&#34; sends requests to &#34;</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#000">projectinfo</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetAgentName</span><span style="color:#000;font-weight:bold">(),</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">RunE</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">cobra</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Command</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">args</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#ce5c00;font-weight:bold">...</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">serverOptions</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Config</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">Run</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Complete</span><span style="color:#000;font-weight:bold">(),</span> <span style="color:#000">stopCh</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">Args</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">cobra</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NoArgs</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">serverOptions</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">AddFlags</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cmd</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Flags</span><span style="color:#000;font-weight:bold">())</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">cmd</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="3-run-cfg-complete-stopch">3. Run(cfg.Complete(), stopCh)</h1>
+<p>Run函数最终是运行一个tunnelserver的常驻进程。在之前会做一些controller或manager的准备工作。</p>
+<p>其中包括：</p>
+<ul>
+<li>
+<p>DNS controller</p>
+</li>
+<li>
+<p>IP table manager</p>
+</li>
+<li>
+<p>certificate manager</p>
+</li>
+<li>
+<p>RegisterInformersForTunnelServer</p>
+</li>
+</ul>
+<p>首先是构建并运行上述的manager或controller， 源码中的注释也大概描述了主要流程：</p>
+<ol>
+<li>
+<p>注册tunnel所需的SharedInformerFactory</p>
+</li>
+<li>
+<p>运行dns controller</p>
+</li>
+<li>
+<p>运行ip table manager</p>
+</li>
+<li>
+<p>给tunnel server创建certificate manager</p>
+</li>
+<li>
+<p>给tunnel agent 创建certificate manager</p>
+</li>
+<li>
+<p>创建handler wrappers</p>
+</li>
+<li>
+<p>生成TLS 证书</p>
+</li>
+<li>
+<p>运行tunnel server</p>
+</li>
+</ol>
+<p>以下是部分代码，已删除无关紧要的代码：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// run starts the yurttunel-server
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">Run</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cfg</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">config</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">CompletedConfig</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">stopCh</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">struct</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">wg</span> <span style="color:#000">sync</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">WaitGroup</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// register informers that tunnel server need
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">informers</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">RegisterInformersForTunnelServer</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SharedInformerFactory</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 0. start the DNS controller
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">EnableDNSController</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">dnsController</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">dns</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewCoreDNSRecordController</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">go</span> <span style="color:#000">dnsController</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Run</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">stopCh</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 1. start the IP table manager
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">EnableIptables</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">iptablesMgr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">iptables</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewIptablesManagerWithIPFamily</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">wg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">go</span> <span style="color:#000">iptablesMgr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Run</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">stopCh</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">wg</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 2. create a certificate manager for the tunnel server
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">certManagerFactory</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">certfactory</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewCertManagerFactory</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Client</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">ips</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">dnsNames</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">getTunnelServerIPsAndDNSNamesBeforeInformerSynced</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Client</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">stopCh</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">serverCertMgr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">certManagerFactory</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">New</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">serverCertMgr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Start</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 3. create a certificate manager for the tunnel proxy client
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">tunnelProxyCertMgr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">certManagerFactory</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">New</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">tunnelProxyCertMgr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Start</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 4. create handler wrappers
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">mInitializer</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">initializer</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewMiddlewareInitializer</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SharedInformerFactory</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">wrappers</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">wraphandler</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">InitHandlerWrappers</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">mInitializer</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">IsIPv6</span><span style="color:#000;font-weight:bold">())</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// after all of informers are configured completed, start the shared index informer
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SharedInformerFactory</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Start</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">stopCh</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 5. waiting for the certificate is generated
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">_</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">wait</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">PollUntil</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Second</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">bool</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#8f5902;font-style:italic">// keep polling until the certificate is signed
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">serverCertMgr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Current</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> <span style="color:#000">tunnelProxyCertMgr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Current</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">true</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Infof</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;waiting for the master to sign the %s certificate&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">projectinfo</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetServerName</span><span style="color:#000;font-weight:bold">())</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">false</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">},</span> <span style="color:#000">stopCh</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 6. generate the TLS configuration based on the latest certificate
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">tlsCfg</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">certmanager</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GenTLSConfigUseCurrentCertAndCertPool</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">serverCertMgr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Current</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">RootCert</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;server&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">proxyClientTlsCfg</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">certmanager</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GenTLSConfigUseCurrentCertAndCertPool</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">tunnelProxyCertMgr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Current</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">RootCert</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;client&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 7. start the server
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">ts</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">server</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewTunnelServer</span><span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">EgressSelectorEnabled</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">InterceptorServerUDSFile</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ListenAddrForMaster</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ListenInsecureAddrForMaster</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ListenAddrForAgent</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ServerCount</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">tlsCfg</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">proxyClientTlsCfg</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">wrappers</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ProxyStrategy</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">ts</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Run</span><span style="color:#000;font-weight:bold">();</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 8. start meta server
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">util</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">RunMetaServer</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ListenMetaAddr</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#000">stopCh</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">wg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Wait</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="3-tunnelserver">3. TunnelServer</h1>
+<p>anpTunnelServer实现了TunnelServer的接口，以下分析TunnelServer.Run的部分。</p>
+<p>run部分主要运行了三个server</p>
+<ul>
+<li>
+<p>proxyServer： 主要是重定向apiserver的请求到tunnel server</p>
+</li>
+<li>
+<p>MasterServer：</p>
+</li>
+<li>
+<p>AgentServer：主要运行一个grpc server与tunnel agent连接，即云边反向隧道</p>
+</li>
+</ul>
+<blockquote>
+<p>代码参考：<a href="https://github.com/openyurtio/openyurt/blob/180282663457080119a1bc6076cce20c922b5c50/pkg/yurttunnel/server/anpserver.go">/pkg/yurttunnel/server/anpserver.go</a></p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Run runs the yurttunnel-server
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">ats</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">anpTunnelServer</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Run</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">proxyServer</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">anpserver</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewProxyServer</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">uuid</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">New</span><span style="color:#000;font-weight:bold">().</span><span style="color:#000">String</span><span style="color:#000;font-weight:bold">(),</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">[]</span><span style="color:#000">anpserver</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ProxyStrategy</span><span style="color:#000;font-weight:bold">{</span><span style="color:#000">anpserver</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ProxyStrategy</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ats</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">proxyStrategy</span><span style="color:#000;font-weight:bold">)},</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">ats</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">serverCount</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">anpserver</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">AgentTokenAuthenticationOptions</span><span style="color:#000;font-weight:bold">{})</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 1. start the proxier
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">proxierErr</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">runProxier</span><span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">anpserver</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Tunnel</span><span style="color:#000;font-weight:bold">{</span><span style="color:#000">Server</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">proxyServer</span><span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">ats</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">egressSelectorEnabled</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">ats</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">interceptorServerUDSFile</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">ats</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">tlsCfg</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">wrappedHandler</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">wh</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">WrapHandler</span><span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">NewRequestInterceptor</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ats</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">interceptorServerUDSFile</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">ats</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">proxyClientTlsCfg</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">ats</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">wrappers</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 2. start the master server
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">masterServerErr</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">runMasterServer</span><span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">wrappedHandler</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">ats</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">egressSelectorEnabled</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">ats</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">serverMasterAddr</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">ats</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">serverMasterInsecureAddr</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">ats</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">tlsCfg</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 3. start the agent server
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">agentServerErr</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">runAgentServer</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ats</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">tlsCfg</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">ats</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">serverAgentAddr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">proxyServer</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="4-runagentserver">4. runAgentServer</h1>
+<p>runAgentServer主要运行一个grpc server与edge端的agent形成grpc连接。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// runAgentServer runs a grpc server that handles connections from the yurttunel-agent
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// NOTE agent server is responsible for managing grpc connection yurttunel-server
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// and yurttunnel-agent, and the proxy server is responsible for redirecting requests
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// to corresponding yurttunel-agent
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">runAgentServer</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">tlsCfg</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">tls</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Config</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">agentServerAddr</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">proxyServer</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">anpserver</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ProxyServer</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">serverOption</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">grpc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Creds</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">credentials</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewTLS</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">tlsCfg</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">ka</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">keepalive</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ServerParameters</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#8f5902;font-style:italic">// Ping the client if it is idle for `Time` seconds to ensure the
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>        <span style="color:#8f5902;font-style:italic">// connection is still active
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>        <span style="color:#000">Time</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">constants</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">YurttunnelANPGrpcKeepAliveTimeSec</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Second</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#8f5902;font-style:italic">// Wait `Timeout` second for the ping ack before assuming the
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>        <span style="color:#8f5902;font-style:italic">// connection is dead
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>        <span style="color:#000">Timeout</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">constants</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">YurttunnelANPGrpcKeepAliveTimeoutSec</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Second</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">grpcServer</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">grpc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewServer</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">serverOption</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">grpc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">KeepaliveParams</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ka</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">anpagent</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">RegisterAgentServiceServer</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">grpcServer</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">proxyServer</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">listener</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">net</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Listen</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;tcp&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">agentServerAddr</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Info</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;start handling connection from agents&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Errorf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;fail to listen to agent on %s: %w&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">agentServerAddr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">go</span> <span style="color:#000">grpcServer</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Serve</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">listener</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="5-interceptor">5. Interceptor</h1>
+<p>Interceptor（请求拦截器）拦截kube-apiserver的请求转发给tunnel，通过tunnel请求kubelet。</p>
+<p>流程图：</p>
+<img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1683615159/article/openyurt/tunnel_sequence_diag.webp" title="" alt="" width="719">
+<blockquote>
+<p>代码地址：<a href="https://github.com/openyurtio/openyurt/blob/180282663457080119a1bc6076cce20c922b5c50/pkg/yurttunnel/server/interceptor.go">/pkg/yurttunnel/server/interceptor.go</a></p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// NewRequestInterceptor creates a interceptor object that intercept request from kube-apiserver
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">NewRequestInterceptor</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">udsSockFile</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">cfg</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">tls</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Config</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">RequestInterceptor</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">udsSockFile</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#ce5c00;font-weight:bold">||</span> <span style="color:#000">cfg</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">InsecureSkipVerify</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87;font-weight:bold">true</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">contextDialer</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">addr</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">header</span> <span style="color:#000">http</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Header</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">isTLS</span> <span style="color:#204a87;font-weight:bold">bool</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">net</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Conn</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Infof</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Sending request to %q.&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">addr</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">proxyConn</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">net</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Dial</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;unix&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">udsSockFile</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Errorf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;dialing proxy %q failed: %w&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">udsSockFile</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">connectHeaders</span> <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">h</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">supportedHeaders</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">v</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">header</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Get</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">h</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">v</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#000">connectHeaders</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Sprintf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;%s\r\n%s: %s&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">connectHeaders</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">h</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">v</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Fprintf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">proxyConn</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;CONNECT %s HTTP/1.1\r\nHost: localhost%s\r\n\r\n&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">addr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">connectHeaders</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">br</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">newBufioReader</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">proxyConn</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">putBufioReader</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">br</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">res</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">http</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ReadResponse</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">br</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">nil</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">proxyConn</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Close</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Errorf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;reading HTTP response from CONNECT to %s via proxy %s failed: %w&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">addr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">udsSockFile</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">res</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">StatusCode</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#0000cf;font-weight:bold">200</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">proxyConn</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Close</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Errorf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;proxy error from %s while dialing %s, code %d: %v&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">udsSockFile</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">addr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">res</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">StatusCode</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">res</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Status</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#8f5902;font-style:italic">// if the request scheme is https, setup a tls connection over the
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>        <span style="color:#8f5902;font-style:italic">// proxy tunnel (i.e. interceptor &lt;--tls--&gt; kubelet)
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">isTLS</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">tlsTunnelConn</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">tls</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Client</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">proxyConn</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">cfg</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">tlsTunnelConn</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Handshake</span><span style="color:#000;font-weight:bold">();</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#000">proxyConn</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Close</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Errorf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;fail to setup TLS handshake through the Tunnel: %w&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Infof</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;successfully setup TLS connection to %q with headers: %s&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">addr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">connectHeaders</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">tlsTunnelConn</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Infof</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;successfully setup connection to %q with headers: %q&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">addr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">connectHeaders</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">proxyConn</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">RequestInterceptor</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">contextDialer</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">contextDialer</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="https://openyurt.io/zh/docs/core-concepts/yurttunnel">https://openyurt.io/zh/docs/core-concepts/yurttunnel</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-3b9e3758058f48d61627e36fd3599ee0">14.2.3.3 - OpenYurt之Tunnel-Agent源码分析</h1>
     
 	<h1 id="1-tunnel-agent简介">1. Tunnel-Agent简介</h1>
 <p>tunnel-agent是通过daemonset部署在每个worker节点，通过grpc协议与云端的tunnel-server建立连接。以下分析tunnel-agent的源码逻辑。</p>
@@ -23310,7 +23683,129 @@ virt-launcher
 
 <div class="td-content" style="">
     
-	<h1 id="pg-ba6ff3e130589d9a22b217a89ee69d71">16.1 - Kubernetes集群监控</h1>
+	<h1 id="pg-0246871f1f5b13bc1876ca30494b9e94">16.1 - kube-prometheus-stack的使用</h1>
+    
+	<h1 id="1-kube-prometheus-stack简介">1. kube-prometheus-stack简介</h1>
+<p>kube-prometheus-stack是prometheus监控k8s集群的套件，可以通过helm一键安装，同时带有监控的模板。</p>
+<p>各组件包括</p>
+<ul>
+<li>grafana</li>
+<li>kube-state-metrics</li>
+<li>prometheus</li>
+<li>alertmanager</li>
+<li>node-exporter</li>
+</ul>
+<h1 id="2-安装kube-prometheus-stack">2. 安装kube-prometheus-stack</h1>
+<p>执行以下命令</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+</span></span><span style="display:flex;"><span>helm repo update
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack -n prometheus
+</span></span></code></pre></div><p>示例：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># helm install kube-prometheus-stack  prometheus-community/kube-prometheus-stack -n prometheus</span>
+</span></span><span style="display:flex;"><span>NAME: kube-prometheus-stack
+</span></span><span style="display:flex;"><span>LAST DEPLOYED: Wed May <span style="color:#0000cf;font-weight:bold">17</span> 17:12:24 <span style="color:#0000cf;font-weight:bold">2023</span>
+</span></span><span style="display:flex;"><span>NAMESPACE: prometheus
+</span></span><span style="display:flex;"><span>STATUS: deployed
+</span></span><span style="display:flex;"><span>REVISION: <span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span>NOTES:
+</span></span><span style="display:flex;"><span>kube-prometheus-stack has been installed. Check its status by running:
+</span></span><span style="display:flex;"><span>  kubectl --namespace prometheus get pods -l <span style="color:#4e9a06">&#34;release=kube-prometheus-stack&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Visit https://github.com/prometheus-operator/kube-prometheus <span style="color:#204a87;font-weight:bold">for</span> instructions on how to create <span style="color:#000;font-weight:bold">&amp;</span> configure Alertmanager and Prometheus instances using the Operator.
+</span></span></code></pre></div><h1 id="查看安装结果">. 查看安装结果</h1>
+<ul>
+<li>
+<p>deployment</p>
+<ul>
+<li>kube-prometheus-stack-grafana</li>
+<li>kube-prometheus-stack-kube-state-metrics</li>
+<li>kube-prometheus-stack-operator</li>
+</ul>
+</li>
+<li>
+<p>statefulset</p>
+<ul>
+<li>prometheus-kube-prometheus-stack-prometheus</li>
+<li>alertmanager-kube-prometheus-stack-alertmanager</li>
+</ul>
+</li>
+<li>
+<p>daemonset</p>
+<ul>
+<li>kube-prometheus-stack-prometheus-node-exporter</li>
+</ul>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kg all -n prometheus</span>
+</span></span><span style="display:flex;"><span>NAME                                                            READY   STATUS    RESTARTS   AGE
+</span></span><span style="display:flex;"><span>pod/alertmanager-kube-prometheus-stack-alertmanager-0           2/2     Running   <span style="color:#0000cf;font-weight:bold">0</span>          9m34s
+</span></span><span style="display:flex;"><span>pod/kube-prometheus-stack-grafana-5bb7689dc8-lgrws              3/3     Running   <span style="color:#0000cf;font-weight:bold">0</span>          9m35s
+</span></span><span style="display:flex;"><span>pod/kube-prometheus-stack-kube-state-metrics-5d6578867c-25xbq   1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          9m35s
+</span></span><span style="display:flex;"><span>pod/kube-prometheus-stack-operator-9c5fbdc68-nrn7h              1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          9m35s
+</span></span><span style="display:flex;"><span>pod/kube-prometheus-stack-prometheus-node-exporter-8ghd8        1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          48s
+</span></span><span style="display:flex;"><span>pod/kube-prometheus-stack-prometheus-node-exporter-brtp9        1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          29s
+</span></span><span style="display:flex;"><span>pod/kube-prometheus-stack-prometheus-node-exporter-n4kdp        1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          88s
+</span></span><span style="display:flex;"><span>pod/kube-prometheus-stack-prometheus-node-exporter-ttksv        1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          35s
+</span></span><span style="display:flex;"><span>pod/prometheus-kube-prometheus-stack-prometheus-0               2/2     Running   <span style="color:#0000cf;font-weight:bold">0</span>          9m34s
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME                                                     TYPE        CLUSTER-IP       EXTERNAL-IP   PORT<span style="color:#ce5c00;font-weight:bold">(</span>S<span style="color:#ce5c00;font-weight:bold">)</span>                      AGE
+</span></span><span style="display:flex;"><span>service/alertmanager-operated                            ClusterIP   None             &lt;none&gt;        9093/TCP,9094/TCP,9094/UDP   9m34s
+</span></span><span style="display:flex;"><span>service/kube-prometheus-stack-alertmanager               ClusterIP   10.99.108.180    &lt;none&gt;        9093/TCP                     9m36s
+</span></span><span style="display:flex;"><span>service/kube-prometheus-stack-grafana                    ClusterIP   10.110.62.28     &lt;none&gt;        80/TCP                       9m36s
+</span></span><span style="display:flex;"><span>service/kube-prometheus-stack-kube-state-metrics         ClusterIP   10.110.105.139   &lt;none&gt;        8080/TCP                     9m35s
+</span></span><span style="display:flex;"><span>service/kube-prometheus-stack-operator                   ClusterIP   10.96.147.204    &lt;none&gt;        443/TCP                      9m36s
+</span></span><span style="display:flex;"><span>service/kube-prometheus-stack-prometheus                 ClusterIP   10.98.235.203    &lt;none&gt;        9090/TCP                     9m36s
+</span></span><span style="display:flex;"><span>service/kube-prometheus-stack-prometheus-node-exporter   ClusterIP   10.105.99.77     &lt;none&gt;        9100/TCP                     9m36s
+</span></span><span style="display:flex;"><span>service/prometheus-operated                              ClusterIP   None             &lt;none&gt;        9090/TCP                     9m34s
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME                                                            DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+</span></span><span style="display:flex;"><span>daemonset.apps/kube-prometheus-stack-prometheus-node-exporter   <span style="color:#0000cf;font-weight:bold">4</span>         <span style="color:#0000cf;font-weight:bold">4</span>         <span style="color:#0000cf;font-weight:bold">4</span>       <span style="color:#0000cf;font-weight:bold">4</span>            <span style="color:#0000cf;font-weight:bold">4</span>           &lt;none&gt;          9m35s
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME                                                       READY   UP-TO-DATE   AVAILABLE   AGE
+</span></span><span style="display:flex;"><span>deployment.apps/kube-prometheus-stack-grafana              1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           9m35s
+</span></span><span style="display:flex;"><span>deployment.apps/kube-prometheus-stack-kube-state-metrics   1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           9m35s
+</span></span><span style="display:flex;"><span>deployment.apps/kube-prometheus-stack-operator             1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           9m35s
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME                                                               READY   AGE
+</span></span><span style="display:flex;"><span>statefulset.apps/alertmanager-kube-prometheus-stack-alertmanager   1/1     9m34s
+</span></span><span style="display:flex;"><span>statefulset.apps/prometheus-kube-prometheus-stack-prometheus       1/1     9m34s
+</span></span></code></pre></div><h1 id="4-登录grafana">4. 登录grafana</h1>
+<p>默认账号密码</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>账号：admin
+</span></span><span style="display:flex;"><span>密码：prom-operator
+</span></span></code></pre></div><p>默认账号密码位于secret中，通过base64解码可得上述密码。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kg secret -n prometheus kube-prometheus-stack-grafana -oyaml
+</span></span><span style="display:flex;"><span>apiVersion: v1
+</span></span><span style="display:flex;"><span>data:
+</span></span><span style="display:flex;"><span>  admin-password: <span style="color:#000">cHJvbS1vcGVyYXRvcg</span><span style="color:#ce5c00;font-weight:bold">==</span>
+</span></span><span style="display:flex;"><span>  admin-user: <span style="color:#000">YWRtaW4</span><span style="color:#ce5c00;font-weight:bold">=</span>
+</span></span></code></pre></div><p>模板内容：</p>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1684392039/article/kubernetes/monitor/grafana.png" alt=""></p>
+<p>pod数据：</p>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1684392101/article/kubernetes/monitor/pod-stats.png" alt=""></p>
+<p>参考：</p>
+<ul>
+<li><a href="https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack">https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack</a></li>
+<li><a href="https://github.com/prometheus-operator/kube-prometheus">https://github.com/prometheus-operator/kube-prometheus</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-ba6ff3e130589d9a22b217a89ee69d71">16.2 - Kubernetes集群监控</h1>
     
 	<h1 id="1-概述">1. 概述</h1>
 <h2 id="1-1-cadvisor">1.1. cAdvisor</h2>
@@ -23534,7 +24029,7 @@ virt-launcher
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-063a156fcf744316e09eb6d743179121">16.2 - cAdvisor介绍</h1>
+	<h1 id="pg-063a156fcf744316e09eb6d743179121">16.3 - cAdvisor介绍</h1>
     
 	<h1 id="1-cadvisor简介">1. cAdvisor简介</h1>
 <p>​    cAdvisor对Node机器上的资源及容器进行实时监控和性能数据采集，包括CPU使用情况、内存使用情况、网络吞吐量及文件系统使用情况，cAdvisor集成在Kubelet中，当kubelet启动时会自动启动cAdvisor，即一个cAdvisor仅对一台Node机器进行监控。kubelet的启动参数--cadvisor-port可以定义cAdvisor对外提供服务的端口，默认为4194。可以通过浏览器&lt;Node_IP:port&gt;访问。项目主页：<a href="">http://github.com/google/cadvisor。</a></p>
@@ -23769,7 +24264,7 @@ virt-launcher
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-c35df90033980941ba5c63379e5cfcbe">16.3 - Heapster介绍</h1>
+	<h1 id="pg-c35df90033980941ba5c63379e5cfcbe">16.4 - Heapster介绍</h1>
     
 	<h1 id="1-heapster简介">1. heapster简介</h1>
 <p>Heapster是容器集群监控和性能分析工具，天然的支持Kubernetes和CoreOS。
@@ -24102,7 +24597,7 @@ withfields： 使用InfluxDB fields(默认：false)。</p>
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-5a2ec7c9c0c23b6304b5fdd306263b4c">16.4 - Influxdb介绍</h1>
+	<h1 id="pg-5a2ec7c9c0c23b6304b5fdd306263b4c">16.5 - Influxdb介绍</h1>
     
 	<h1 id="1-influxdb简介">1. InfluxDB简介</h1>
 <p>InfluxDB是一个当下比较流行的时序数据库，InfluxDB使用 Go 语言编写，无需外部依赖，安装配置非常方便，适合构建大型分布式系统的监控系统。</p>
@@ -24243,6 +24738,42 @@ withfields： 使用InfluxDB fields(默认：false)。</p>
 </tr>
 </tbody>
 </table>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-92606946619161c3d94670cf180b1a17">16.6 - Kubernetes集群监控</h1>
+    
+	<h1 id="docker部署">Docker部署</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>docker run -d -p 3000:3000 grafana/grafana:latest
+</span></span></code></pre></div><h1 id="k8s部署">K8S部署</h1>
+<p>helm部署</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>helm repo add grafana https://grafana.github.io/helm-charts
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>helm search repo grafana
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li>
+<p><a href="https://grafana.com/docs/grafana/latest/setup-grafana/installation/">Install Grafana | Grafana documentation</a></p>
+</li>
+<li>
+<p><a href="https://grafana.com/docs/grafana/latest/setup-grafana/installation/kubernetes/">Deploy Grafana on Kubernetes | Grafana documentation</a></p>
+</li>
+<li>
+<p><a href="https://github.com/grafana/helm-charts">GitHub - grafana/helm-charts</a></p>
+</li>
+</ul>
 
 </div>
 
