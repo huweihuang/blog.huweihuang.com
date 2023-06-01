@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.0fb10d9763aa68058f7dfa8d7f5fa7bd.json"
+  data-offline-search-index-json-src="/offline-search-index.47212925fdd08d3c085b383e10babe81.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -1109,7 +1109,7 @@ if (!doNotTrack) {
     
     
 	
-<li>8.5: <a href="#pg-3047f06db94255d847014b8b4927fc13">访问控制</a></li>
+<li>8.5: <a href="#pg-938bc65964a09b965ab8e21d08b4607f">版本发布</a></li>
 
 
     
@@ -1124,7 +1124,34 @@ if (!doNotTrack) {
     
     
 	
-<li>8.5.1: <a href="#pg-9f77a82cda922f86b06a443f2d02911d">使用 RBAC 鉴权</a></li>
+<li>8.5.1: <a href="#pg-95b06c53cc40973b00b544beeff601fb">金丝雀发布</a></li>
+
+
+    
+  
+
+    </ul>
+    
+  
+    
+    
+	
+<li>8.6: <a href="#pg-3047f06db94255d847014b8b4927fc13">访问控制</a></li>
+
+
+    
+    <ul>
+        
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>8.6.1: <a href="#pg-9f77a82cda922f86b06a443f2d02911d">使用 RBAC 鉴权</a></li>
 
 
     
@@ -2032,7 +2059,7 @@ if (!doNotTrack) {
     
     
 	
-<li>16.6: <a href="#pg-92606946619161c3d94670cf180b1a17">grafana部署</a></li>
+<li>16.6: <a href="#pg-92606946619161c3d94670cf180b1a17">Grafana部署</a></li>
 
 
     
@@ -13934,7 +13961,7 @@ yum localinstall -y flannel-0.2.0-10.el7.x86_64.rpm
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-3047f06db94255d847014b8b4927fc13">8.5 - 访问控制</h1>
+	<h1 id="pg-938bc65964a09b965ab8e21d08b4607f">8.5 - 版本发布</h1>
     
 	
 </div>
@@ -13959,7 +13986,90 @@ yum localinstall -y flannel-0.2.0-10.el7.x86_64.rpm
 
 <div class="td-content" style="">
     
-	<h1 id="pg-9f77a82cda922f86b06a443f2d02911d">8.5.1 - 使用 RBAC 鉴权</h1>
+	<h1 id="pg-95b06c53cc40973b00b544beeff601fb">8.5.1 - 金丝雀发布</h1>
+    
+	<h1 id="deployment配置金丝雀发布">Deployment配置金丝雀发布</h1>
+<p>金丝雀发布是指控制更新过程中的滚动节奏，通过“暂停”（pause）或“继续”（resume）更新发布操作。通过一小部分的版本发布实例来观察新版本是否有异常，如果没有异常则依次发布剩余的实例。</p>
+<h1 id="1-设置发版节奏">1. 设置发版节奏</h1>
+<p>主要是两个字段的设置：</p>
+<ul>
+<li>maxSurge：最大发版实例数，可以创建的超出期望 Pod 个数的 Pod 数量。可以是百分比或者是数字。</li>
+<li>maxUnavailable：最大不可用实例数。可以是百分比或数字。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 例如将maxSurge设置为1，maxUnavailable设置为0</span>
+</span></span><span style="display:flex;"><span>$ kubectl patch deployment myapp-deploy -p <span style="color:#4e9a06">&#39;{&#34;spec&#34;: {&#34;strategy&#34;: {&#34;rollingUpdate&#34;: {&#34;maxSurge&#34;: 1, &#34;maxUnavailable&#34;: 0}}}}&#39;</span>
+</span></span></code></pre></div><h1 id="2-升级版本并暂停">2. 升级版本并暂停</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl <span style="color:#204a87">set</span> image deployment myapp-deploy <span style="color:#000">myapp</span><span style="color:#ce5c00;font-weight:bold">=</span>kubernetes/myapp:v3 <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>kubectl rollout pause deployments myapp-deploy
+</span></span></code></pre></div><h1 id="3-查看升级状态">3. 查看升级状态</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl rollout status deployment myapp-deploy
+</span></span><span style="display:flex;"><span>Waiting <span style="color:#204a87;font-weight:bold">for</span> deployment <span style="color:#4e9a06">&#34;myapp-deploy&#34;</span> rollout to finish: <span style="color:#0000cf;font-weight:bold">1</span> out of <span style="color:#0000cf;font-weight:bold">3</span> new replicas have been updated...
+</span></span></code></pre></div><h1 id="4-恢复继续发版">4. 恢复继续发版</h1>
+<p>观察灰度的实例的流量是否正常，如果正常则继续发版，如果不正常则回滚之前的升级。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl rollout resume deployments myapp-deploy
+</span></span></code></pre></div><h1 id="5-回滚发布">5. 回滚发布</h1>
+<h2 id="5-1-回滚上一个版本">5.1. 回滚上一个版本</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl rollout undo deployments myapp-deploy
+</span></span></code></pre></div><h2 id="5-2-查看历史版本">5.2. 查看历史版本</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl rollout <span style="color:#204a87">history</span> deployment myapp-deploy
+</span></span><span style="display:flex;"><span>deployment.apps/myapp-deploy
+</span></span><span style="display:flex;"><span>REVISION  CHANGE-CAUSE
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">3</span>         &lt;none&gt;
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">5</span>         &lt;none&gt;
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">6</span>         &lt;none&gt;
+</span></span></code></pre></div><h2 id="5-3-回滚指定版本">5.3. 回滚指定版本</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl rollout undo deployment myapp-deploy --to-revision <span style="color:#0000cf;font-weight:bold">3</span>
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/deployment/">https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/deployment/</a></li>
+<li><a href="https://kubernetes.io/zh-cn/docs/concepts/cluster-administration/manage-deployment/#canary-deployments">https://kubernetes.io/zh-cn/docs/concepts/cluster-administration/manage-deployment/#canary-deployments</a></li>
+<li><a href="https://kubernetes.renkeju.com/chapter_5/5.3.4.Canary_release.html">https://kubernetes.renkeju.com/chapter_5/5.3.4.Canary_release.html</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-3047f06db94255d847014b8b4927fc13">8.6 - 访问控制</h1>
+    
+	
+</div>
+
+
+
+    
+      
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-9f77a82cda922f86b06a443f2d02911d">8.6.1 - 使用 RBAC 鉴权</h1>
     
 	<blockquote>
 <p>本文基于https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/rbac/ 整理。</p>
@@ -24753,7 +24863,7 @@ withfields： 使用InfluxDB fields(默认：false)。</p>
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-92606946619161c3d94670cf180b1a17">16.6 - grafana部署</h1>
+	<h1 id="pg-92606946619161c3d94670cf180b1a17">16.6 - Grafana部署</h1>
     
 	<h1 id="docker部署">Docker部署</h1>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>docker run -d -p 3000:3000 grafana/grafana:latest
