@@ -18,43 +18,58 @@
 <link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
 <link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
 
-<title>helm的使用 | 胡伟煌</title>
-<meta name="description" content="1. 安装helm
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-2. 基本概念
-Helm是用来管理k8s集群上的软件包。
+<title>如何开发k8s Operator | 胡伟煌</title>
+<meta name="description" content="开发一个k8s operator组件主要会用到以下几个仓库或工具：
 
 
-Chart:代表helm软件包
+kubebuilder/operator-sdk：主要用于创建CRD对象。
 
 
-Repository： …">
-<meta property="og:title" content="helm的使用" />
-<meta property="og:description" content="1. 安装helm curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash 2. 基本概念 Helm是用来管理k8s集群上的软件包。
-Chart:代表helm软件包
-Repository：软件包的存放仓库
-Release:运行在k8s上的一个发布实例。
-3. helm命令 Usage: helm [command] Available Commands: completion generate autocompletion scripts for the specified shell create create a new chart with the given name dependency manage a chart&#39;s dependencies env helm client environment information get download extended information of a named release help Help about any command history fetch release history install install a chart lint examine a chart for possible issues list list releases package package a chart directory into a chart archive plugin install, list, or uninstall Helm plugins pull download a chart from a repository and (optionally) unpack it in local directory push push a chart to remote registry login to or logout from a registry repo add, list, remove, update, and index chart repositories rollback roll back a release to a previous revision search search for a keyword in charts show show information of a chart status display the status of the named release template locally render templates test run tests for a release uninstall uninstall a release upgrade upgrade a release verify verify that a chart at the given path has been signed and is valid version print the client version information 4." />
+controller-manager：主要用于实现operator的controller逻辑。
+
+
+本文以kubebuilder …">
+<meta property="og:title" content="如何开发k8s Operator" />
+<meta property="og:description" content="开发一个k8s operator组件主要会用到以下几个仓库或工具：
+kubebuilder/operator-sdk：主要用于创建CRD对象。
+controller-manager：主要用于实现operator的controller逻辑。
+本文以kubebuilder的工具和controller-manager example为例。
+1. 准备工具环境及创建项目 安装kubebuilder工具
+curl -L -o kubebuilder https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH) chmod &#43;x kubebuilder &amp;&amp; mv kubebuilder /usr/local/bin/ 创建operator项目目录
+$ kubebuilder init --domain example.com --license apache2 --owner &#34;Your Name&#34; --repo github.com/example/my-operator 将 example.com 替换为你的域名，Your Name 替换为你的名字，github.com/example/my-operator 替换为你的 GitHub 仓库。
+2. 创建CRD对象 $ kubebuilder create api --group mygroup --version v1alpha1 --kind MyResource 这将在 api/v1alpha1 文件夹中创建一个名为 myresource_types.go 的文件，其中定义了 MyResource 资源的规范和状态。
+编辑 api/v1alpha1/myresource_types.go 文件，添加自定义资源的规范和状态字段。
+3. 实现控制器逻辑 在 controllers/myresource_controller." />
 <meta property="og:type" content="article" />
-<meta property="og:url" content="https://blog.huweihuang.com/kubernetes-notes/operation/kubectl/helm-usage/" /><meta property="article:section" content="kubernetes-notes" />
-<meta property="article:published_time" content="2022-12-24T10:50:57+00:00" />
-<meta property="article:modified_time" content="2022-12-29T21:55:22+08:00" /><meta property="og:site_name" content="胡伟煌" />
+<meta property="og:url" content="https://blog.huweihuang.com/kubernetes-notes/develop/operator/develop-operator/" /><meta property="article:section" content="kubernetes-notes" />
+<meta property="article:published_time" content="2023-07-13T10:50:57+00:00" />
+<meta property="article:modified_time" content="2023-07-23T16:58:21+08:00" /><meta property="og:site_name" content="胡伟煌" />
 
-<meta itemprop="name" content="helm的使用">
-<meta itemprop="description" content="1. 安装helm curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash 2. 基本概念 Helm是用来管理k8s集群上的软件包。
-Chart:代表helm软件包
-Repository：软件包的存放仓库
-Release:运行在k8s上的一个发布实例。
-3. helm命令 Usage: helm [command] Available Commands: completion generate autocompletion scripts for the specified shell create create a new chart with the given name dependency manage a chart&#39;s dependencies env helm client environment information get download extended information of a named release help Help about any command history fetch release history install install a chart lint examine a chart for possible issues list list releases package package a chart directory into a chart archive plugin install, list, or uninstall Helm plugins pull download a chart from a repository and (optionally) unpack it in local directory push push a chart to remote registry login to or logout from a registry repo add, list, remove, update, and index chart repositories rollback roll back a release to a previous revision search search for a keyword in charts show show information of a chart status display the status of the named release template locally render templates test run tests for a release uninstall uninstall a release upgrade upgrade a release verify verify that a chart at the given path has been signed and is valid version print the client version information 4."><meta itemprop="datePublished" content="2022-12-24T10:50:57+00:00" />
-<meta itemprop="dateModified" content="2022-12-29T21:55:22+08:00" />
-<meta itemprop="wordCount" content="379">
-<meta itemprop="keywords" content="Kubernetes," /><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="helm的使用"/>
-<meta name="twitter:description" content="1. 安装helm curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash 2. 基本概念 Helm是用来管理k8s集群上的软件包。
-Chart:代表helm软件包
-Repository：软件包的存放仓库
-Release:运行在k8s上的一个发布实例。
-3. helm命令 Usage: helm [command] Available Commands: completion generate autocompletion scripts for the specified shell create create a new chart with the given name dependency manage a chart&#39;s dependencies env helm client environment information get download extended information of a named release help Help about any command history fetch release history install install a chart lint examine a chart for possible issues list list releases package package a chart directory into a chart archive plugin install, list, or uninstall Helm plugins pull download a chart from a repository and (optionally) unpack it in local directory push push a chart to remote registry login to or logout from a registry repo add, list, remove, update, and index chart repositories rollback roll back a release to a previous revision search search for a keyword in charts show show information of a chart status display the status of the named release template locally render templates test run tests for a release uninstall uninstall a release upgrade upgrade a release verify verify that a chart at the given path has been signed and is valid version print the client version information 4."/>
+<meta itemprop="name" content="如何开发k8s Operator">
+<meta itemprop="description" content="开发一个k8s operator组件主要会用到以下几个仓库或工具：
+kubebuilder/operator-sdk：主要用于创建CRD对象。
+controller-manager：主要用于实现operator的controller逻辑。
+本文以kubebuilder的工具和controller-manager example为例。
+1. 准备工具环境及创建项目 安装kubebuilder工具
+curl -L -o kubebuilder https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH) chmod &#43;x kubebuilder &amp;&amp; mv kubebuilder /usr/local/bin/ 创建operator项目目录
+$ kubebuilder init --domain example.com --license apache2 --owner &#34;Your Name&#34; --repo github.com/example/my-operator 将 example.com 替换为你的域名，Your Name 替换为你的名字，github.com/example/my-operator 替换为你的 GitHub 仓库。
+2. 创建CRD对象 $ kubebuilder create api --group mygroup --version v1alpha1 --kind MyResource 这将在 api/v1alpha1 文件夹中创建一个名为 myresource_types.go 的文件，其中定义了 MyResource 资源的规范和状态。
+编辑 api/v1alpha1/myresource_types.go 文件，添加自定义资源的规范和状态字段。
+3. 实现控制器逻辑 在 controllers/myresource_controller."><meta itemprop="datePublished" content="2023-07-13T10:50:57+00:00" />
+<meta itemprop="dateModified" content="2023-07-23T16:58:21+08:00" />
+<meta itemprop="wordCount" content="501">
+<meta itemprop="keywords" content="Operator," /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="如何开发k8s Operator"/>
+<meta name="twitter:description" content="开发一个k8s operator组件主要会用到以下几个仓库或工具：
+kubebuilder/operator-sdk：主要用于创建CRD对象。
+controller-manager：主要用于实现operator的controller逻辑。
+本文以kubebuilder的工具和controller-manager example为例。
+1. 准备工具环境及创建项目 安装kubebuilder工具
+curl -L -o kubebuilder https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH) chmod &#43;x kubebuilder &amp;&amp; mv kubebuilder /usr/local/bin/ 创建operator项目目录
+$ kubebuilder init --domain example.com --license apache2 --owner &#34;Your Name&#34; --repo github.com/example/my-operator 将 example.com 替换为你的域名，Your Name 替换为你的名字，github.com/example/my-operator 替换为你的 GitHub 仓库。
+2. 创建CRD对象 $ kubebuilder create api --group mygroup --version v1alpha1 --kind MyResource 这将在 api/v1alpha1 文件夹中创建一个名为 myresource_types.go 的文件，其中定义了 MyResource 资源的规范和状态。
+编辑 api/v1alpha1/myresource_types.go 文件，添加自定义资源的规范和状态字段。
+3. 实现控制器逻辑 在 controllers/myresource_controller."/>
 
 
 
@@ -166,7 +181,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.b2745fcc2a3e037e276fb2a08da4b47d.json"
+  data-offline-search-index-json-src="/offline-search-index.cf94b512b38b3659fb7ee9341500ff00.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -188,7 +203,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.b2745fcc2a3e037e276fb2a08da4b47d.json"
+  data-offline-search-index-json-src="/offline-search-index.cf94b512b38b3659fb7ee9341500ff00.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -534,8 +549,8 @@ if (!doNotTrack) {
   
 </li>
   </ul>
-</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-kubernetes-notes-operation-li">
-  <input type="checkbox" id="m-kubernetes-notes-operation-check" checked/>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-operation-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-check"/>
   <label for="m-kubernetes-notes-operation-check"><a href="/kubernetes-notes/operation/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-operation"><span class="">运维指南</span></a></label>
   
   <ul class="ul-2 foldable">
@@ -543,8 +558,8 @@ if (!doNotTrack) {
   <input type="checkbox" id="m-kubernetes-notes-operation-kubernetes-troubleshooting-check"/>
   <label for="m-kubernetes-notes-operation-kubernetes-troubleshooting-check"><a href="/kubernetes-notes/operation/kubernetes-troubleshooting/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-kubernetes-troubleshooting"><span class="">Kubernetes集群问题排查</span></a></label>
   
-</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-kubernetes-notes-operation-kubectl-li">
-  <input type="checkbox" id="m-kubernetes-notes-operation-kubectl-check" checked/>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-operation-kubectl-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-kubectl-check"/>
   <label for="m-kubernetes-notes-operation-kubectl-check"><a href="/kubernetes-notes/operation/kubectl/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-operation-kubectl"><span class="">kubectl工具</span></a></label>
   
   <ul class="ul-3 foldable">
@@ -554,7 +569,7 @@ if (!doNotTrack) {
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-kubectl-kubectl-commands-li">
   <input type="checkbox" id="m-kubernetes-notes-operation-kubectl-kubectl-commands-check"/>
-  <label for="m-kubernetes-notes-operation-kubectl-kubectl-commands-check"><a href="/kubernetes-notes/operation/kubectl/kubectl-commands/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-kubectl-kubectl-commands"><span class="">kubectl命令说明</span></a></label>
+  <label for="m-kubernetes-notes-operation-kubectl-kubectl-commands-check"><a href="/kubernetes-notes/operation/kubectl/kubectl-commands/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-kubectl-kubectl-commands"><span class="">kubectl命令使用</span></a></label>
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-kubectl-kubectl-alias-li">
   <input type="checkbox" id="m-kubernetes-notes-operation-kubectl-kubectl-alias-check"/>
@@ -563,10 +578,6 @@ if (!doNotTrack) {
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-kubectl-kubectl-node-shell-li">
   <input type="checkbox" id="m-kubernetes-notes-operation-kubectl-kubectl-node-shell-check"/>
   <label for="m-kubernetes-notes-operation-kubectl-kubectl-node-shell-check"><a href="/kubernetes-notes/operation/kubectl/kubectl-node-shell/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-kubectl-kubectl-node-shell"><span class="">kubectl进入node shell</span></a></label>
-  
-</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-kubectl-helm-usage-li">
-  <input type="checkbox" id="m-kubernetes-notes-operation-kubectl-helm-usage-check"/>
-  <label for="m-kubernetes-notes-operation-kubectl-helm-usage-check"><a href="/kubernetes-notes/operation/kubectl/helm-usage/" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-kubectl-helm-usage"><span class="td-sidebar-nav-active-item">helm的使用</span></a></label>
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-kubectl-kubeconfig-li">
   <input type="checkbox" id="m-kubernetes-notes-operation-kubectl-kubeconfig-check"/>
@@ -615,6 +626,17 @@ if (!doNotTrack) {
   
 </li>
   </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-operation-helm-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-helm-check"/>
+  <label for="m-kubernetes-notes-operation-helm-check"><a href="/kubernetes-notes/operation/helm/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-operation-helm"><span class="">helm工具</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-helm-helm-usage-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-helm-helm-usage-check"/>
+  <label for="m-kubernetes-notes-operation-helm-helm-usage-check"><a href="/kubernetes-notes/operation/helm/helm-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-helm-helm-usage"><span class="">helm的使用</span></a></label>
+  
+</li>
+  </ul>
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-operation-access-li">
   <input type="checkbox" id="m-kubernetes-notes-operation-access-check"/>
   <label for="m-kubernetes-notes-operation-access-check"><a href="/kubernetes-notes/operation/access/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-operation-access"><span class="">访问控制</span></a></label>
@@ -628,8 +650,8 @@ if (!doNotTrack) {
   </ul>
 </li>
   </ul>
-</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-develop-li">
-  <input type="checkbox" id="m-kubernetes-notes-develop-check"/>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-kubernetes-notes-develop-li">
+  <input type="checkbox" id="m-kubernetes-notes-develop-check" checked/>
   <label for="m-kubernetes-notes-develop-check"><a href="/kubernetes-notes/develop/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-develop"><span class="">开发指南</span></a></label>
   
   <ul class="ul-2 foldable">
@@ -637,14 +659,18 @@ if (!doNotTrack) {
   <input type="checkbox" id="m-kubernetes-notes-develop-client-go-check"/>
   <label for="m-kubernetes-notes-develop-client-go-check"><a href="/kubernetes-notes/develop/client-go/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-develop-client-go"><span class="">client-go的使用及源码分析</span></a></label>
   
-</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-develop-operator-li">
-  <input type="checkbox" id="m-kubernetes-notes-develop-operator-check"/>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-kubernetes-notes-develop-operator-li">
+  <input type="checkbox" id="m-kubernetes-notes-develop-operator-check" checked/>
   <label for="m-kubernetes-notes-develop-operator-check"><a href="/kubernetes-notes/develop/operator/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-develop-operator"><span class="">operator开发</span></a></label>
   
   <ul class="ul-3 foldable">
     <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-develop-operator-kubebuilder-li">
   <input type="checkbox" id="m-kubernetes-notes-develop-operator-kubebuilder-check"/>
   <label for="m-kubernetes-notes-develop-operator-kubebuilder-check"><a href="/kubernetes-notes/develop/operator/kubebuilder/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-develop-operator-kubebuilder"><span class="">kubebuilder的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-develop-operator-develop-operator-li">
+  <input type="checkbox" id="m-kubernetes-notes-develop-operator-develop-operator-check"/>
+  <label for="m-kubernetes-notes-develop-operator-develop-operator-check"><a href="/kubernetes-notes/develop/operator/develop-operator/" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-develop-operator-develop-operator"><span class="td-sidebar-nav-active-item">如何开发k8s Operator</span></a></label>
   
 </li>
   </ul>
@@ -1035,12 +1061,12 @@ if (!doNotTrack) {
           <aside class="d-none d-xl-block col-xl-2 td-sidebar-toc d-print-none">
             
 <div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
-<a href="https://github.com/huweihuang/blog.huweihuang.com/tree/master/content/zh-cn/kubernetes-notes/operation/kubectl/helm-usage.md" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa fa-file-alt fa-fw"></i> 查看页面源码</a>
-  <a href="https://github.com/huweihuang/blog.huweihuang.com/edit/master/content/zh-cn/kubernetes-notes/operation/kubectl/helm-usage.md" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 编辑此页</a>
-  <a href="https://github.com/huweihuang/blog.huweihuang.com/new/master/content/zh-cn/kubernetes-notes/operation/kubectl/helm-usage.md?filename=change-me.md&amp;value=---%0Atitle%3A&#43;%22Long&#43;Page&#43;Title%22%0AlinkTitle%3A&#43;%22Short&#43;Nav&#43;Title%22%0Aweight%3A&#43;100%0Adescription%3A&#43;%3E-%0A&#43;&#43;&#43;&#43;&#43;Page&#43;description&#43;for&#43;heading&#43;and&#43;indexes.%0A---%0A%0A%23%23&#43;Heading%0A%0AEdit&#43;this&#43;template&#43;to&#43;create&#43;your&#43;new&#43;page.%0A%0A%2A&#43;Give&#43;it&#43;a&#43;good&#43;name%2C&#43;ending&#43;in&#43;%60.md%60&#43;-&#43;e.g.&#43;%60getting-started.md%60%0A%2A&#43;Edit&#43;the&#43;%22front&#43;matter%22&#43;section&#43;at&#43;the&#43;top&#43;of&#43;the&#43;page&#43;%28weight&#43;controls&#43;how&#43;its&#43;ordered&#43;amongst&#43;other&#43;pages&#43;in&#43;the&#43;same&#43;directory%3B&#43;lowest&#43;number&#43;first%29.%0A%2A&#43;Add&#43;a&#43;good&#43;commit&#43;message&#43;at&#43;the&#43;bottom&#43;of&#43;the&#43;page&#43;%28%3C80&#43;characters%3B&#43;use&#43;the&#43;extended&#43;description&#43;field&#43;for&#43;more&#43;detail%29.%0A%2A&#43;Create&#43;a&#43;new&#43;branch&#43;so&#43;you&#43;can&#43;preview&#43;your&#43;new&#43;file&#43;and&#43;request&#43;a&#43;review&#43;via&#43;Pull&#43;Request.%0A" class="td-page-meta--child" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 添加子页面</a>
-  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new?title=helm%e7%9a%84%e4%bd%bf%e7%94%a8" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
+<a href="https://github.com/huweihuang/blog.huweihuang.com/tree/master/content/zh-cn/kubernetes-notes/develop/operator/develop-operator.md" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa fa-file-alt fa-fw"></i> 查看页面源码</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/edit/master/content/zh-cn/kubernetes-notes/develop/operator/develop-operator.md" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 编辑此页</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/new/master/content/zh-cn/kubernetes-notes/develop/operator/develop-operator.md?filename=change-me.md&amp;value=---%0Atitle%3A&#43;%22Long&#43;Page&#43;Title%22%0AlinkTitle%3A&#43;%22Short&#43;Nav&#43;Title%22%0Aweight%3A&#43;100%0Adescription%3A&#43;%3E-%0A&#43;&#43;&#43;&#43;&#43;Page&#43;description&#43;for&#43;heading&#43;and&#43;indexes.%0A---%0A%0A%23%23&#43;Heading%0A%0AEdit&#43;this&#43;template&#43;to&#43;create&#43;your&#43;new&#43;page.%0A%0A%2A&#43;Give&#43;it&#43;a&#43;good&#43;name%2C&#43;ending&#43;in&#43;%60.md%60&#43;-&#43;e.g.&#43;%60getting-started.md%60%0A%2A&#43;Edit&#43;the&#43;%22front&#43;matter%22&#43;section&#43;at&#43;the&#43;top&#43;of&#43;the&#43;page&#43;%28weight&#43;controls&#43;how&#43;its&#43;ordered&#43;amongst&#43;other&#43;pages&#43;in&#43;the&#43;same&#43;directory%3B&#43;lowest&#43;number&#43;first%29.%0A%2A&#43;Add&#43;a&#43;good&#43;commit&#43;message&#43;at&#43;the&#43;bottom&#43;of&#43;the&#43;page&#43;%28%3C80&#43;characters%3B&#43;use&#43;the&#43;extended&#43;description&#43;field&#43;for&#43;more&#43;detail%29.%0A%2A&#43;Create&#43;a&#43;new&#43;branch&#43;so&#43;you&#43;can&#43;preview&#43;your&#43;new&#43;file&#43;and&#43;request&#43;a&#43;review&#43;via&#43;Pull&#43;Request.%0A" class="td-page-meta--child" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 添加子页面</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new?title=%e5%a6%82%e4%bd%95%e5%bc%80%e5%8f%91k8s%20Operator" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
   <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new" class="td-page-meta--project-issue" target="_blank" rel="noopener"><i class="fas fa-tasks fa-fw"></i> 提交项目问题</a>
-  <a id="print" href="https://blog.huweihuang.com/kubernetes-notes/operation/kubectl/_print/"><i class="fa fa-print fa-fw"></i> 整节打印</a>
+  <a id="print" href="https://blog.huweihuang.com/kubernetes-notes/develop/operator/_print/"><i class="fa fa-print fa-fw"></i> 整节打印</a>
 
 </div>
 
@@ -1049,20 +1075,10 @@ if (!doNotTrack) {
 
 <div class="td-toc"><nav id="TableOfContents">
   <ul>
-    <li><a href="#1-安装helm">1. 安装helm</a></li>
-    <li><a href="#2-基本概念">2. 基本概念</a></li>
-    <li><a href="#3-helm命令">3. helm命令</a></li>
-    <li><a href="#4-常用命令">4. 常用命令</a>
-      <ul>
-        <li><a href="#4-1-helm-search">4.1. helm search</a></li>
-        <li><a href="#4-2-helm-install-uninstall">4.2. helm install/uninstall</a></li>
-        <li><a href="#4-3-helm-upgrade">4.3. helm upgrade</a></li>
-        <li><a href="#4-4-helm-rollback">4.4. helm rollback</a></li>
-        <li><a href="#4-5-helm-repo">4.5. helm repo</a></li>
-        <li><a href="#4-6-helm-pull">4.6. helm pull</a></li>
-      </ul>
-    </li>
-    <li><a href="#5-新建一个chart">5. 新建一个chart</a></li>
+    <li><a href="#1-准备工具环境及创建项目">1. 准备工具环境及创建项目</a></li>
+    <li><a href="#2-创建crd对象">2. 创建CRD对象</a></li>
+    <li><a href="#3-实现控制器逻辑">3. 实现控制器逻辑</a></li>
+    <li><a href="#4-注册控制器">4. 注册控制器</a></li>
   </ul>
 </nav></div>
 
@@ -1113,7 +1129,7 @@ if (!doNotTrack) {
         
           <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubeedge/" data-taxonomy-term="kubeedge"><span class="taxonomy-label">Kubeedge</span><span class="taxonomy-count">3</span></a></li>
         
-          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubernetes/" data-taxonomy-term="kubernetes"><span class="taxonomy-label">Kubernetes</span><span class="taxonomy-count">58</span></a></li>
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubernetes/" data-taxonomy-term="kubernetes"><span class="taxonomy-label">Kubernetes</span><span class="taxonomy-count">57</span></a></li>
         
           <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubevirt/" data-taxonomy-term="kubevirt"><span class="taxonomy-label">KubeVirt</span><span class="taxonomy-count">3</span></a></li>
         
@@ -1130,6 +1146,8 @@ if (!doNotTrack) {
           <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/nginx/" data-taxonomy-term="nginx"><span class="taxonomy-label">Nginx</span><span class="taxonomy-count">3</span></a></li>
         
           <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/openyurt/" data-taxonomy-term="openyurt"><span class="taxonomy-label">OpenYurt</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/operator/" data-taxonomy-term="operator"><span class="taxonomy-label">Operator</span><span class="taxonomy-count">2</span></a></li>
         
           <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/pod/" data-taxonomy-term="pod"><span class="taxonomy-label">Pod</span><span class="taxonomy-count">1</span></a></li>
         
@@ -1182,19 +1200,19 @@ if (!doNotTrack) {
     <a href="https://blog.huweihuang.com/kubernetes-notes/">Kubernetes学习笔记</a>
   </li>
   <li class="breadcrumb-item">
-    <a href="https://blog.huweihuang.com/kubernetes-notes/operation/">运维指南</a>
+    <a href="https://blog.huweihuang.com/kubernetes-notes/develop/">开发指南</a>
   </li>
   <li class="breadcrumb-item">
-    <a href="https://blog.huweihuang.com/kubernetes-notes/operation/kubectl/">kubectl工具</a>
+    <a href="https://blog.huweihuang.com/kubernetes-notes/develop/operator/">operator开发</a>
   </li>
   <li class="breadcrumb-item active" aria-current="page">
-    <a href="https://blog.huweihuang.com/kubernetes-notes/operation/kubectl/helm-usage/">helm的使用</a>
+    <a href="https://blog.huweihuang.com/kubernetes-notes/develop/operator/develop-operator/">如何开发k8s Operator</a>
   </li>
   </ol>
 </nav>
             
 <div class="td-content">
-	<h1>helm的使用</h1>
+	<h1>如何开发k8s Operator</h1>
 	
 	<header class="article-meta">
 		
@@ -1208,7 +1226,7 @@ if (!doNotTrack) {
   <h5 class="taxonomy-title">Tags:</h5>
   <ul class="taxonomy-terms">
     
-      <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubernetes/" data-taxonomy-term="kubernetes"><span class="taxonomy-label">Kubernetes</span></a></li>
+      <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/operator/" data-taxonomy-term="operator"><span class="taxonomy-label">Operator</span></a></li>
     
   </ul>
 </div>
@@ -1222,117 +1240,197 @@ if (!doNotTrack) {
 
 		
 	</header>    
-	<h1 id="1-安装helm">1. 安装helm</h1>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 <span style="color:#000;font-weight:bold">|</span> bash
-</span></span></code></pre></div><h1 id="2-基本概念">2. 基本概念</h1>
-<p>Helm是用来管理k8s集群上的软件包。</p>
+	<p>开发一个k8s operator组件主要会用到以下几个仓库或工具：</p>
 <ul>
 <li>
-<p><code>Chart</code>:代表helm软件包</p>
+<p><a href="https://github.com/kubernetes-sigs/kubebuilder">kubebuilder</a>/<a href="https://github.com/operator-framework/operator-sdk">operator-sdk</a>：主要用于创建CRD对象。</p>
 </li>
 <li>
-<p><code>Repository</code>：软件包的存放仓库</p>
+<p><a href="https://github.com/kubernetes-sigs/controller-runtime">controller-manager</a>：主要用于实现operator的controller逻辑。</p>
+</li>
+</ul>
+<p>本文以kubebuilder的工具和<a href="https://github.com/kubernetes-sigs/controller-runtime/blob/main/examples/crd/main.go">controller-manager example</a>为例。</p>
+<h1 id="1-准备工具环境及创建项目">1. 准备工具环境及创建项目</h1>
+<p>安装kubebuilder工具</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>curl -L -o kubebuilder https://go.kubebuilder.io/dl/latest/<span style="color:#204a87;font-weight:bold">$(</span>go env GOOS<span style="color:#204a87;font-weight:bold">)</span>/<span style="color:#204a87;font-weight:bold">$(</span>go env GOARCH<span style="color:#204a87;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>chmod +x kubebuilder <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> mv kubebuilder /usr/local/bin/
+</span></span></code></pre></div><p>创建operator项目目录</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubebuilder init --domain example.com --license apache2 --owner <span style="color:#4e9a06">&#34;Your Name&#34;</span> --repo github.com/example/my-operator
+</span></span></code></pre></div><p>将 <code>example.com</code> 替换为你的域名，<code>Your Name</code> 替换为你的名字，<code>github.com/example/my-operator</code> 替换为你的 GitHub 仓库。</p>
+<h1 id="2-创建crd对象">2. 创建CRD对象</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubebuilder create api --group mygroup --version v1alpha1 --kind MyResource
+</span></span></code></pre></div><p>这将在 <code>api/v1alpha1</code> 文件夹中创建一个名为 <code>myresource_types.go</code> 的文件，其中定义了 <code>MyResource</code> 资源的规范和状态。</p>
+<p>编辑 <code>api/v1alpha1/myresource_types.go</code> 文件，添加自定义资源的规范和状态字段。</p>
+<h1 id="3-实现控制器逻辑">3. 实现控制器逻辑</h1>
+<p>在 <code>controllers/myresource_controller.go</code> 文件中实现控制器逻辑。该部分是不同的CRD实现自定义逻辑的核心部分。</p>
+<p>主要包含以下几个部分：</p>
+<ol>
+<li>
+<p><strong>定义ReconcileMyResource结构体。</strong></p>
 </li>
 <li>
-<p><code>Release</code>:运行在k8s上的一个发布实例。</p>
+<p><strong>实现<code>func (r *ReconcileMyResource) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error)</code>函数接口。</strong></p>
 </li>
-</ul>
-<h1 id="3-helm命令">3. helm命令</h1>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>Usage:
-</span></span><span style="display:flex;"><span>  helm <span style="color:#ce5c00;font-weight:bold">[</span>command<span style="color:#ce5c00;font-weight:bold">]</span>
+<li>
+<p><strong>定义finalizer逻辑。</strong></p>
+</li>
+<li>
+<p><strong>定义reconcile逻辑。</strong></p>
+</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">package</span> <span style="color:#000">controllers</span>
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>Available Commands:
-</span></span><span style="display:flex;"><span>  completion  generate autocompletion scripts <span style="color:#204a87;font-weight:bold">for</span> the specified shell
-</span></span><span style="display:flex;"><span>  create      create a new chart with the given name
-</span></span><span style="display:flex;"><span>  dependency  manage a chart<span style="color:#a40000">&#39;</span>s dependencies
-</span></span><span style="display:flex;"><span>  env         helm client environment information
-</span></span><span style="display:flex;"><span>  get         download extended information of a named release
-</span></span><span style="display:flex;"><span>  <span style="color:#204a87">help</span>        Help about any <span style="color:#204a87">command</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#204a87">history</span>     fetch release <span style="color:#204a87">history</span>
-</span></span><span style="display:flex;"><span>  install     install a chart
-</span></span><span style="display:flex;"><span>  lint        examine a chart <span style="color:#204a87;font-weight:bold">for</span> possible issues
-</span></span><span style="display:flex;"><span>  list        list releases
-</span></span><span style="display:flex;"><span>  package     package a chart directory into a chart archive
-</span></span><span style="display:flex;"><span>  plugin      install, list, or uninstall Helm plugins
-</span></span><span style="display:flex;"><span>  pull        download a chart from a repository and <span style="color:#ce5c00;font-weight:bold">(</span>optionally<span style="color:#ce5c00;font-weight:bold">)</span> unpack it in <span style="color:#204a87">local</span> directory
-</span></span><span style="display:flex;"><span>  push        push a chart to remote
-</span></span><span style="display:flex;"><span>  registry    login to or <span style="color:#204a87">logout</span> from a registry
-</span></span><span style="display:flex;"><span>  repo        add, list, remove, update, and index chart repositories
-</span></span><span style="display:flex;"><span>  rollback    roll back a release to a previous revision
-</span></span><span style="display:flex;"><span>  search      search <span style="color:#204a87;font-weight:bold">for</span> a keyword in charts
-</span></span><span style="display:flex;"><span>  show        show information of a chart
-</span></span><span style="display:flex;"><span>  status      display the status of the named release
-</span></span><span style="display:flex;"><span>  template    locally render templates
-</span></span><span style="display:flex;"><span>  <span style="color:#204a87">test</span>        run tests <span style="color:#204a87;font-weight:bold">for</span> a release
-</span></span><span style="display:flex;"><span>  uninstall   uninstall a release
-</span></span><span style="display:flex;"><span>  upgrade     upgrade a release
-</span></span><span style="display:flex;"><span>  verify      verify that a chart at the given path has been signed and is valid
-</span></span><span style="display:flex;"><span>  version     print the client version information
-</span></span></code></pre></div><h1 id="4-常用命令">4. 常用命令</h1>
-<h2 id="4-1-helm-search">4.1. helm search</h2>
-<ul>
-<li>helm search hub：从 <a href="https://artifacthub.io/">Artifact Hub</a> 中查找并列出 helm charts。支持模糊匹配。</li>
-</ul>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>helm search hub wordpress
-</span></span></code></pre></div><ul>
-<li>helm search repo：基于指定仓库进行搜索。</li>
-</ul>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>helm repo add brigade https://brigadecore.github.io/charts
-</span></span><span style="display:flex;"><span>helm search repo brigade
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;context&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;github.com/go-logr/logr&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/controller/controllerutil&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/controller/inject&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/reconcile&#34;</span>
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 列出所有版本</span>
-</span></span><span style="display:flex;"><span>helm search repo apisix -l
-</span></span></code></pre></div><h2 id="4-2-helm-install-uninstall">4.2. helm install/uninstall</h2>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>helm install &lt;release_name&gt; &lt;chart_name&gt;
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 示例</span>
-</span></span><span style="display:flex;"><span>helm install happy-panda bitnami/wordpress -
+</span></span><span style="display:flex;"><span>  <span style="color:#000">myv1alpha1</span> <span style="color:#4e9a06">&#34;github.com/example/my-operator/api/v1alpha1&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">corev1</span> <span style="color:#4e9a06">&#34;k8s.io/api/core/v1&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;k8s.io/apimachinery/pkg/api/errors&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;k8s.io/apimachinery/pkg/runtime&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/client&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/controller&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">logf</span> <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/log&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/log/zap&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/manager&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/reconcile&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/source&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># uninstall</span>
-</span></span><span style="display:flex;"><span>helm uninstall RELEASE_NAME
-</span></span></code></pre></div><p>安装自定义chart</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>helm install -f values.yaml bitnami/wordpress --generate-name
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">log</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">logf</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Log</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">WithName</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;controller_myresource&#34;</span><span style="color:#000;font-weight:bold">)</span>
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 本地 chart 压缩包</span>
-</span></span><span style="display:flex;"><span>helm install foo foo-0.1.1.tgz
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 解压后的 chart 目录</span>
-</span></span><span style="display:flex;"><span>helm install foo path/to/foo
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 完整的 URL</span>
-</span></span><span style="display:flex;"><span>helm install foo https://example.com/charts/foo-1.2.3.tgz
-</span></span></code></pre></div><h2 id="4-3-helm-upgrade">4.3. helm upgrade</h2>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>helm upgrade happy-panda bitnami/wordpress
-</span></span></code></pre></div><h2 id="4-4-helm-rollback">4.4. helm rollback</h2>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>helm rollback &lt;RELEASE&gt; <span style="color:#ce5c00;font-weight:bold">[</span>REVISION<span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">[</span>flags<span style="color:#ce5c00;font-weight:bold">]</span>
-</span></span></code></pre></div><h2 id="4-5-helm-repo">4.5. helm repo</h2>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>helm repo add dev https://example.com/dev-charts
-</span></span><span style="display:flex;"><span>helm repo list
-</span></span><span style="display:flex;"><span>helm repo remove
-</span></span></code></pre></div><h2 id="4-6-helm-pull">4.6. helm pull</h2>
-<p>从仓库下载并（可选）在本地目录解压。</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>helm pull <span style="color:#ce5c00;font-weight:bold">[</span>chart URL <span style="color:#000;font-weight:bold">|</span> repo/chartname<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Add creates a new MyResource Controller and adds it to the Manager. The Manager will set fields on the Controller
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// and Start it when the Manager is Started.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">Add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">mgr</span> <span style="color:#000">manager</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Manager</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">newReconciler</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
 </span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// newReconciler returns a new reconcile.Reconciler
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">newReconciler</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">mgr</span> <span style="color:#000">manager</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Manager</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">reconcile</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Reconciler</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">ReconcileMyResource</span><span style="color:#000;font-weight:bold">{</span><span style="color:#000">client</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetClient</span><span style="color:#000;font-weight:bold">(),</span> <span style="color:#000">scheme</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetScheme</span><span style="color:#000;font-weight:bold">()}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>helm pull <span style="color:#ce5c00;font-weight:bold">[</span>chart URL <span style="color:#000;font-weight:bold">|</span> repo/chartname<span style="color:#ce5c00;font-weight:bold">]</span> --version 
-</span></span></code></pre></div><h1 id="5-新建一个chart">5. 新建一个chart</h1>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span> helm create mychart
-</span></span></code></pre></div><p>查看生成的文件目录：</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>mychart
-</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">|</span>-- charts
-</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">|</span>-- Chart.yaml
-</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">|</span>-- templates
-</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">|</span>   <span style="color:#000;font-weight:bold">|</span>-- deployment.yaml
-</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">|</span>   <span style="color:#000;font-weight:bold">|</span>-- _helpers.tpl
-</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">|</span>   <span style="color:#000;font-weight:bold">|</span>-- hpa.yaml
-</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">|</span>   <span style="color:#000;font-weight:bold">|</span>-- ingress.yaml
-</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">|</span>   <span style="color:#000;font-weight:bold">|</span>-- NOTES.txt
-</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">|</span>   <span style="color:#000;font-weight:bold">|</span>-- serviceaccount.yaml
-</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">|</span>   <span style="color:#000;font-weight:bold">|</span>-- service.yaml
-</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">|</span>   <span style="color:#4e9a06">`</span>-- tests
-</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">|</span>       <span style="color:#4e9a06">`</span>-- test-connection.yaml
-</span></span><span style="display:flex;"><span><span style="color:#4e9a06">`</span>-- values.yaml
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// blank assignment to verify that ReconcileMyResource implements reconcile.Reconciler
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">_</span> <span style="color:#000">reconcile</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Reconciler</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">ReconcileMyResource</span><span style="color:#000;font-weight:bold">{}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// ReconcileMyResource reconciles a MyResource object
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">ReconcileMyResource</span> <span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">client</span> <span style="color:#000">client</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Client</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">scheme</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">runtime</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Scheme</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Reconcile reads that state of the cluster for a MyResource object and makes changes based on the state read
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// and what is in the MyResource.Spec
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">r</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">ReconcileMyResource</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Reconcile</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctx</span> <span style="color:#000">context</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Context</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">request</span> <span style="color:#000">reconcile</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Request</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">reconcile</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Result</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">reqLogger</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">log</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">WithValues</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Namespace&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">request</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Namespace</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;Name&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">request</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">reqLogger</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Info</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Reconciling MyResource&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">// Fetch the MyResource instance
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">myresource</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">myv1alpha1</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">MyResource</span><span style="color:#000;font-weight:bold">{}</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">r</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">client</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Get</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctx</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">request</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NamespacedName</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">myresource</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">errors</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">IsNotFound</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#8f5902;font-style:italic">// Request object not found, could have been deleted after reconcile request.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>      <span style="color:#8f5902;font-style:italic">// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>      <span style="color:#8f5902;font-style:italic">// Return and don&#39;t requeue
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>      <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">reconcile</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Result</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// Error reading the object - requeue the request.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">reconcile</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Result</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">// Add finalizer logic here
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">// Add reconcile logic here
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">reconcile</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Result</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="4-注册控制器">4. 注册控制器</h1>
+<p>在 <code>main.go</code> 文件中注册控制器，主要包含以下几个步骤</p>
+<ol>
+<li>
+<p><strong>ctrl.SetLogger(zap.New())：注册日志工具</strong></p>
+</li>
+<li>
+<p><strong>ctrl.NewManager：创建一个manager，必要时可设置选主逻辑。</strong></p>
+</li>
+<li>
+<p><strong>ctrl.NewControllerManagedBy(mgr)：预计mgr创建manager controller并注册Reconciler。</strong></p>
+</li>
+<li>
+<p><strong>mgr.Start(ctrl.SetupSignalHandler()): 运行mgr。</strong></p>
+</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">main</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// set logger
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">ctrl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SetLogger</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">zap</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">New</span><span style="color:#000;font-weight:bold">())</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// Set up a Manager
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">ctrl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewManager</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctrl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetConfigOrDie</span><span style="color:#000;font-weight:bold">(),</span> <span style="color:#000">ctrl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Options</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">Scheme</span><span style="color:#000;font-weight:bold">:</span>             <span style="color:#000">myv1alpha1</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SchemeBuilder</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Scheme</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">MetricsBindAddress</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">metricsHost</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">Port</span><span style="color:#000;font-weight:bold">:</span>               <span style="color:#0000cf;font-weight:bold">9443</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">LeaderElection</span><span style="color:#000;font-weight:bold">:</span>     <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">enableLeaderElection</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">LeaderElectionID</span><span style="color:#000;font-weight:bold">:</span>   <span style="color:#4e9a06">&#34;my-operator-lock&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">})</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">setupLog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Error</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;unable to start manager&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Exit</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// in a real controller, we&#39;d create a new scheme for this
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">err</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">api</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">AddToScheme</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetScheme</span><span style="color:#000;font-weight:bold">())</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">setupLog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Error</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;unable to add scheme&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Exit</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// Create a new Reconciler
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">r</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">ReconcileMyResource</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">client</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">m</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetClient</span><span style="color:#000;font-weight:bold">(),</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">scheme</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">m</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetScheme</span><span style="color:#000;font-weight:bold">(),</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// Create a new Controller and register the Reconciler
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">err</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">ctrl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewControllerManagedBy</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">).</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">For</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">myv1alpha1</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">MyResource</span><span style="color:#000;font-weight:bold">{}).</span>     <span style="color:#8f5902;font-style:italic">// 自定义crd
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>		<span style="color:#000">Complete</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">r</span><span style="color:#000;font-weight:bold">)</span>                        <span style="color:#8f5902;font-style:italic">// 注册Reconciler
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">setupLog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Error</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;unable to create controller&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Exit</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">err</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">ctrl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewWebhookManagedBy</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">).</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">For</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">api</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ChaosPod</span><span style="color:#000;font-weight:bold">{}).</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">Complete</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">setupLog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Error</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;unable to create webhook&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Exit</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">setupLog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Info</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;starting manager&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Start</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctrl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SetupSignalHandler</span><span style="color:#000;font-weight:bold">());</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">setupLog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Error</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;problem running manager&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Exit</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
 </span></span></code></pre></div><p>参考：</p>
 <ul>
-<li><a href="https://helm.sh/zh/docs/intro/install/">Helm | 安装Helm</a></li>
-<li><a href="https://helm.sh/zh/docs/intro/using_helm/">Helm | 使用Helm</a></li>
+<li>
+<p><a href="https://qiankunli.github.io/2020/08/10/controller_runtime.html">controller-runtime源码分析 | 李乾坤的博客</a></p>
+</li>
+<li>
+<p><a href="https://github.com/kubernetes-sigs/kubebuilder">Kubebuilder - SDK for building Kubernetes APIs using CRDs</a></p>
+</li>
+<li>
+<p><a href="https://github.com/operator-framework/operator-sdk">operator-framework/operator-sdk: SDK for building Kubernetes applications.</a></p>
+</li>
+<li>
+<p><a href="https://blog.hdls.me/16500403497126.html">https://blog.hdls.me/16500403497126.html</a></p>
+</li>
 </ul>
 
 	
@@ -1400,7 +1498,7 @@ if (!doNotTrack) {
 	
 	
 	<div class="text-muted mt-5 pt-3 border-top">
-  最后修改 December 29, 2022: <a href="https://github.com/huweihuang/blog.huweihuang.com/commit/6236e8db00697aa8da59aaec77595c4e3b943792">add pod dns (6236e8d)</a>
+  最后修改 July 23, 2023: <a href="https://github.com/huweihuang/blog.huweihuang.com/commit/72f9df66a79b3546d7ad70f5452e094f5394ea94">develop operator (72f9df6)</a>
 </div>
 
 </div>
