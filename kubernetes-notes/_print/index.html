@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.e4a9146405545a730c6b0368d0d09305.json"
+  data-offline-search-index-json-src="/offline-search-index.cf94b512b38b3659fb7ee9341500ff00.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -1225,6 +1225,14 @@ if (!doNotTrack) {
     
 	
 <li>9.2.1: <a href="#pg-15fa0d56cfe1e152b7d82dfc0c656c29">kubebuilder的使用</a></li>
+
+
+    
+  
+    
+    
+	
+<li>9.2.2: <a href="#pg-e0f9d77a375a891566ac10e26e32ae95">如何开发k8s Operator</a></li>
 
 
     
@@ -15477,6 +15485,215 @@ yum localinstall -y flannel-0.2.0-10.el7.x86_64.rpm
 <li><a href="https://book.kubebuilder.io/quick-start.html">https://book.kubebuilder.io/quick-start.html</a></li>
 <li><a href="https://operatorhub.io/">https://operatorhub.io/</a></li>
 <li><a href="https://devops.college/developing-kubernetes-operator-is-now-easy-with-operator-framework-d3194a7428ff">https://devops.college/developing-kubernetes-operator-is-now-easy-with-operator-framework-d3194a7428ff</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-e0f9d77a375a891566ac10e26e32ae95">9.2.2 - 如何开发k8s Operator</h1>
+    
+	<p>开发一个k8s operator组件主要会用到以下几个仓库或工具：</p>
+<ul>
+<li>
+<p><a href="https://github.com/kubernetes-sigs/kubebuilder">kubebuilder</a>/<a href="https://github.com/operator-framework/operator-sdk">operator-sdk</a>：主要用于创建CRD对象。</p>
+</li>
+<li>
+<p><a href="https://github.com/kubernetes-sigs/controller-runtime">controller-manager</a>：主要用于实现operator的controller逻辑。</p>
+</li>
+</ul>
+<p>本文以kubebuilder的工具和<a href="https://github.com/kubernetes-sigs/controller-runtime/blob/main/examples/crd/main.go">controller-manager example</a>为例。</p>
+<h1 id="1-准备工具环境及创建项目">1. 准备工具环境及创建项目</h1>
+<p>安装kubebuilder工具</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>curl -L -o kubebuilder https://go.kubebuilder.io/dl/latest/<span style="color:#204a87;font-weight:bold">$(</span>go env GOOS<span style="color:#204a87;font-weight:bold">)</span>/<span style="color:#204a87;font-weight:bold">$(</span>go env GOARCH<span style="color:#204a87;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>chmod +x kubebuilder <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> mv kubebuilder /usr/local/bin/
+</span></span></code></pre></div><p>创建operator项目目录</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubebuilder init --domain example.com --license apache2 --owner <span style="color:#4e9a06">&#34;Your Name&#34;</span> --repo github.com/example/my-operator
+</span></span></code></pre></div><p>将 <code>example.com</code> 替换为你的域名，<code>Your Name</code> 替换为你的名字，<code>github.com/example/my-operator</code> 替换为你的 GitHub 仓库。</p>
+<h1 id="2-创建crd对象">2. 创建CRD对象</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubebuilder create api --group mygroup --version v1alpha1 --kind MyResource
+</span></span></code></pre></div><p>这将在 <code>api/v1alpha1</code> 文件夹中创建一个名为 <code>myresource_types.go</code> 的文件，其中定义了 <code>MyResource</code> 资源的规范和状态。</p>
+<p>编辑 <code>api/v1alpha1/myresource_types.go</code> 文件，添加自定义资源的规范和状态字段。</p>
+<h1 id="3-实现控制器逻辑">3. 实现控制器逻辑</h1>
+<p>在 <code>controllers/myresource_controller.go</code> 文件中实现控制器逻辑。该部分是不同的CRD实现自定义逻辑的核心部分。</p>
+<p>主要包含以下几个部分：</p>
+<ol>
+<li>
+<p><strong>定义ReconcileMyResource结构体。</strong></p>
+</li>
+<li>
+<p><strong>实现<code>func (r *ReconcileMyResource) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error)</code>函数接口。</strong></p>
+</li>
+<li>
+<p><strong>定义finalizer逻辑。</strong></p>
+</li>
+<li>
+<p><strong>定义reconcile逻辑。</strong></p>
+</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">package</span> <span style="color:#000">controllers</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;context&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;github.com/go-logr/logr&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/controller/controllerutil&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/controller/inject&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/reconcile&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">myv1alpha1</span> <span style="color:#4e9a06">&#34;github.com/example/my-operator/api/v1alpha1&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">corev1</span> <span style="color:#4e9a06">&#34;k8s.io/api/core/v1&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;k8s.io/apimachinery/pkg/api/errors&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;k8s.io/apimachinery/pkg/runtime&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/client&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/controller&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">logf</span> <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/log&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/log/zap&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/manager&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/reconcile&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#4e9a06">&#34;sigs.k8s.io/controller-runtime/pkg/source&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">log</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">logf</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Log</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">WithName</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;controller_myresource&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Add creates a new MyResource Controller and adds it to the Manager. The Manager will set fields on the Controller
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// and Start it when the Manager is Started.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">Add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">mgr</span> <span style="color:#000">manager</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Manager</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">newReconciler</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// newReconciler returns a new reconcile.Reconciler
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">newReconciler</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">mgr</span> <span style="color:#000">manager</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Manager</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">reconcile</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Reconciler</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">ReconcileMyResource</span><span style="color:#000;font-weight:bold">{</span><span style="color:#000">client</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetClient</span><span style="color:#000;font-weight:bold">(),</span> <span style="color:#000">scheme</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetScheme</span><span style="color:#000;font-weight:bold">()}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// blank assignment to verify that ReconcileMyResource implements reconcile.Reconciler
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">_</span> <span style="color:#000">reconcile</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Reconciler</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">ReconcileMyResource</span><span style="color:#000;font-weight:bold">{}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// ReconcileMyResource reconciles a MyResource object
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">ReconcileMyResource</span> <span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">client</span> <span style="color:#000">client</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Client</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">scheme</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">runtime</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Scheme</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Reconcile reads that state of the cluster for a MyResource object and makes changes based on the state read
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// and what is in the MyResource.Spec
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">r</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">ReconcileMyResource</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Reconcile</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctx</span> <span style="color:#000">context</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Context</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">request</span> <span style="color:#000">reconcile</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Request</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">reconcile</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Result</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">reqLogger</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">log</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">WithValues</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Namespace&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">request</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Namespace</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;Name&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">request</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">reqLogger</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Info</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Reconciling MyResource&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">// Fetch the MyResource instance
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">myresource</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">myv1alpha1</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">MyResource</span><span style="color:#000;font-weight:bold">{}</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">r</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">client</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Get</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctx</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">request</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NamespacedName</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">myresource</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">errors</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">IsNotFound</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#8f5902;font-style:italic">// Request object not found, could have been deleted after reconcile request.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>      <span style="color:#8f5902;font-style:italic">// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>      <span style="color:#8f5902;font-style:italic">// Return and don&#39;t requeue
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>      <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">reconcile</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Result</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// Error reading the object - requeue the request.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">reconcile</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Result</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">// Add finalizer logic here
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">// Add reconcile logic here
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">reconcile</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Result</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="4-注册控制器">4. 注册控制器</h1>
+<p>在 <code>main.go</code> 文件中注册控制器，主要包含以下几个步骤</p>
+<ol>
+<li>
+<p><strong>ctrl.SetLogger(zap.New())：注册日志工具</strong></p>
+</li>
+<li>
+<p><strong>ctrl.NewManager：创建一个manager，必要时可设置选主逻辑。</strong></p>
+</li>
+<li>
+<p><strong>ctrl.NewControllerManagedBy(mgr)：预计mgr创建manager controller并注册Reconciler。</strong></p>
+</li>
+<li>
+<p><strong>mgr.Start(ctrl.SetupSignalHandler()): 运行mgr。</strong></p>
+</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">main</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// set logger
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">ctrl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SetLogger</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">zap</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">New</span><span style="color:#000;font-weight:bold">())</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// Set up a Manager
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">ctrl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewManager</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctrl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetConfigOrDie</span><span style="color:#000;font-weight:bold">(),</span> <span style="color:#000">ctrl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Options</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">Scheme</span><span style="color:#000;font-weight:bold">:</span>             <span style="color:#000">myv1alpha1</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SchemeBuilder</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Scheme</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">MetricsBindAddress</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">metricsHost</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">Port</span><span style="color:#000;font-weight:bold">:</span>               <span style="color:#0000cf;font-weight:bold">9443</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">LeaderElection</span><span style="color:#000;font-weight:bold">:</span>     <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">enableLeaderElection</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">LeaderElectionID</span><span style="color:#000;font-weight:bold">:</span>   <span style="color:#4e9a06">&#34;my-operator-lock&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">})</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">setupLog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Error</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;unable to start manager&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Exit</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// in a real controller, we&#39;d create a new scheme for this
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">err</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">api</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">AddToScheme</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetScheme</span><span style="color:#000;font-weight:bold">())</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">setupLog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Error</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;unable to add scheme&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Exit</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// Create a new Reconciler
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">r</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">ReconcileMyResource</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">client</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">m</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetClient</span><span style="color:#000;font-weight:bold">(),</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">scheme</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">m</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GetScheme</span><span style="color:#000;font-weight:bold">(),</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// Create a new Controller and register the Reconciler
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">err</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">ctrl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewControllerManagedBy</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">).</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">For</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">myv1alpha1</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">MyResource</span><span style="color:#000;font-weight:bold">{}).</span>     <span style="color:#8f5902;font-style:italic">// 自定义crd
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>		<span style="color:#000">Complete</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">r</span><span style="color:#000;font-weight:bold">)</span>                        <span style="color:#8f5902;font-style:italic">// 注册Reconciler
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">setupLog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Error</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;unable to create controller&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Exit</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">err</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">ctrl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewWebhookManagedBy</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">).</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">For</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">api</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ChaosPod</span><span style="color:#000;font-weight:bold">{}).</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">Complete</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">setupLog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Error</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;unable to create webhook&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Exit</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">setupLog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Info</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;starting manager&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">mgr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Start</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctrl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SetupSignalHandler</span><span style="color:#000;font-weight:bold">());</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">setupLog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Error</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;problem running manager&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Exit</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li>
+<p><a href="https://qiankunli.github.io/2020/08/10/controller_runtime.html">controller-runtime源码分析 | 李乾坤的博客</a></p>
+</li>
+<li>
+<p><a href="https://github.com/kubernetes-sigs/kubebuilder">Kubebuilder - SDK for building Kubernetes APIs using CRDs</a></p>
+</li>
+<li>
+<p><a href="https://github.com/operator-framework/operator-sdk">operator-framework/operator-sdk: SDK for building Kubernetes applications.</a></p>
+</li>
+<li>
+<p><a href="https://blog.hdls.me/16500403497126.html">https://blog.hdls.me/16500403497126.html</a></p>
+</li>
 </ul>
 
 </div>
