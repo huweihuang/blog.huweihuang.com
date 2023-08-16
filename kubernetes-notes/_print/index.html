@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.f93575c693432020176f667085f26ea3.json"
+  data-offline-search-index-json-src="/offline-search-index.a2c91110cc0dcbad36dea7d20201e04d.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -297,7 +297,7 @@ if (!doNotTrack) {
     
     
 	
-<li>2.2: <a href="#pg-8b5896446b13b6b1c7a2979417ce8141">k8s证书及秘钥</a></li>
+<li>2.2: <a href="#pg-090c38942225ddadebc0c1de1ff9b279">kubeadm升级k8s集群</a></li>
 
 
     
@@ -305,7 +305,7 @@ if (!doNotTrack) {
     
     
 	
-<li>2.3: <a href="#pg-ac77b6330ad5ce632acdc4c0ae8b80df">kubeadm管理证书</a></li>
+<li>2.3: <a href="#pg-8b5896446b13b6b1c7a2979417ce8141">k8s证书及秘钥</a></li>
 
 
     
@@ -313,7 +313,7 @@ if (!doNotTrack) {
     
     
 	
-<li>2.4: <a href="#pg-cd5e466e5a3dfa8653fdc2627ae724ed">k8s版本说明</a></li>
+<li>2.4: <a href="#pg-ac77b6330ad5ce632acdc4c0ae8b80df">kubeadm管理证书</a></li>
 
 
     
@@ -321,7 +321,15 @@ if (!doNotTrack) {
     
     
 	
-<li>2.5: <a href="#pg-b9af691092b47cf424aad2224adad987">k8s版本记录</a></li>
+<li>2.5: <a href="#pg-cd5e466e5a3dfa8653fdc2627ae724ed">k8s版本说明</a></li>
+
+
+    
+  
+    
+    
+	
+<li>2.6: <a href="#pg-b9af691092b47cf424aad2224adad987">k8s版本记录</a></li>
 
 
     
@@ -4157,7 +4165,190 @@ if (!doNotTrack) {
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-8b5896446b13b6b1c7a2979417ce8141">2.2 - k8s证书及秘钥</h1>
+	<h1 id="pg-090c38942225ddadebc0c1de1ff9b279">2.2 - kubeadm升级k8s集群</h1>
+    
+	<p>本文主要说明如何使用<code>kubeadm</code>来升级k8s集群。</p>
+<h1 id="1-版本注意事项">1. 版本注意事项</h1>
+<p>假设k8s的版本格式为<code>x.y.z</code>，那么使用kubeadm最多只能升级到<code>y+1</code>版本，或者是当前<code>y</code>版本的最新版本。例如你k8s集群的版本为<code>1.24.x</code>，那么你最大版本只能下载<code>1.25.x</code>的kubeadm来升级版本。</p>
+<p>因此升级前需要执行以下命令来验证可升级的版本。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubeadm upgrade plan
+</span></span></code></pre></div><h2 id="1-1-版本跨度过大">1.1. 版本跨度过大</h2>
+<p>如果出现以下报错，说明升级的版本跨度过大。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kubeadm的版本为v1.26.7</span>
+</span></span><span style="display:flex;"><span>./kubeadm version
+</span></span><span style="display:flex;"><span>kubeadm version: <span style="color:#000;font-weight:bold">&amp;</span>version.Info<span style="color:#ce5c00;font-weight:bold">{</span>Major:<span style="color:#4e9a06">&#34;1&#34;</span>, Minor:<span style="color:#4e9a06">&#34;26&#34;</span>, GitVersion:<span style="color:#4e9a06">&#34;v1.26.7&#34;</span>, GitCommit:<span style="color:#4e9a06">&#34;84e1fc493a47446df2e155e70fca768d2653a398&#34;</span>, GitTreeState:<span style="color:#4e9a06">&#34;clean&#34;</span>, BuildDate:<span style="color:#4e9a06">&#34;2023-07-19T12:22:13Z&#34;</span>, GoVersion:<span style="color:#4e9a06">&#34;go1.20.6&#34;</span>, Compiler:<span style="color:#4e9a06">&#34;gc&#34;</span>, Platform:<span style="color:#4e9a06">&#34;linux/amd64&#34;</span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 当前k8s集群版本1.24.2 版本跨度过大。</span>
+</span></span><span style="display:flex;"><span>./kubeadm upgrade plan
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>upgrade/config<span style="color:#ce5c00;font-weight:bold">]</span> Making sure the configuration is correct:
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>upgrade/config<span style="color:#ce5c00;font-weight:bold">]</span> Reading configuration from the cluster...
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>upgrade/config<span style="color:#ce5c00;font-weight:bold">]</span> FYI: You can look at this config file with <span style="color:#4e9a06">&#39;kubectl -n kube-system get cm kubeadm-config -o yaml&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>upgrade/config<span style="color:#ce5c00;font-weight:bold">]</span> FATAL: this version of kubeadm only supports deploying clusters with the control plane version &gt;<span style="color:#ce5c00;font-weight:bold">=</span> 1.25.0. Current version: v1.24.2
+</span></span><span style="display:flex;"><span>To see the stack trace of this error execute with --v<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">5</span> or higher
+</span></span></code></pre></div><h2 id="1-2-可升级的版本计划">1.2. 可升级的版本计划</h2>
+<p>可升级的版本计划如下</p>
+<p>当前的k8s版本为<code>1.24.2</code>，可升级的版本是<code>1.24.16</code>或<code>1.25.12</code>，其中etcd升级的版本为<code>3.5.6-0</code>。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>./kubeadm upgrade plan
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>upgrade/config<span style="color:#ce5c00;font-weight:bold">]</span> Making sure the configuration is correct:
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>upgrade/config<span style="color:#ce5c00;font-weight:bold">]</span> Reading configuration from the cluster...
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>upgrade/config<span style="color:#ce5c00;font-weight:bold">]</span> FYI: You can look at this config file with <span style="color:#4e9a06">&#39;kubectl -n kube-system get cm kubeadm-config -o yaml&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>upload-config<span style="color:#ce5c00;font-weight:bold">]</span> Storing the configuration used in ConfigMap <span style="color:#4e9a06">&#34;kubeadm-config&#34;</span> in the <span style="color:#4e9a06">&#34;kube-system&#34;</span> Namespace
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>preflight<span style="color:#ce5c00;font-weight:bold">]</span> Running pre-flight checks.
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>upgrade<span style="color:#ce5c00;font-weight:bold">]</span> Running cluster health checks
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>upgrade<span style="color:#ce5c00;font-weight:bold">]</span> Fetching available versions to upgrade to
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>upgrade/versions<span style="color:#ce5c00;font-weight:bold">]</span> Cluster version: v1.24.2
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>upgrade/versions<span style="color:#ce5c00;font-weight:bold">]</span> kubeadm version: v1.25.12
+</span></span><span style="display:flex;"><span>I0815 21:41:34.096199 <span style="color:#0000cf;font-weight:bold">2934255</span> version.go:256<span style="color:#ce5c00;font-weight:bold">]</span> remote version is much newer: v1.27.4<span style="color:#000;font-weight:bold">;</span> falling back to: stable-1.25
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>upgrade/versions<span style="color:#ce5c00;font-weight:bold">]</span> Target version: v1.25.12
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>upgrade/versions<span style="color:#ce5c00;font-weight:bold">]</span> Latest version in the v1.24 series: v1.24.16
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Components that must be upgraded manually after you have upgraded the control plane with <span style="color:#4e9a06">&#39;kubeadm upgrade apply&#39;</span>:
+</span></span><span style="display:flex;"><span>COMPONENT   CURRENT       TARGET
+</span></span><span style="display:flex;"><span>kubelet     <span style="color:#0000cf;font-weight:bold">4</span> x v1.24.2   v1.24.16
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Upgrade to the latest version in the v1.24 series:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>COMPONENT                 CURRENT   TARGET
+</span></span><span style="display:flex;"><span>kube-apiserver            v1.24.2   v1.24.16
+</span></span><span style="display:flex;"><span>kube-controller-manager   v1.24.2   v1.24.16
+</span></span><span style="display:flex;"><span>kube-scheduler            v1.24.2   v1.24.16
+</span></span><span style="display:flex;"><span>kube-proxy                v1.24.2   v1.24.16
+</span></span><span style="display:flex;"><span>CoreDNS                   v1.8.6    v1.9.3
+</span></span><span style="display:flex;"><span>etcd                      3.5.3-0   3.5.6-0
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>You can now apply the upgrade by executing the following command:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    kubeadm upgrade apply v1.24.16
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>_____________________________________________________________________
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Components that must be upgraded manually after you have upgraded the control plane with <span style="color:#4e9a06">&#39;kubeadm upgrade apply&#39;</span>:
+</span></span><span style="display:flex;"><span>COMPONENT   CURRENT       TARGET
+</span></span><span style="display:flex;"><span>kubelet     <span style="color:#0000cf;font-weight:bold">4</span> x v1.24.2   v1.25.12
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Upgrade to the latest stable version:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>COMPONENT                 CURRENT   TARGET
+</span></span><span style="display:flex;"><span>kube-apiserver            v1.24.2   v1.25.12
+</span></span><span style="display:flex;"><span>kube-controller-manager   v1.24.2   v1.25.12
+</span></span><span style="display:flex;"><span>kube-scheduler            v1.24.2   v1.25.12
+</span></span><span style="display:flex;"><span>kube-proxy                v1.24.2   v1.25.12
+</span></span><span style="display:flex;"><span>CoreDNS                   v1.8.6    v1.9.3
+</span></span><span style="display:flex;"><span>etcd                      3.5.3-0   3.5.6-0
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>You can now apply the upgrade by executing the following command:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    kubeadm upgrade apply v1.25.12
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>_____________________________________________________________________
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>The table below shows the current state of component configs as understood by this version of kubeadm.
+</span></span><span style="display:flex;"><span>Configs that have a <span style="color:#4e9a06">&#34;yes&#34;</span> mark in the <span style="color:#4e9a06">&#34;MANUAL UPGRADE REQUIRED&#34;</span> column require manual config upgrade or
+</span></span><span style="display:flex;"><span>resetting to kubeadm defaults before a successful upgrade can be performed. The version to manually
+</span></span><span style="display:flex;"><span>upgrade to is denoted in the <span style="color:#4e9a06">&#34;PREFERRED VERSION&#34;</span> column.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>API GROUP                 CURRENT VERSION   PREFERRED VERSION   MANUAL UPGRADE REQUIRED
+</span></span><span style="display:flex;"><span>kubeproxy.config.k8s.io   v1alpha1          v1alpha1            no
+</span></span><span style="display:flex;"><span>kubelet.config.k8s.io     v1beta1           v1beta1             no
+</span></span><span style="display:flex;"><span>_____________________________________________________________________
+</span></span></code></pre></div><h1 id="2-版本升级步骤">2. 版本升级步骤</h1>
+<h2 id="2-1-准备工作">2.1. 准备工作</h2>
+<ol>
+<li>
+<p>下载指定版本的kubeadm二进制</p>
+</li>
+<li>
+<p>查看升级计划：kubeadm upgrade plan</p>
+</li>
+</ol>
+<h2 id="2-2-升级master节点">2.2. 升级master节点</h2>
+<h3 id="2-2-1-升级第一个master节点">2.2.1. 升级第一个master节点</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubeadm upgrade apply v1.25.x -f
+</span></span></code></pre></div><p>升级结束会查看都以下输出：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>upgrade/successful<span style="color:#ce5c00;font-weight:bold">]</span> SUCCESS! Your cluster was upgraded to <span style="color:#4e9a06">&#34;v1.25.x&#34;</span>. Enjoy!
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>upgrade/kubelet<span style="color:#ce5c00;font-weight:bold">]</span> Now that your control plane is upgraded, please proceed with upgrading your kubelets <span style="color:#204a87;font-weight:bold">if</span> you haven<span style="color:#a40000">&#39;</span>t already <span style="color:#204a87;font-weight:bold">done</span> so.
+</span></span></code></pre></div><h3 id="2-2-2-手动升级你的-cni-驱动插件">2.2.2. 手动升级你的 CNI 驱动插件。</h3>
+<p>你的容器网络接口（CNI）驱动应该提供了程序自身的升级说明。 参阅<a href="https://kubernetes.io/zh-cn/docs/concepts/cluster-administration/addons/">插件</a>页面查找你的 CNI 驱动， 并查看是否需要其他升级步骤。</p>
+<p>如果 CNI 驱动作为 DaemonSet 运行，则在其他控制平面节点上不需要此步骤。</p>
+<h3 id="2-2-3-升级其他master节点">2.2.3. 升级其他master节点</h3>
+<p>下载指定版本的kubeadm组件。使用以下命令升级，注意区别于第一个master的升级命令。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubeadm upgrade node
+</span></span></code></pre></div><h3 id="2-2-4-升级master的kubelet组件">2.2.4. 升级master的kubelet组件</h3>
+<p>将节点标记为不可调度并驱逐所有负载，准备节点的维护：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 将 &lt;node-to-drain&gt; 替换为你要腾空的控制面节点名称</span>
+</span></span><span style="display:flex;"><span>kubectl drain &lt;node-to-drain&gt; --ignore-daemonsets
+</span></span></code></pre></div><p>下载kubelet和kubectl</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 用最新的补丁版本替换 1.27.x-00 中的 x</span>
+</span></span><span style="display:flex;"><span>apt-mark unhold kubelet kubectl <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>apt-get update <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> apt-get install -y <span style="color:#000">kubelet</span><span style="color:#ce5c00;font-weight:bold">=</span>1.27.x-00 <span style="color:#000">kubectl</span><span style="color:#ce5c00;font-weight:bold">=</span>1.27.x-00 <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>apt-mark hold kubelet kubectl
+</span></span></code></pre></div><p>重启kubelet</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>sudo systemctl daemon-reload
+</span></span><span style="display:flex;"><span>sudo systemctl restart kubelet
+</span></span></code></pre></div><p>解除节点保护</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 将 &lt;node-to-uncordon&gt; 替换为你的节点名称</span>
+</span></span><span style="display:flex;"><span>kubectl uncordon &lt;node-to-uncordon&gt;
+</span></span></code></pre></div><h2 id="2-3-升级worker节点">2.3. 升级worker节点</h2>
+<p>同 <code>2.2.4. 升级master的kubelet组件</code>的步骤，worker节点只需要升级kubelet。</p>
+<h1 id="3-升级版本回滚">3. 升级版本回滚</h1>
+<p>kubeadm升级过程中会把相关目录备份到<code>/etc/kubernetes/tmp</code>目录，备份内容如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>tmp/
+</span></span><span style="display:flex;"><span>├── kubeadm-backup-etcd-2023-08-16-14-50-50
+</span></span><span style="display:flex;"><span>│   └── etcd
+</span></span><span style="display:flex;"><span>└── kubeadm-backup-manifests-2023-08-16-14-50-50
+</span></span><span style="display:flex;"><span>    ├── etcd.yaml
+</span></span><span style="display:flex;"><span>    ├── kube-apiserver.yaml
+</span></span><span style="display:flex;"><span>    ├── kube-controller-manager.yaml
+</span></span><span style="display:flex;"><span>    └── kube-scheduler.yaml
+</span></span></code></pre></div><p>如果 <code>kubeadm upgrade</code> 失败并且没有回滚，例如由于执行期间节点意外关闭， 你可以再次运行 <code>kubeadm upgrade</code>。 此命令是幂等的，并最终确保实际状态是你声明的期望状态。</p>
+<p>要从故障状态恢复，你还可以运行 <code>kubeadm upgrade apply --force</code> 而无需更改集群正在运行的版本。</p>
+<p>在升级期间，kubeadm 向 <code>/etc/kubernetes/tmp</code> 目录下的如下备份文件夹写入数据：</p>
+<ul>
+<li><code>kubeadm-backup-etcd-&lt;date&gt;-&lt;time&gt;</code></li>
+<li><code>kubeadm-backup-manifests-&lt;date&gt;-&lt;time&gt;</code></li>
+</ul>
+<p><code>kubeadm-backup-etcd</code> 包含当前控制面节点本地 etcd 成员数据的备份。 如果 etcd 升级失败并且自动回滚也无法修复，则可以将此文件夹中的内容复制到 <code>/var/lib/etcd</code> 进行手工修复。如果使用的是外部的 etcd，则此备份文件夹为空。</p>
+<p><code>kubeadm-backup-manifests</code> 包含当前控制面节点的静态 Pod 清单文件的备份版本。 如果升级失败并且无法自动回滚，则此文件夹中的内容可以复制到 <code>/etc/kubernetes/manifests</code> 目录实现手工恢复。 如果由于某些原因，在升级前后某个组件的清单未发生变化，则 kubeadm 也不会为之生成备份版本。</p>
+<h1 id="4-问题排查">4. 问题排查</h1>
+<p>在升级k8s 从1.25.12到1.26.7的过程中，遇到master节点的服务起不来，报错如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#4e9a06">&#34;CreatePodSandbox for pod failed&#34;</span> <span style="color:#000">err</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;open /run/systemd/resolve/resolv.conf: no such file or directory&#34;</span> <span style="color:#000">pod</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;kube-system/kube-apiserver&#34;</span>
+</span></span></code></pre></div><p>现象主要是静态pod起不来，包括etcd等。</p>
+<p>具体解决方法参考：<a href="https://ask.kubesphere.io/forum/d/6474-v321masterrunsystemdresolvconfworker/3">open /run/systemd/resolve/resolv.conf</a></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看以下的resolv.conf是否存在</span>
+</span></span><span style="display:flex;"><span>cat /var/lib/kubelet/config.yaml <span style="color:#000;font-weight:bold">|</span> grep resolvConf
+</span></span><span style="display:flex;"><span>/run/systemd/resolve/resolv.conf
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果不存在，检查systemd-resolved是否正常运行，</span>
+</span></span><span style="display:flex;"><span>systemctl status systemd-resolved
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 如果没有运行，则运行该服务</span>
+</span></span><span style="display:flex;"><span>systemctl start systemd-resolved
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 或者新建文件/run/systemd/resolve/resolv.conf，并将其他master的文件拷贝过来。</span>
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="https://kubernetes.io/zh-cn/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/">升级 kubeadm 集群 | Kubernetes</a></li>
+<li><a href="https://kubernetes.io/zh-cn/docs/tasks/administer-cluster/kubeadm/upgrading-linux-nodes/">升级 Linux 节点 | Kubernetes</a></li>
+<li><a href="https://kubernetes.io/zh-cn/docs/concepts/cluster-administration/addons/">安装扩展（Addon） | Kubernetes</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-8b5896446b13b6b1c7a2979417ce8141">2.3 - k8s证书及秘钥</h1>
     
 	<h1 id="1-证书分类">1. 证书分类</h1>
 <ul>
@@ -4624,7 +4815,7 @@ if (!doNotTrack) {
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-ac77b6330ad5ce632acdc4c0ae8b80df">2.3 - kubeadm管理证书</h1>
+	<h1 id="pg-ac77b6330ad5ce632acdc4c0ae8b80df">2.4 - kubeadm管理证书</h1>
     
 	<p>通过kubeadm搭建的集群<strong>默认的证书时间是1年</strong>（由于官方期望每年更新一次k8s的版本，在更新的时候会默认更新证书），当你执行命令出现以下报错，说明你的证书已经到期了，则需要手动更新证书。</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kubectl get node</span>
@@ -4826,7 +5017,7 @@ if (!doNotTrack) {
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-cd5e466e5a3dfa8653fdc2627ae724ed">2.4 - k8s版本说明</h1>
+	<h1 id="pg-cd5e466e5a3dfa8653fdc2627ae724ed">2.5 - k8s版本说明</h1>
     
 	<h1 id="1-k8s版本号说明">1. k8s版本号说明</h1>
 <p>k8s维护最新三个版本的发布分支（[2022.7.2]当前<strong>最新三个版本为1.24、1.23、1.22</strong>），Kubernetes 1.19 和更新的版本获得大约 1 年的补丁支持。</p>
@@ -4988,7 +5179,7 @@ if (!doNotTrack) {
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-b9af691092b47cf424aad2224adad987">2.5 - k8s版本记录</h1>
+	<h1 id="pg-b9af691092b47cf424aad2224adad987">2.6 - k8s版本记录</h1>
     
 	<h1 id="1-27">1.27</h1>
 <p>参考：</p>
@@ -13459,6 +13650,11 @@ yum localinstall -y flannel-0.2.0-10.el7.x86_64.rpm
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl cp &lt;本地路径文件名&gt; -n &lt;ns&gt; -c &lt;container&gt; &lt;pod_name&gt;:&lt;与workdir的相对路径&gt; 
 </span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 示例：</span>
 </span></span><span style="display:flex;"><span>kubectl cp ./prometheus.env.yaml -n prometheus -c prometheus prometheus-0:prometheus.env.yaml 
+</span></span></code></pre></div><h2 id="5-13-强制删除namespace">5.13. 强制删除namespace</h2>
+<p>如果强制删除ns失败，可以使用以下命令删除，将以下的<code>calico-system</code>改为需要删除的namespace。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl get namespaces calico-system -o json <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>    <span style="color:#000;font-weight:bold">|</span> tr -d <span style="color:#4e9a06">&#34;\n&#34;</span> <span style="color:#000;font-weight:bold">|</span> sed <span style="color:#4e9a06">&#34;s/\&#34;finalizers\&#34;: \[[^]]\+\]/\&#34;finalizers\&#34;: []/&#34;</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>    <span style="color:#000;font-weight:bold">|</span> kubectl replace --raw /api/v1/namespaces/calico-system/finalize -f -
 </span></span></code></pre></div><h1 id="6-kubectl日志级别">6. kubectl日志级别</h1>
 <p>Kubectl 日志输出详细程度是通过 <code>-v</code> 或者 <code>--v</code> 来控制的，参数后跟一个数字表示日志的级别。 Kubernetes 通用的日志习惯和相关的日志级别在 <a href="https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/logging.md">这里</a> 有相应的描述。</p>
 <table>
