@@ -1,0 +1,1178 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<meta name="robots" content="index, follow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>Raid介绍 | 胡伟煌</title>
+<meta name="description" content="1. Raid是什么
+RAID英文全称Redundant Array of Independent Disk，翻译过来就是“独立磁盘冗余系统”。RAID是一种可提高性能或提供容错功能的磁盘子系统。
+RAID的基本思想是将多个容量较小、速度较慢、可靠性较差的廉价磁盘，组合成一个磁盘组，从而以较低的成本 …">
+<meta property="og:title" content="Raid介绍" />
+<meta property="og:description" content="1. Raid是什么 RAID英文全称Redundant Array of Independent Disk，翻译过来就是“独立磁盘冗余系统”。RAID是一种可提高性能或提供容错功能的磁盘子系统。
+RAID的基本思想是将多个容量较小、速度较慢、可靠性较差的廉价磁盘，组合成一个磁盘组，从而以较低的成本获得与昂贵的大容量、高速磁盘相似的性能。
+优势：
+高性能
+可靠性可用性
+大容量
+可管理性
+2. Raid的基本原理 架构上，通过RAID控制器就将多块磁盘组合，在操作系统层我们看到的是一个或多个逻辑磁盘。
+技术上，RAID主要采用磁盘镜像技术、条带化技术和奇偶校验技术实现高性能、可靠性、容错能力和扩展性。
+磁盘镜像技术：将数据复制到多个磁盘，一方面可以提高可靠性，另一方面可以提高读性能。因为需要写入多个磁盘会导致写性能降低。
+数据条带技术：将数据分片保存到多个不同的磁盘，多个数据分片共同组成完整的数据。主要用于提示磁盘IO性能，当访问数据时可以同时对多个磁盘进行读取。
+数据校验技术：利益冗余数据对数据进行校验和修复。冗余数据通常采用海明码、异或操作等算法来计算获得。可以提高磁盘阵列的可靠性和容错能力。不过，数据校验需要从多处读取数据并进行计算和对比，会影响系统性能。
+3. Raid的级别 RAID级别命名方式如，RAID 0、RAID 1/RAID 5、RAID 10等。RAID每一个级别代表一种RAID组合实现方法和技术，级别之间并无高低之分。不同等级的 RAID 采用其中一个或多个技术，得到的是不同的容量、I/O性能、可靠性、可用性。在决定选择哪种RAID级别之前，需要深入理解系统需求，根据自身情况进行合理选择，综合评估可靠性、性能和成本来进行折中的选择。
+Raid等级 Raid0 Raid1 Raid3 Raid5 Raid6 Raid10 别名 条带 镜像 专用奇偶校验条带 分布奇偶校验条带 双重奇偶校验条带 镜像&#43;条带 容错性 无 有 有 有 有 有 冗余类型 无 有 有 有 有 有 热备份选择 无 有 有 有 有 有 读性能 高 低 高 高 高 高 随机写性能 高 低 低 一般 低 一般 连续写性能 高 低 低 低 低 一般 需要磁盘数 n&gt;=1 2n(n&gt;=1) n&gt;=3 n&gt;=3 n&gt;=4 2n&gt;=4 可用容量 全部 50% （n-1）/n （n-1）/n （n-2）/n 50% 4." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.huweihuang.com/linux-notes/disk/disk-raid/" /><meta property="article:section" content="linux-notes" />
+<meta property="article:published_time" content="2024-04-01T10:50:57+00:00" />
+<meta property="article:modified_time" content="2024-04-01T10:50:57+00:00" /><meta property="og:site_name" content="胡伟煌" />
+
+<meta itemprop="name" content="Raid介绍">
+<meta itemprop="description" content="1. Raid是什么 RAID英文全称Redundant Array of Independent Disk，翻译过来就是“独立磁盘冗余系统”。RAID是一种可提高性能或提供容错功能的磁盘子系统。
+RAID的基本思想是将多个容量较小、速度较慢、可靠性较差的廉价磁盘，组合成一个磁盘组，从而以较低的成本获得与昂贵的大容量、高速磁盘相似的性能。
+优势：
+高性能
+可靠性可用性
+大容量
+可管理性
+2. Raid的基本原理 架构上，通过RAID控制器就将多块磁盘组合，在操作系统层我们看到的是一个或多个逻辑磁盘。
+技术上，RAID主要采用磁盘镜像技术、条带化技术和奇偶校验技术实现高性能、可靠性、容错能力和扩展性。
+磁盘镜像技术：将数据复制到多个磁盘，一方面可以提高可靠性，另一方面可以提高读性能。因为需要写入多个磁盘会导致写性能降低。
+数据条带技术：将数据分片保存到多个不同的磁盘，多个数据分片共同组成完整的数据。主要用于提示磁盘IO性能，当访问数据时可以同时对多个磁盘进行读取。
+数据校验技术：利益冗余数据对数据进行校验和修复。冗余数据通常采用海明码、异或操作等算法来计算获得。可以提高磁盘阵列的可靠性和容错能力。不过，数据校验需要从多处读取数据并进行计算和对比，会影响系统性能。
+3. Raid的级别 RAID级别命名方式如，RAID 0、RAID 1/RAID 5、RAID 10等。RAID每一个级别代表一种RAID组合实现方法和技术，级别之间并无高低之分。不同等级的 RAID 采用其中一个或多个技术，得到的是不同的容量、I/O性能、可靠性、可用性。在决定选择哪种RAID级别之前，需要深入理解系统需求，根据自身情况进行合理选择，综合评估可靠性、性能和成本来进行折中的选择。
+Raid等级 Raid0 Raid1 Raid3 Raid5 Raid6 Raid10 别名 条带 镜像 专用奇偶校验条带 分布奇偶校验条带 双重奇偶校验条带 镜像&#43;条带 容错性 无 有 有 有 有 有 冗余类型 无 有 有 有 有 有 热备份选择 无 有 有 有 有 有 读性能 高 低 高 高 高 高 随机写性能 高 低 低 一般 低 一般 连续写性能 高 低 低 低 低 一般 需要磁盘数 n&gt;=1 2n(n&gt;=1) n&gt;=3 n&gt;=3 n&gt;=4 2n&gt;=4 可用容量 全部 50% （n-1）/n （n-1）/n （n-2）/n 50% 4."><meta itemprop="datePublished" content="2024-04-01T10:50:57+00:00" />
+<meta itemprop="dateModified" content="2024-04-01T10:50:57+00:00" />
+<meta itemprop="wordCount" content="140">
+<meta itemprop="keywords" content="disk," /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Raid介绍"/>
+<meta name="twitter:description" content="1. Raid是什么 RAID英文全称Redundant Array of Independent Disk，翻译过来就是“独立磁盘冗余系统”。RAID是一种可提高性能或提供容错功能的磁盘子系统。
+RAID的基本思想是将多个容量较小、速度较慢、可靠性较差的廉价磁盘，组合成一个磁盘组，从而以较低的成本获得与昂贵的大容量、高速磁盘相似的性能。
+优势：
+高性能
+可靠性可用性
+大容量
+可管理性
+2. Raid的基本原理 架构上，通过RAID控制器就将多块磁盘组合，在操作系统层我们看到的是一个或多个逻辑磁盘。
+技术上，RAID主要采用磁盘镜像技术、条带化技术和奇偶校验技术实现高性能、可靠性、容错能力和扩展性。
+磁盘镜像技术：将数据复制到多个磁盘，一方面可以提高可靠性，另一方面可以提高读性能。因为需要写入多个磁盘会导致写性能降低。
+数据条带技术：将数据分片保存到多个不同的磁盘，多个数据分片共同组成完整的数据。主要用于提示磁盘IO性能，当访问数据时可以同时对多个磁盘进行读取。
+数据校验技术：利益冗余数据对数据进行校验和修复。冗余数据通常采用海明码、异或操作等算法来计算获得。可以提高磁盘阵列的可靠性和容错能力。不过，数据校验需要从多处读取数据并进行计算和对比，会影响系统性能。
+3. Raid的级别 RAID级别命名方式如，RAID 0、RAID 1/RAID 5、RAID 10等。RAID每一个级别代表一种RAID组合实现方法和技术，级别之间并无高低之分。不同等级的 RAID 采用其中一个或多个技术，得到的是不同的容量、I/O性能、可靠性、可用性。在决定选择哪种RAID级别之前，需要深入理解系统需求，根据自身情况进行合理选择，综合评估可靠性、性能和成本来进行折中的选择。
+Raid等级 Raid0 Raid1 Raid3 Raid5 Raid6 Raid10 别名 条带 镜像 专用奇偶校验条带 分布奇偶校验条带 双重奇偶校验条带 镜像&#43;条带 容错性 无 有 有 有 有 有 冗余类型 无 有 有 有 有 有 热备份选择 无 有 有 有 有 有 读性能 高 低 高 高 高 高 随机写性能 高 低 低 一般 低 一般 连续写性能 高 低 低 低 低 一般 需要磁盘数 n&gt;=1 2n(n&gt;=1) n&gt;=3 n&gt;=3 n&gt;=4 2n&gt;=4 可用容量 全部 50% （n-1）/n （n-1）/n （n-2）/n 50% 4."/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" as="style">
+<link href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-114718458-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-page">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">胡伟煌</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/kubernetes-notes/" ><span>Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/k8s-source-code-analysis/" ><span>Kubernetes源码分析</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/golang-notes/" ><span>Golang学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/linux-notes/" ><span class="active">Linux学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/about/" ><span>About</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.9597d56a4a74c3d61b8dc6e6dedb85ef.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <aside class="col-12 col-md-3 col-xl-2 td-sidebar d-print-none">
+            
+<div id="td-sidebar-menu" class="td-sidebar__inner">
+  <form class="td-sidebar__search d-flex align-items-center">
+    <input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.9597d56a4a74c3d61b8dc6e6dedb85ef.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+
+    <button class="btn btn-link td-sidebar__toggle d-md-none p-0 ml-3 fas fa-bars" type="button" data-toggle="collapse" data-target="#td-section-nav" aria-controls="td-docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    </button>
+  </form>
+  <nav class="collapse td-sidebar-nav foldable-nav" id="td-section-nav">
+    <ul class="td-sidebar-nav__section pr-md-3 ul-0">
+      <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-linux-notes-li">
+  <a href="/linux-notes/" class="align-left pl-0 td-sidebar-link td-sidebar-link__section tree-root" id="m-linux-notes"><span class="">Linux学习笔记</span></a>
+  <ul class="ul-1">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-file-li">
+  <input type="checkbox" id="m-linux-notes-file-check"/>
+  <label for="m-linux-notes-file-check"><a href="/linux-notes/file/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-file"><span class="">Linux 文件系统</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-file-linux-introduction-li">
+  <input type="checkbox" id="m-linux-notes-file-linux-introduction-check"/>
+  <label for="m-linux-notes-file-linux-introduction-check"><a href="/linux-notes/file/linux-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-file-linux-introduction"><span class="">Linux介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-file-linux-file-system-li">
+  <input type="checkbox" id="m-linux-notes-file-linux-file-system-check"/>
+  <label for="m-linux-notes-file-linux-file-system-check"><a href="/linux-notes/file/linux-file-system/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-file-linux-file-system"><span class="">Linux文件系统</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-file-linux-file-storage-li">
+  <input type="checkbox" id="m-linux-notes-file-linux-file-storage-check"/>
+  <label for="m-linux-notes-file-linux-file-storage-check"><a href="/linux-notes/file/linux-file-storage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-file-linux-file-storage"><span class="">Linux文件存储</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-file-linux-file-permission-li">
+  <input type="checkbox" id="m-linux-notes-file-linux-file-permission-check"/>
+  <label for="m-linux-notes-file-linux-file-permission-check"><a href="/linux-notes/file/linux-file-permission/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-file-linux-file-permission"><span class="">Linux文件权限</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-linux-notes-disk-li">
+  <input type="checkbox" id="m-linux-notes-disk-check" checked/>
+  <label for="m-linux-notes-disk-check"><a href="/linux-notes/disk/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-disk"><span class="">磁盘</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-disk-disk-command-li">
+  <input type="checkbox" id="m-linux-notes-disk-disk-command-check"/>
+  <label for="m-linux-notes-disk-disk-command-check"><a href="/linux-notes/disk/disk-command/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-disk-disk-command"><span class="">磁盘命令</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-disk-lvm-usage-li">
+  <input type="checkbox" id="m-linux-notes-disk-lvm-usage-check"/>
+  <label for="m-linux-notes-disk-lvm-usage-check"><a href="/linux-notes/disk/lvm-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-disk-lvm-usage"><span class="">LVM的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-disk-disk-raid-li">
+  <input type="checkbox" id="m-linux-notes-disk-disk-raid-check"/>
+  <label for="m-linux-notes-disk-disk-raid-check"><a href="/linux-notes/disk/disk-raid/" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-linux-notes-disk-disk-raid"><span class="td-sidebar-nav-active-item">Raid介绍</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-tcpip-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-check"/>
+  <label for="m-linux-notes-tcpip-check"><a href="/linux-notes/tcpip/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-tcpip"><span class="">TCP/IP</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tcpip-http-basics-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-http-basics-check"/>
+  <label for="m-linux-notes-tcpip-http-basics-check"><a href="/linux-notes/tcpip/http-basics/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tcpip-http-basics"><span class="">HTTP基础</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tcpip-tcpip-basics-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-tcpip-basics-check"/>
+  <label for="m-linux-notes-tcpip-tcpip-basics-check"><a href="/linux-notes/tcpip/tcpip-basics/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tcpip-tcpip-basics"><span class="">TCPIP基础</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tcpip-http-message-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-http-message-check"/>
+  <label for="m-linux-notes-tcpip-http-message-check"><a href="/linux-notes/tcpip/http-message/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tcpip-http-message"><span class="">HTTP报文</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tcpip-ip-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-ip-check"/>
+  <label for="m-linux-notes-tcpip-ip-check"><a href="/linux-notes/tcpip/ip/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tcpip-ip"><span class="">IP协议</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tcpip-http-code-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-http-code-check"/>
+  <label for="m-linux-notes-tcpip-http-code-check"><a href="/linux-notes/tcpip/http-code/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tcpip-http-code"><span class="">HTTP状态码</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tcpip-tcp-udp-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-tcp-udp-check"/>
+  <label for="m-linux-notes-tcpip-tcp-udp-check"><a href="/linux-notes/tcpip/tcp-udp/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tcpip-tcp-udp"><span class="">TCP与UDP协议</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-network-li">
+  <input type="checkbox" id="m-linux-notes-network-check"/>
+  <label for="m-linux-notes-network-check"><a href="/linux-notes/network/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-network"><span class="">网络</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-network-tcpdump-li">
+  <input type="checkbox" id="m-linux-notes-network-tcpdump-check"/>
+  <label for="m-linux-notes-network-tcpdump-check"><a href="/linux-notes/network/tcpdump/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-network-tcpdump"><span class="">tcpdump抓包流程</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-network-iptables-li">
+  <input type="checkbox" id="m-linux-notes-network-iptables-check"/>
+  <label for="m-linux-notes-network-iptables-check"><a href="/linux-notes/network/iptables/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-network-iptables"><span class="">iptables介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-network-iptables-command-li">
+  <input type="checkbox" id="m-linux-notes-network-iptables-command-check"/>
+  <label for="m-linux-notes-network-iptables-command-check"><a href="/linux-notes/network/iptables-command/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-network-iptables-command"><span class="">iptables命令</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-network-wrk-usage-li">
+  <input type="checkbox" id="m-linux-notes-network-wrk-usage-check"/>
+  <label for="m-linux-notes-network-wrk-usage-check"><a href="/linux-notes/network/wrk-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-network-wrk-usage"><span class="">wrk的使用</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-shell-li">
+  <input type="checkbox" id="m-linux-notes-shell-check"/>
+  <label for="m-linux-notes-shell-check"><a href="/linux-notes/shell/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-shell"><span class="">Shell脚本</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-introduction-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-introduction-check"/>
+  <label for="m-linux-notes-shell-shell-introduction-check"><a href="/linux-notes/shell/shell-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-introduction"><span class="">Shell简介</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-var-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-var-check"/>
+  <label for="m-linux-notes-shell-shell-var-check"><a href="/linux-notes/shell/shell-var/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-var"><span class="">Shell变量</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-char-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-char-check"/>
+  <label for="m-linux-notes-shell-shell-char-check"><a href="/linux-notes/shell/shell-char/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-char"><span class="">Shell运算符</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-array-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-array-check"/>
+  <label for="m-linux-notes-shell-shell-array-check"><a href="/linux-notes/shell/shell-array/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-array"><span class="">Shell数组</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-echo-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-echo-check"/>
+  <label for="m-linux-notes-shell-shell-echo-check"><a href="/linux-notes/shell/shell-echo/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-echo"><span class="">Shell echo命令</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-if-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-if-check"/>
+  <label for="m-linux-notes-shell-shell-if-check"><a href="/linux-notes/shell/shell-if/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-if"><span class="">Shell 判断语句</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-loop-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-loop-check"/>
+  <label for="m-linux-notes-shell-shell-loop-check"><a href="/linux-notes/shell/shell-loop/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-loop"><span class="">Shell 循环语句</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-function-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-function-check"/>
+  <label for="m-linux-notes-shell-shell-function-check"><a href="/linux-notes/shell/shell-function/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-function"><span class="">Shell 函数</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-stdout-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-stdout-check"/>
+  <label for="m-linux-notes-shell-shell-stdout-check"><a href="/linux-notes/shell/shell-stdout/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-stdout"><span class="">Shell 重定向</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-tools-li">
+  <input type="checkbox" id="m-linux-notes-tools-check"/>
+  <label for="m-linux-notes-tools-check"><a href="/linux-notes/tools/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-tools"><span class="">运维工具</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-ansible-usage-li">
+  <input type="checkbox" id="m-linux-notes-tools-ansible-usage-check"/>
+  <label for="m-linux-notes-tools-ansible-usage-check"><a href="/linux-notes/tools/ansible-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-ansible-usage"><span class="">ansible的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-ceph-fuse-li">
+  <input type="checkbox" id="m-linux-notes-tools-ceph-fuse-check"/>
+  <label for="m-linux-notes-tools-ceph-fuse-check"><a href="/linux-notes/tools/ceph-fuse/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-ceph-fuse"><span class="">ceph-fuse的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-confd-usage-li">
+  <input type="checkbox" id="m-linux-notes-tools-confd-usage-check"/>
+  <label for="m-linux-notes-tools-confd-usage-check"><a href="/linux-notes/tools/confd-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-confd-usage"><span class="">confd的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-nfs-usage-li">
+  <input type="checkbox" id="m-linux-notes-tools-nfs-usage-check"/>
+  <label for="m-linux-notes-tools-nfs-usage-check"><a href="/linux-notes/tools/nfs-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-nfs-usage"><span class="">NFS的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-ssh-tips-li">
+  <input type="checkbox" id="m-linux-notes-tools-ssh-tips-check"/>
+  <label for="m-linux-notes-tools-ssh-tips-check"><a href="/linux-notes/tools/ssh-tips/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-ssh-tips"><span class="">ssh tips</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-supervisor-usage-li">
+  <input type="checkbox" id="m-linux-notes-tools-supervisor-usage-check"/>
+  <label for="m-linux-notes-tools-supervisor-usage-check"><a href="/linux-notes/tools/supervisor-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-supervisor-usage"><span class="">Supervisor的使用</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-git-li">
+  <input type="checkbox" id="m-linux-notes-git-check"/>
+  <label for="m-linux-notes-git-check"><a href="/linux-notes/git/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-git"><span class="">GIT命令</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-git-git-li">
+  <input type="checkbox" id="m-linux-notes-git-git-check"/>
+  <label for="m-linux-notes-git-git-check"><a href="/linux-notes/git/git/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-git-git"><span class="">Git介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-git-git-common-cmd-li">
+  <input type="checkbox" id="m-linux-notes-git-git-common-cmd-check"/>
+  <label for="m-linux-notes-git-git-common-cmd-check"><a href="/linux-notes/git/git-common-cmd/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-git-git-common-cmd"><span class="">Git常用命令</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-git-git-commands-li">
+  <input type="checkbox" id="m-linux-notes-git-git-commands-check"/>
+  <label for="m-linux-notes-git-git-commands-check"><a href="/linux-notes/git/git-commands/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-git-git-commands"><span class="">Git命令分类</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-git-git-commit-msg-li">
+  <input type="checkbox" id="m-linux-notes-git-git-commit-msg-check"/>
+  <label for="m-linux-notes-git-git-commit-msg-check"><a href="/linux-notes/git/git-commit-msg/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-git-git-commit-msg"><span class="">Git commit规范</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-git-git-alias-zsh-li">
+  <input type="checkbox" id="m-linux-notes-git-git-alias-zsh-check"/>
+  <label for="m-linux-notes-git-git-alias-zsh-check"><a href="/linux-notes/git/git-alias-zsh/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-git-git-alias-zsh"><span class="">Git命令别名</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-mysql-li">
+  <input type="checkbox" id="m-linux-notes-mysql-check"/>
+  <label for="m-linux-notes-mysql-check"><a href="/linux-notes/mysql/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-mysql"><span class="">Mysql</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-mysql-system-manage-li">
+  <input type="checkbox" id="m-linux-notes-mysql-system-manage-check"/>
+  <label for="m-linux-notes-mysql-system-manage-check"><a href="/linux-notes/mysql/system-manage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-mysql-system-manage"><span class="">Mysql常用命令之系统管理</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-mysql-table-operation-li">
+  <input type="checkbox" id="m-linux-notes-mysql-table-operation-check"/>
+  <label for="m-linux-notes-mysql-table-operation-check"><a href="/linux-notes/mysql/table-operation/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-mysql-table-operation"><span class="">Mysql常用命令之数据表操作</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-mysql-curd-commands-li">
+  <input type="checkbox" id="m-linux-notes-mysql-curd-commands-check"/>
+  <label for="m-linux-notes-mysql-curd-commands-check"><a href="/linux-notes/mysql/curd-commands/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-mysql-curd-commands"><span class="">Mysql常用命令之表内容操作</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-redis-li">
+  <input type="checkbox" id="m-linux-notes-redis-check"/>
+  <label for="m-linux-notes-redis-check"><a href="/linux-notes/redis/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-redis"><span class="">Redis</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-redis-redis-introduction-li">
+  <input type="checkbox" id="m-linux-notes-redis-redis-introduction-check"/>
+  <label for="m-linux-notes-redis-redis-introduction-check"><a href="/linux-notes/redis/redis-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-redis-redis-introduction"><span class="">Redis介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-redis-redis-cluster-li">
+  <input type="checkbox" id="m-linux-notes-redis-redis-cluster-check"/>
+  <label for="m-linux-notes-redis-redis-cluster-check"><a href="/linux-notes/redis/redis-cluster/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-redis-redis-cluster"><span class="">Redis集群模式部署</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-redis-redis-sentinel-li">
+  <input type="checkbox" id="m-linux-notes-redis-redis-sentinel-check"/>
+  <label for="m-linux-notes-redis-redis-sentinel-check"><a href="/linux-notes/redis/redis-sentinel/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-redis-redis-sentinel"><span class="">Redis哨兵模式部署</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-redis-redis-conf-cn-li">
+  <input type="checkbox" id="m-linux-notes-redis-redis-conf-cn-check"/>
+  <label for="m-linux-notes-redis-redis-conf-cn-check"><a href="/linux-notes/redis/redis-conf-cn/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-redis-redis-conf-cn"><span class="">Redis配置详解（中文版）</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-redis-redis-conf-en-li">
+  <input type="checkbox" id="m-linux-notes-redis-redis-conf-en-check"/>
+  <label for="m-linux-notes-redis-redis-conf-en-check"><a href="/linux-notes/redis/redis-conf-en/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-redis-redis-conf-en"><span class="">Redis配置详解（英文版）</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-memcached-li">
+  <input type="checkbox" id="m-linux-notes-memcached-check"/>
+  <label for="m-linux-notes-memcached-check"><a href="/linux-notes/memcached/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-memcached"><span class="">Memcached</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-memcached-memcached-li">
+  <input type="checkbox" id="m-linux-notes-memcached-memcached-check"/>
+  <label for="m-linux-notes-memcached-memcached-check"><a href="/linux-notes/memcached/memcached/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-memcached-memcached"><span class="">Memcached的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-memcached-memcached-cmd-li">
+  <input type="checkbox" id="m-linux-notes-memcached-memcached-cmd-check"/>
+  <label for="m-linux-notes-memcached-memcached-cmd-check"><a href="/linux-notes/memcached/memcached-cmd/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-memcached-memcached-cmd"><span class="">Memcached命令</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-nginx-li">
+  <input type="checkbox" id="m-linux-notes-nginx-check"/>
+  <label for="m-linux-notes-nginx-check"><a href="/linux-notes/nginx/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-nginx"><span class="">Nginx</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-nginx-install-nginx-li">
+  <input type="checkbox" id="m-linux-notes-nginx-install-nginx-check"/>
+  <label for="m-linux-notes-nginx-install-nginx-check"><a href="/linux-notes/nginx/install-nginx/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-nginx-install-nginx"><span class="">Nginx的部署与配置</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-nginx-nginx-proxy-li">
+  <input type="checkbox" id="m-linux-notes-nginx-nginx-proxy-check"/>
+  <label for="m-linux-notes-nginx-nginx-proxy-check"><a href="/linux-notes/nginx/nginx-proxy/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-nginx-nginx-proxy"><span class="">Nginx作为反向代理</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-nginx-nginx-http-li">
+  <input type="checkbox" id="m-linux-notes-nginx-nginx-http-check"/>
+  <label for="m-linux-notes-nginx-nginx-http-check"><a href="/linux-notes/nginx/nginx-http/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-nginx-nginx-http"><span class="">Nginx http服务器</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-keepalived-li">
+  <input type="checkbox" id="m-linux-notes-keepalived-check"/>
+  <label for="m-linux-notes-keepalived-check"><a href="/linux-notes/keepalived/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-keepalived"><span class="">Keepalived</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keepalived-keepalived-introduction-li">
+  <input type="checkbox" id="m-linux-notes-keepalived-keepalived-introduction-check"/>
+  <label for="m-linux-notes-keepalived-keepalived-introduction-check"><a href="/linux-notes/keepalived/keepalived-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keepalived-keepalived-introduction"><span class="">Keepalived简介</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keepalived-install-keepalived-li">
+  <input type="checkbox" id="m-linux-notes-keepalived-install-keepalived-check"/>
+  <label for="m-linux-notes-keepalived-install-keepalived-check"><a href="/linux-notes/keepalived/install-keepalived/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keepalived-install-keepalived"><span class="">Keepalived安装与配置</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keepalived-keepalived-operation-li">
+  <input type="checkbox" id="m-linux-notes-keepalived-keepalived-operation-check"/>
+  <label for="m-linux-notes-keepalived-keepalived-operation-check"><a href="/linux-notes/keepalived/keepalived-operation/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keepalived-keepalived-operation"><span class="">Keepalived相关操作</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keepalived-keepalived-conf-li">
+  <input type="checkbox" id="m-linux-notes-keepalived-keepalived-conf-check"/>
+  <label for="m-linux-notes-keepalived-keepalived-conf-check"><a href="/linux-notes/keepalived/keepalived-conf/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keepalived-keepalived-conf"><span class="">Keepalived配置详解</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-ide-li">
+  <input type="checkbox" id="m-linux-notes-ide-check"/>
+  <label for="m-linux-notes-ide-check"><a href="/linux-notes/ide/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-ide"><span class="">IDE配置</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-ide-vim-li">
+  <input type="checkbox" id="m-linux-notes-ide-vim-check"/>
+  <label for="m-linux-notes-ide-vim-check"><a href="/linux-notes/ide/vim/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-ide-vim"><span class="">VIM配置</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-ide-vim-basic-vimrc-li">
+  <input type="checkbox" id="m-linux-notes-ide-vim-basic-vimrc-check"/>
+  <label for="m-linux-notes-ide-vim-basic-vimrc-check"><a href="/linux-notes/ide/vim/basic-vimrc/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-ide-vim-basic-vimrc"><span class="">basic vimrc</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-ide-vim-vim-keymap-li">
+  <input type="checkbox" id="m-linux-notes-ide-vim-vim-keymap-check"/>
+  <label for="m-linux-notes-ide-vim-vim-keymap-check"><a href="/linux-notes/ide/vim/vim-keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-ide-vim-vim-keymap"><span class="">vim 命令</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-ide-vim-vimrc-cn-li">
+  <input type="checkbox" id="m-linux-notes-ide-vim-vimrc-cn-check"/>
+  <label for="m-linux-notes-ide-vim-vimrc-cn-check"><a href="/linux-notes/ide/vim/vimrc-cn/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-ide-vim-vimrc-cn"><span class="">vim 配置</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-ide-goland-li">
+  <input type="checkbox" id="m-linux-notes-ide-goland-check"/>
+  <label for="m-linux-notes-ide-goland-check"><a href="/linux-notes/ide/goland/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-ide-goland"><span class="">Goland配置</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-ide-vscode-li">
+  <input type="checkbox" id="m-linux-notes-ide-vscode-check"/>
+  <label for="m-linux-notes-ide-vscode-check"><a href="/linux-notes/ide/vscode/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-ide-vscode"><span class="">vscode远程开发</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-keymap-li">
+  <input type="checkbox" id="m-linux-notes-keymap-check"/>
+  <label for="m-linux-notes-keymap-check"><a href="/linux-notes/keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-keymap"><span class="">快捷键</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keymap-vscode-keymap-li">
+  <input type="checkbox" id="m-linux-notes-keymap-vscode-keymap-check"/>
+  <label for="m-linux-notes-keymap-vscode-keymap-check"><a href="/linux-notes/keymap/vscode-keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keymap-vscode-keymap"><span class="">vscode快捷键</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keymap-eclipse-keymap-li">
+  <input type="checkbox" id="m-linux-notes-keymap-eclipse-keymap-check"/>
+  <label for="m-linux-notes-keymap-eclipse-keymap-check"><a href="/linux-notes/keymap/eclipse-keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keymap-eclipse-keymap"><span class="">eclipse快捷键</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keymap-chrome-keymap-li">
+  <input type="checkbox" id="m-linux-notes-keymap-chrome-keymap-check"/>
+  <label for="m-linux-notes-keymap-chrome-keymap-check"><a href="/linux-notes/keymap/chrome-keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keymap-chrome-keymap"><span class="">chrome快捷键</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keymap-tmux-keymap-li">
+  <input type="checkbox" id="m-linux-notes-keymap-tmux-keymap-check"/>
+  <label for="m-linux-notes-keymap-tmux-keymap-check"><a href="/linux-notes/keymap/tmux-keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keymap-tmux-keymap"><span class="">tmux快捷键</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keymap-iterm2-rzsz-li">
+  <input type="checkbox" id="m-linux-notes-keymap-iterm2-rzsz-check"/>
+  <label for="m-linux-notes-keymap-iterm2-rzsz-check"><a href="/linux-notes/keymap/iterm2-rzsz/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keymap-iterm2-rzsz"><span class="">iterm2 rz与sz的使用</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-baremetal-li">
+  <input type="checkbox" id="m-linux-notes-baremetal-check"/>
+  <label for="m-linux-notes-baremetal-check"><a href="/linux-notes/baremetal/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-baremetal"><span class="">裸金属</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-baremetal-bmc-li">
+  <input type="checkbox" id="m-linux-notes-baremetal-bmc-check"/>
+  <label for="m-linux-notes-baremetal-bmc-check"><a href="/linux-notes/baremetal/bmc/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-baremetal-bmc"><span class="">BMC概念</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-summary-li">
+  <input type="checkbox" id="m-linux-notes-summary-check"/>
+  <label for="m-linux-notes-summary-check"><a href="/linux-notes/summary/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-summary"><span class=""></span></a></label>
+  
+</li>
+  </ul>
+</li>
+    </ul>
+  </nav>
+</div>
+
+          </aside>
+          <aside class="d-none d-xl-block col-xl-2 td-sidebar-toc d-print-none">
+            
+<div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
+<a href="https://github.com/huweihuang/blog.huweihuang.com/tree/master/content/zh-cn/linux-notes/disk/disk-raid.md" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa fa-file-alt fa-fw"></i> 查看页面源码</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/edit/master/content/zh-cn/linux-notes/disk/disk-raid.md" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 编辑此页</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/new/master/content/zh-cn/linux-notes/disk/disk-raid.md?filename=change-me.md&amp;value=---%0Atitle%3A&#43;%22Long&#43;Page&#43;Title%22%0AlinkTitle%3A&#43;%22Short&#43;Nav&#43;Title%22%0Aweight%3A&#43;100%0Adescription%3A&#43;%3E-%0A&#43;&#43;&#43;&#43;&#43;Page&#43;description&#43;for&#43;heading&#43;and&#43;indexes.%0A---%0A%0A%23%23&#43;Heading%0A%0AEdit&#43;this&#43;template&#43;to&#43;create&#43;your&#43;new&#43;page.%0A%0A%2A&#43;Give&#43;it&#43;a&#43;good&#43;name%2C&#43;ending&#43;in&#43;%60.md%60&#43;-&#43;e.g.&#43;%60getting-started.md%60%0A%2A&#43;Edit&#43;the&#43;%22front&#43;matter%22&#43;section&#43;at&#43;the&#43;top&#43;of&#43;the&#43;page&#43;%28weight&#43;controls&#43;how&#43;its&#43;ordered&#43;amongst&#43;other&#43;pages&#43;in&#43;the&#43;same&#43;directory%3B&#43;lowest&#43;number&#43;first%29.%0A%2A&#43;Add&#43;a&#43;good&#43;commit&#43;message&#43;at&#43;the&#43;bottom&#43;of&#43;the&#43;page&#43;%28%3C80&#43;characters%3B&#43;use&#43;the&#43;extended&#43;description&#43;field&#43;for&#43;more&#43;detail%29.%0A%2A&#43;Create&#43;a&#43;new&#43;branch&#43;so&#43;you&#43;can&#43;preview&#43;your&#43;new&#43;file&#43;and&#43;request&#43;a&#43;review&#43;via&#43;Pull&#43;Request.%0A" class="td-page-meta--child" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 添加子页面</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new?title=Raid%e4%bb%8b%e7%bb%8d" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new" class="td-page-meta--project-issue" target="_blank" rel="noopener"><i class="fas fa-tasks fa-fw"></i> 提交项目问题</a>
+  <a id="print" href="https://blog.huweihuang.com/linux-notes/disk/_print/"><i class="fa fa-print fa-fw"></i> 整节打印</a>
+
+</div>
+
+            
+
+
+<div class="td-toc"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-raid是什么">1. Raid是什么</a></li>
+    <li><a href="#2-raid的基本原理">2. Raid的基本原理</a></li>
+    <li><a href="#3-raid的级别">3. Raid的级别</a></li>
+    <li><a href="#4-raid级别介绍">4. Raid级别介绍</a>
+      <ul>
+        <li><a href="#4-1-raid0-使用较多">4.1. Raid0（使用较多）</a></li>
+        <li><a href="#4-2-raid1-镜像">4.2. Raid1（镜像）</a></li>
+        <li><a href="#4-3-raid5-使用最多">4.3. Raid5（使用最多）</a></li>
+        <li><a href="#4-4-raid6">4.4. Raid6</a></li>
+        <li><a href="#4-5-raid10">4.5. Raid10</a></li>
+      </ul>
+    </li>
+    <li><a href="#5-如何查看和制作raid">5. 如何查看和制作Raid</a></li>
+  </ul>
+</nav></div>
+
+
+
+            
+
+	
+		
+			
+				
+			
+			
+
+
+
+  
+  
+    <div class="taxonomy taxonomy-terms-cloud taxo-tags">
+      
+        <h5 class="taxonomy-title">Tags</h5>
+      
+      <ul class="taxonomy-terms">
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/apisix/" data-taxonomy-term="apisix"><span class="taxonomy-label">ApiSix</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/cni/" data-taxonomy-term="cni"><span class="taxonomy-label">CNI</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/containerd/" data-taxonomy-term="containerd"><span class="taxonomy-label">Containerd</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/csi/" data-taxonomy-term="csi"><span class="taxonomy-label">CSI</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/disk/" data-taxonomy-term="disk"><span class="taxonomy-label">disk</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/docker/" data-taxonomy-term="docker"><span class="taxonomy-label">Docker</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/etcd/" data-taxonomy-term="etcd"><span class="taxonomy-label">Etcd</span><span class="taxonomy-count">8</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/git/" data-taxonomy-term="git"><span class="taxonomy-label">Git</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/golang/" data-taxonomy-term="golang"><span class="taxonomy-label">Golang</span><span class="taxonomy-count">36</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/iptables/" data-taxonomy-term="iptables"><span class="taxonomy-label">iptables</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/karmada/" data-taxonomy-term="karmada"><span class="taxonomy-label">Karmada</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/keepalived/" data-taxonomy-term="keepalived"><span class="taxonomy-label">Keepalived</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubeadm/" data-taxonomy-term="kubeadm"><span class="taxonomy-label">kubeadm</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubeedge/" data-taxonomy-term="kubeedge"><span class="taxonomy-label">Kubeedge</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubernetes/" data-taxonomy-term="kubernetes"><span class="taxonomy-label">Kubernetes</span><span class="taxonomy-count">58</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubevirt/" data-taxonomy-term="kubevirt"><span class="taxonomy-label">KubeVirt</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/linux/" data-taxonomy-term="linux"><span class="taxonomy-label">Linux</span><span class="taxonomy-count">12</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/memcached/" data-taxonomy-term="memcached"><span class="taxonomy-label">Memcached</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/monitor/" data-taxonomy-term="monitor"><span class="taxonomy-label">Monitor</span><span class="taxonomy-count">6</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/mysql/" data-taxonomy-term="mysql"><span class="taxonomy-label">Mysql</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/network/" data-taxonomy-term="network"><span class="taxonomy-label">Network</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/nginx/" data-taxonomy-term="nginx"><span class="taxonomy-label">Nginx</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/openyurt/" data-taxonomy-term="openyurt"><span class="taxonomy-label">OpenYurt</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/operator/" data-taxonomy-term="operator"><span class="taxonomy-label">Operator</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/pod/" data-taxonomy-term="pod"><span class="taxonomy-label">Pod</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/redis/" data-taxonomy-term="redis"><span class="taxonomy-label">Redis</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/runtime/" data-taxonomy-term="runtime"><span class="taxonomy-label">Runtime</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/shell/" data-taxonomy-term="shell"><span class="taxonomy-label">Shell</span><span class="taxonomy-count">9</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/tcpip/" data-taxonomy-term="tcpip"><span class="taxonomy-label">TCPIP</span><span class="taxonomy-count">6</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/vim/" data-taxonomy-term="vim"><span class="taxonomy-label">VIM</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/virtualkubelet/" data-taxonomy-term="virtualkubelet"><span class="taxonomy-label">VirtualKubelet</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%A4%9A%E9%9B%86%E7%BE%A4/" data-taxonomy-term="%E5%A4%9A%E9%9B%86%E7%BE%A4"><span class="taxonomy-label">多集群</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%BF%AB%E6%8D%B7%E9%94%AE/" data-taxonomy-term="%E5%BF%AB%E6%8D%B7%E9%94%AE"><span class="taxonomy-label">快捷键</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-taxonomy-term="%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="taxonomy-label">源码分析</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E8%A3%B8%E9%87%91%E5%B1%9E/" data-taxonomy-term="%E8%A3%B8%E9%87%91%E5%B1%9E"><span class="taxonomy-label">裸金属</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/" data-taxonomy-term="%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5"><span class="taxonomy-label">问题排查</span><span class="taxonomy-count">9</span></a></li>
+        
+      </ul>
+    </div>
+  
+
+		
+			
+				
+			
+			
+
+
+
+  
+  
+
+		
+	
+
+          </aside>
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+  
+
+            <nav aria-label="breadcrumb" class="td-breadcrumbs">
+  <ol class="breadcrumb">
+  <li class="breadcrumb-item">
+    <a href="https://blog.huweihuang.com/linux-notes/">Linux学习笔记</a>
+  </li>
+  <li class="breadcrumb-item">
+    <a href="https://blog.huweihuang.com/linux-notes/disk/">磁盘</a>
+  </li>
+  <li class="breadcrumb-item active" aria-current="page">
+    <a href="https://blog.huweihuang.com/linux-notes/disk/disk-raid/">Raid介绍</a>
+  </li>
+  </ol>
+</nav>
+            
+<div class="td-content">
+	<h1>Raid介绍</h1>
+	
+	<header class="article-meta">
+		
+
+  
+    
+      
+
+
+<div class="taxonomy taxonomy-terms-article taxo-tags">
+  <h5 class="taxonomy-title">Tags:</h5>
+  <ul class="taxonomy-terms">
+    
+      <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/disk/" data-taxonomy-term="disk"><span class="taxonomy-label">disk</span></a></li>
+    
+  </ul>
+</div>
+
+    
+      
+
+
+    
+  
+
+		
+	</header>    
+	<h1 id="1-raid是什么">1. Raid是什么</h1>
+<p>RAID英文全称Redundant Array of Independent Disk，翻译过来就是“独立磁盘冗余系统”。RAID是一种可提高性能或提供容错功能的磁盘子系统。</p>
+<p>RAID的基本思想是将多个容量较小、速度较慢、可靠性较差的廉价磁盘，组合成一个磁盘组，从而以较低的成本获得与昂贵的大容量、高速磁盘相似的性能。</p>
+<p>优势：</p>
+<ul>
+<li>
+<p>高性能</p>
+</li>
+<li>
+<p>可靠性可用性</p>
+</li>
+<li>
+<p>大容量</p>
+</li>
+<li>
+<p>可管理性</p>
+</li>
+</ul>
+<h1 id="2-raid的基本原理">2. Raid的基本原理</h1>
+<p>架构上，通过RAID控制器就将多块磁盘组合，在操作系统层我们看到的是一个或多个逻辑磁盘。</p>
+<p>技术上，RAID主要采用<strong>磁盘镜像技术</strong>、<strong>条带化技术</strong>和<strong>奇偶校验技术</strong>实现高性能、可靠性、容错能力和扩展性。</p>
+<ul>
+<li>
+<p><strong>磁盘镜像技术</strong>：将数据复制到多个磁盘，一方面可以提高可靠性，另一方面可以提高读性能。因为需要写入多个磁盘会导致写性能降低。</p>
+</li>
+<li>
+<p><strong>数据条带技术</strong>：将数据分片保存到多个不同的磁盘，多个数据分片共同组成完整的数据。主要用于提示磁盘IO性能，当访问数据时可以同时对多个磁盘进行读取。</p>
+</li>
+<li>
+<p><strong>数据校验技术</strong>：利益冗余数据对数据进行校验和修复。冗余数据通常采用海明码、异或操作等算法来计算获得。可以提高磁盘阵列的可靠性和容错能力。不过，数据校验需要从多处读取数据并进行计算和对比，会影响系统性能。</p>
+</li>
+</ul>
+<h1 id="3-raid的级别">3. Raid的级别</h1>
+<p>RAID级别命名方式如，RAID 0、RAID 1/RAID 5、RAID 10等。RAID每一个级别代表一种RAID组合实现方法和技术，级别之间并无高低之分。不同等级的 RAID 采用其中一个或多个技术，得到的是不同的容量、I/O性能、可靠性、可用性。在决定选择哪种RAID级别之前，需要深入理解系统需求，根据自身情况进行合理选择，综合评估可靠性、性能和成本来进行折中的选择。</p>
+<table>
+<thead>
+<tr>
+<th>Raid等级</th>
+<th>Raid0</th>
+<th>Raid1</th>
+<th>Raid3</th>
+<th>Raid5</th>
+<th>Raid6</th>
+<th>Raid10</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>别名</td>
+<td>条带</td>
+<td>镜像</td>
+<td>专用奇偶校验条带</td>
+<td>分布奇偶校验条带</td>
+<td>双重奇偶校验条带</td>
+<td>镜像+条带</td>
+</tr>
+<tr>
+<td>容错性</td>
+<td>无</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+</tr>
+<tr>
+<td>冗余类型</td>
+<td>无</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+</tr>
+<tr>
+<td>热备份选择</td>
+<td>无</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+</tr>
+<tr>
+<td>读性能</td>
+<td>高</td>
+<td>低</td>
+<td>高</td>
+<td>高</td>
+<td>高</td>
+<td>高</td>
+</tr>
+<tr>
+<td>随机写性能</td>
+<td>高</td>
+<td>低</td>
+<td>低</td>
+<td>一般</td>
+<td>低</td>
+<td>一般</td>
+</tr>
+<tr>
+<td>连续写性能</td>
+<td>高</td>
+<td>低</td>
+<td>低</td>
+<td>低</td>
+<td>低</td>
+<td>一般</td>
+</tr>
+<tr>
+<td>需要磁盘数</td>
+<td>n&gt;=1</td>
+<td>2n(n&gt;=1)</td>
+<td>n&gt;=3</td>
+<td>n&gt;=3</td>
+<td>n&gt;=4</td>
+<td>2n&gt;=4</td>
+</tr>
+<tr>
+<td>可用容量</td>
+<td>全部</td>
+<td>50%</td>
+<td>（n-1）/n</td>
+<td>（n-1）/n</td>
+<td>（n-2）/n</td>
+<td>50%</td>
+</tr>
+</tbody>
+</table>
+<h1 id="4-raid级别介绍">4. Raid级别介绍</h1>
+<h2 id="4-1-raid0-使用较多">4.1. Raid0（使用较多）</h2>
+<p>Raid0是将多块物理磁盘组合成一个大的逻辑磁盘，在读写的时候会以独立的方式对N块磁盘进行读写，因此执行效率非常高。理论上读写的性能是单块磁盘的N倍。但是单块磁盘的损坏会导致数据丢失，无法恢复。因此适用于对可靠性不高，读写性能要求高的场景中。</p>
+<ul>
+<li>
+<p><strong>特点</strong>：RAID 0通过条带化技术，将数据分散到多个磁盘上，从而提高存储性能。它不提供数据冗余，因此没有容错能力。</p>
+</li>
+<li>
+<p><strong>适用场景</strong>：适用于对性能要求极高，但对数据安全性要求不高的场景，如视频编辑、高性能计算等。</p>
+</li>
+</ul>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1712049568/article/linux/disk/raid0.png" alt=""></p>
+<h2 id="4-2-raid1-镜像">4.2. Raid1（镜像）</h2>
+<p>Raid1 是磁盘阵列中单位成本最高的一种方式。因为它的原理是在往磁盘写数据的时候，将同一份数据无差别的写两份到磁盘，分别写到工作磁盘和镜像磁盘，那么它的实际空间使用率只有50%了，两块磁盘当做一块用，这是一种比较昂贵的方案。可靠性高，但是性能低。</p>
+<ul>
+<li>
+<p><strong>特点</strong>：RAID 1通过镜像技术，将数据同时写入两个或多个相同的磁盘.中，提供数据冗余和容错能力。如果一个磁盘发生故障，另一个磁盘上的数据仍然可用。</p>
+</li>
+<li>
+<p><strong>适用场景</strong>：适用于对数据安全性要求较高的场景，如金融机构、医疗机构等。</p>
+</li>
+</ul>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1712049569/article/linux/disk/raid1.png" alt=""></p>
+<h2 id="4-3-raid5-使用最多">4.3. Raid5（使用最多）</h2>
+<p>Raid5是兼具Raid0和Raid1的优点，在性能和可靠性上兼具的一种方式，也是使用最多的一种方案。</p>
+<p>Raid5方案是总共有N块磁盘，会将要写入的数据分成N份，并发的写入到N块磁盘中，同时还将数据的校验码信息也写入到这N块磁盘中（数据与对应的校验码信息必须得分开存储在不同的磁盘上）。一旦某一块磁盘损坏了，就可以用剩下的数据和对应的奇偶校验码信息去恢复损坏的数据。</p>
+<p>RAID5的方式，最少需要三块磁盘来组建磁盘阵列，允许最多同时坏一块磁盘。如果有两块磁盘同时损坏了，那数据就无法恢复了。</p>
+<ul>
+<li>
+<p><strong>特点</strong>：RAID 5结合了条带化和数据冗余技术。它将数据分割成块并分布在多个磁盘上，同时使用一个或多个磁盘存储冗余信息(校验块)。如果一个磁盘发生故障，系统可以使用冗余信息来重建故障磁盘上的数据。</p>
+</li>
+<li>
+<p><strong>适用场景</strong>：适用于对数据安全性和性能都有一定要求的场景，如企业数据库、文件服务器等。</p>
+</li>
+</ul>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1712049569/article/linux/disk/raid5.png" alt=""></p>
+<h2 id="4-4-raid6">4.4. Raid6</h2>
+<p>RAID6在RAID5的基础上再次改进，引入了双重校验的概念。RAID6除了每块磁盘上都有同级数据XOR校验区以外，还有针对每个数据块的XOR校验区，这样的话，相当于每个数据块有两个校验保护措施，因此数据的冗余性更高了。但是RAID6的这种设计也带来了很高的复杂度，虽然数据冗余性好，读取的效率也比较高，但是写数据的性能就很差。因此RAID6在实际环境中应用的比较少。</p>
+<ul>
+<li>
+<p><strong>特点</strong>：RAID 6与RAID 5类似，但使用了两个冗余信息来提供更高的容错能力。这意味着即使两个磁盘同时发生故障，系统仍然可以使用冗余信息来重建数据。</p>
+</li>
+<li>
+<p><strong>适用场景</strong>：适用于对数据安全性要求非常高的场景，如大型数据库、关键业务系统等。</p>
+</li>
+</ul>
+<h2 id="4-5-raid10">4.5. Raid10</h2>
+<p>RAID10其实就是RAID1与RAID0的一个合体。RAID10兼备了RAID1和RAID0的有优点。</p>
+<p>首先基于RAID1模式将磁盘分为2份，当要写入数据的时候，将所有的数据在两份磁盘上同时写入，相当于写了双份数据，起到了数据保障的作用。且在每一份磁盘上又会基于RAID0技术讲数据分为N份并发的读写，这样也保障了数据的效率。RAID10模式是有一半的磁盘空间用于存储冗余数据的，浪费的很严重，因此用的也不是很多。</p>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1712049569/article/linux/disk/raid10.png" alt=""></p>
+<h1 id="5-如何查看和制作raid">5. 如何查看和制作Raid</h1>
+<blockquote>
+<p>todo</p>
+</blockquote>
+<p>参考：</p>
+<ul>
+<li><a href="https://www.chinastor.com/baike/raid/">https://www.chinastor.com/baike/raid/</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/51170719">https://zhuanlan.zhihu.com/p/51170719</a></li>
+<li><a href="https://mp.weixin.qq.com/s/xWD5p7pmzdl_YpMXY5YO4g">https://mp.weixin.qq.com/s/xWD5p7pmzdl_YpMXY5YO4g</a></li>
+</ul>
+
+	
+		<style>
+  .feedback--answer {
+    display: inline-block;
+  }
+  .feedback--answer-no {
+    margin-left: 1em;
+  }
+  .feedback--response {
+    display: none;
+    margin-top: 1em;
+  }
+  .feedback--response__visible {
+    display: block;
+  }
+</style>
+<div class="d-print-none">
+<h2 class="feedback--title">Feedback</h2>
+<p class="feedback--question">Was this page helpful?</p>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-yes">Yes</button>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-no">No</button>
+<p class="feedback--response feedback--response-yes">
+  Glad to hear it! Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+<p class="feedback--response feedback--response-no">
+  Sorry to hear that. Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+</div>
+<script>
+  const yesButton = document.querySelector('.feedback--answer-yes');
+  const noButton = document.querySelector('.feedback--answer-no');
+  const yesResponse = document.querySelector('.feedback--response-yes');
+  const noResponse = document.querySelector('.feedback--response-no');
+  const disableButtons = () => {
+    yesButton.disabled = true;
+    noButton.disabled = true;
+  };
+  const sendFeedback = (value) => {
+    if (typeof ga !== 'function') return;
+    const args = {
+      command: 'send',
+      hitType: 'event',
+      category: 'Helpful',
+      action: 'click',
+      label: window.location.pathname,
+      value: value
+    };
+    ga(args.command, args.hitType, args.category, args.action, args.label, args.value);
+  };
+  yesButton.addEventListener('click', () => {
+    yesResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(1);
+  });
+  noButton.addEventListener('click', () => {
+    noResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(0);
+  });
+</script>
+
+		<br />
+	
+	
+	
+</div>
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="User mailing list" aria-label="User mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="User mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Twitter" aria-label="Twitter">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/twitter" aria-label="Twitter">
+      <i class="fab fa-twitter"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Stack Overflow" aria-label="Stack Overflow">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/stack" aria-label="Stack Overflow">
+      <i class="fab fa-stack-overflow"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/blog.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Slack" aria-label="Slack">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/slack" aria-label="Slack">
+      <i class="fab fa-slack"></i>
+    </a>
+  </li>
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="Developer mailing list" aria-label="Developer mailing list">
+    <a class="text-white" target="_blank" rel="noopener" href="https://example.org/mail" aria-label="Developer mailing list">
+      <i class="fa fa-envelope"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2024 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		<p class="mt-2"><a href="/about/">About</a></p>
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+  </body>
+</html>
