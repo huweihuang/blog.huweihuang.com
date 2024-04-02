@@ -20,16 +20,16 @@
 <link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
 <link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
 
-<title>节点调度 | 胡伟煌</title>
+<title>节点迁移 | 胡伟煌</title>
 <meta name="description" content="">
-<meta property="og:title" content="节点调度" />
+<meta property="og:title" content="节点迁移" />
 <meta property="og:description" content="Kubernetes学习笔记" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://blog.huweihuang.com/kubernetes-notes/operation/node/" /><meta property="og:site_name" content="胡伟煌" />
 
-<meta itemprop="name" content="节点调度">
+<meta itemprop="name" content="节点迁移">
 <meta itemprop="description" content="Kubernetes学习笔记"><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="节点调度"/>
+<meta name="twitter:title" content="节点迁移"/>
 <meta name="twitter:description" content="Kubernetes学习笔记"/>
 
 
@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.9597d56a4a74c3d61b8dc6e6dedb85ef.json"
+  data-offline-search-index-json-src="/offline-search-index.a3d53539abb4a3246127eeab2eb46ff3.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -171,7 +171,7 @@ if (!doNotTrack) {
 
 
 
-<h1 class="title">节点调度</h1>
+<h1 class="title">节点迁移</h1>
 
 
 
@@ -383,7 +383,11 @@ if (!doNotTrack) {
 </span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 设置节点为可调度</span>
 </span></span><span style="display:flex;"><span>kubectl uncordon &lt;NodeName&gt;
 </span></span></code></pre></div><h2 id="1-2-执行kubectl-drain命令">1.2. 执行kubectl drain命令</h2>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl drain &lt;NodeName&gt; --force --ignore-daemonsets
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 驱逐节点的所有pod</span>
+</span></span><span style="display:flex;"><span>kubectl drain &lt;NodeName&gt; --force --ignore-daemonsets
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 驱逐指定节点的pod</span>
+</span></span><span style="display:flex;"><span>kubectl drain  &lt;NodeName&gt; --ignore-daemonsets	--pod-selector<span style="color:#ce5c00;font-weight:bold">=</span>pod-template-hash<span style="color:#ce5c00;font-weight:bold">=</span>88964949c
 </span></span></code></pre></div><p>示例：</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl drain bjzw-prek8sredis-99-40 --force --ignore-daemonsets
 </span></span><span style="display:flex;"><span>node <span style="color:#4e9a06">&#34;bjzw-prek8sredis-99-40&#34;</span> already cordoned
@@ -424,40 +428,49 @@ if (!doNotTrack) {
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl drain --help
 </span></span><span style="display:flex;"><span>Drain node in preparation <span style="color:#204a87;font-weight:bold">for</span> maintenance.
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>The given node will be marked unschedulable to prevent new pods from arriving. <span style="color:#4e9a06">&#39;drain&#39;</span> evicts the pods <span style="color:#204a87;font-weight:bold">if</span> the APIServer
-</span></span><span style="display:flex;"><span>supports eviction <span style="color:#ce5c00;font-weight:bold">(</span>http://kubernetes.io/docs/admin/disruptions/<span style="color:#ce5c00;font-weight:bold">)</span>. Otherwise, it will use normal DELETE to delete the
-</span></span><span style="display:flex;"><span>pods. The <span style="color:#4e9a06">&#39;drain&#39;</span> evicts or deletes all pods except mirror pods <span style="color:#ce5c00;font-weight:bold">(</span>which cannot be deleted through the API server<span style="color:#ce5c00;font-weight:bold">)</span>.  If
-</span></span><span style="display:flex;"><span>there are DaemonSet-managed pods, drain will not proceed without --ignore-daemonsets, and regardless it will not delete
-</span></span><span style="display:flex;"><span>any DaemonSet-managed pods, because those pods would be immediately replaced by the DaemonSet controller, which ignores
-</span></span><span style="display:flex;"><span>unschedulable markings.  If there are any pods that are neither mirror pods nor managed by ReplicationController,
-</span></span><span style="display:flex;"><span>ReplicaSet, DaemonSet, StatefulSet or Job, <span style="color:#204a87;font-weight:bold">then</span> drain will not delete any pods unless you use --force.  --force will
-</span></span><span style="display:flex;"><span>also allow deletion to proceed <span style="color:#204a87;font-weight:bold">if</span> the managing resource of one or more pods is missing.
+</span></span><span style="display:flex;"><span> The given node will be marked unschedulable to prevent new pods from arriving. <span style="color:#4e9a06">&#39;drain&#39;</span> evicts the pods <span style="color:#204a87;font-weight:bold">if</span> the API
+</span></span><span style="display:flex;"><span>server supports https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ . Otherwise, it will use normal DELETE
+</span></span><span style="display:flex;"><span>to delete the pods. The <span style="color:#4e9a06">&#39;drain&#39;</span> evicts or deletes all pods except mirror pods <span style="color:#ce5c00;font-weight:bold">(</span>which cannot be deleted through the API
+</span></span><span style="display:flex;"><span>server<span style="color:#ce5c00;font-weight:bold">)</span>.  If there are daemon set-managed pods, drain will not proceed without --ignore-daemonsets, and regardless it
+</span></span><span style="display:flex;"><span>will not delete any daemon set-managed pods, because those pods would be immediately replaced by the daemon <span style="color:#204a87">set</span>
+</span></span><span style="display:flex;"><span>controller, which ignores unschedulable markings.  If there are any pods that are neither mirror pods nor managed by a
+</span></span><span style="display:flex;"><span>replication controller, replica set, daemon set, stateful set, or job, <span style="color:#204a87;font-weight:bold">then</span> drain will not delete any pods unless you
+</span></span><span style="display:flex;"><span>use --force.  --force will also allow deletion to proceed <span style="color:#204a87;font-weight:bold">if</span> the managing resource of one or more pods is missing.
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#4e9a06">&#39;drain&#39;</span> waits <span style="color:#204a87;font-weight:bold">for</span> graceful termination. You should not operate on the machine <span style="color:#204a87;font-weight:bold">until</span> the <span style="color:#204a87">command</span> completes.
+</span></span><span style="display:flex;"><span> <span style="color:#4e9a06">&#39;drain&#39;</span> waits <span style="color:#204a87;font-weight:bold">for</span> graceful termination. You should not operate on the machine <span style="color:#204a87;font-weight:bold">until</span> the <span style="color:#204a87">command</span> completes.
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>When you are ready to put the node back into service, use kubectl uncordon, which will make the node schedulable again.
+</span></span><span style="display:flex;"><span> When you are ready to put the node back into service, use kubectl uncordon, which will make the node schedulable again.
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>! http://kubernetes.io/images/docs/kubectl_drain.svg
+</span></span><span style="display:flex;"><span> https://kubernetes.io/images/docs/kubectl_drain.svg
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span>Examples:
-</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># Drain node &#34;foo&#34;, even if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or</span>
-</span></span><span style="display:flex;"><span>StatefulSet on it.
-</span></span><span style="display:flex;"><span>  $ kubectl drain foo --force
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># Drain node &#34;foo&#34;, even if there are pods not managed by a replication controller, replica set, job, daemon set or</span>
+</span></span><span style="display:flex;"><span>stateful <span style="color:#204a87">set</span> on it
+</span></span><span style="display:flex;"><span>  kubectl drain foo --force
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># As above, but abort if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or</span>
-</span></span><span style="display:flex;"><span>StatefulSet, and use a grace period of <span style="color:#0000cf;font-weight:bold">15</span> minutes.
-</span></span><span style="display:flex;"><span>  $ kubectl drain foo --grace-period<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">900</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># As above, but abort if there are pods not managed by a replication controller, replica set, job, daemon set or</span>
+</span></span><span style="display:flex;"><span>stateful set, and use a grace period of <span style="color:#0000cf;font-weight:bold">15</span> minutes
+</span></span><span style="display:flex;"><span>  kubectl drain foo --grace-period<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">900</span>
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span>Options:
-</span></span><span style="display:flex;"><span>      --delete-local-data<span style="color:#ce5c00;font-weight:bold">=</span>false: Continue even <span style="color:#204a87;font-weight:bold">if</span> there are pods using emptyDir <span style="color:#ce5c00;font-weight:bold">(</span><span style="color:#204a87">local</span> data that will be deleted when
+</span></span><span style="display:flex;"><span>      --chunk-size<span style="color:#ce5c00;font-weight:bold">=</span>500: Return large lists in chunks rather than all at once. Pass <span style="color:#0000cf;font-weight:bold">0</span> to disable. This flag is beta and
+</span></span><span style="display:flex;"><span>may change in the future.
+</span></span><span style="display:flex;"><span>      --delete-emptydir-data<span style="color:#ce5c00;font-weight:bold">=</span>false: Continue even <span style="color:#204a87;font-weight:bold">if</span> there are pods using emptyDir <span style="color:#ce5c00;font-weight:bold">(</span><span style="color:#204a87">local</span> data that will be deleted when
 </span></span><span style="display:flex;"><span>the node is drained<span style="color:#ce5c00;font-weight:bold">)</span>.
-</span></span><span style="display:flex;"><span>      --dry-run<span style="color:#ce5c00;font-weight:bold">=</span>false: If true, only print the object that would be sent, without sending it.
+</span></span><span style="display:flex;"><span>      --disable-eviction<span style="color:#ce5c00;font-weight:bold">=</span>false: Force drain to use delete, even <span style="color:#204a87;font-weight:bold">if</span> eviction is supported. This will bypass checking
+</span></span><span style="display:flex;"><span>PodDisruptionBudgets, use with caution.
+</span></span><span style="display:flex;"><span>      --dry-run<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;none&#39;</span>: Must be <span style="color:#4e9a06">&#34;none&#34;</span>, <span style="color:#4e9a06">&#34;server&#34;</span>, or <span style="color:#4e9a06">&#34;client&#34;</span>. If client strategy, only print the object that would be
+</span></span><span style="display:flex;"><span>sent, without sending it. If server strategy, submit server-side request without persisting the resource.
 </span></span><span style="display:flex;"><span>      --force<span style="color:#ce5c00;font-weight:bold">=</span>false: Continue even <span style="color:#204a87;font-weight:bold">if</span> there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet
 </span></span><span style="display:flex;"><span>or StatefulSet.
 </span></span><span style="display:flex;"><span>      --grace-period<span style="color:#ce5c00;font-weight:bold">=</span>-1: Period of <span style="color:#204a87">time</span> in seconds given to each pod to terminate gracefully. If negative, the default
 </span></span><span style="display:flex;"><span>value specified in the pod will be used.
 </span></span><span style="display:flex;"><span>      --ignore-daemonsets<span style="color:#ce5c00;font-weight:bold">=</span>false: Ignore DaemonSet-managed pods.
+</span></span><span style="display:flex;"><span>      --ignore-errors<span style="color:#ce5c00;font-weight:bold">=</span>false: Ignore errors occurred between drain nodes in group.
+</span></span><span style="display:flex;"><span>      --pod-selector<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;&#39;</span>: Label selector to filter pods on the node
 </span></span><span style="display:flex;"><span>  -l, --selector<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;&#39;</span>: Selector <span style="color:#ce5c00;font-weight:bold">(</span>label query<span style="color:#ce5c00;font-weight:bold">)</span> to filter on
+</span></span><span style="display:flex;"><span>      --skip-wait-for-delete-timeout<span style="color:#ce5c00;font-weight:bold">=</span>0: If pod DeletionTimestamp older than N seconds, skip waiting <span style="color:#204a87;font-weight:bold">for</span> the pod.
+</span></span><span style="display:flex;"><span>Seconds must be greater than <span style="color:#0000cf;font-weight:bold">0</span> to skip.
 </span></span><span style="display:flex;"><span>      --timeout<span style="color:#ce5c00;font-weight:bold">=</span>0s: The length of <span style="color:#204a87">time</span> to <span style="color:#204a87">wait</span> before giving up, zero means infinite
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span>Usage:

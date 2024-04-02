@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.9597d56a4a74c3d61b8dc6e6dedb85ef.json"
+  data-offline-search-index-json-src="/offline-search-index.a3d53539abb4a3246127eeab2eb46ff3.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -1055,7 +1055,7 @@ if (!doNotTrack) {
     
     
 	
-<li>8.3: <a href="#pg-6e74d886e5b15f816335ffec854ee6d3">节点调度</a></li>
+<li>8.3: <a href="#pg-6e74d886e5b15f816335ffec854ee6d3">节点迁移</a></li>
 
 
     
@@ -2914,6 +2914,16 @@ if (!doNotTrack) {
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>  Warning  FailedCreatePodSandBox  4m6s                kubelet            Failed to create pod sandbox: rpc error: <span style="color:#000">code</span> <span style="color:#ce5c00;font-weight:bold">=</span> Unknown <span style="color:#000">desc</span> <span style="color:#ce5c00;font-weight:bold">=</span> failed to setup network <span style="color:#204a87;font-weight:bold">for</span> sandbox <span style="color:#4e9a06">&#34;300d9b570cc1e23b6335c407b8e7d0ef2c74dc2fe5d7a110678c2dc919c62edf&#34;</span>: plugin <span style="color:#000">type</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;flannel&#34;</span> failed <span style="color:#ce5c00;font-weight:bold">(</span>add<span style="color:#ce5c00;font-weight:bold">)</span>: failed to delegate add: failed to <span style="color:#204a87">set</span> bridge addr: <span style="color:#4e9a06">&#34;cni0&#34;</span> already has an IP address different from 10.244.3.1/24
 </span></span></code></pre></div><p><strong>原因：</strong></p>
 <p>宿主机节点有<code>cni0</code>网卡，且网卡的IP段与flannel的CIDR网段不同，因此需要删除该网卡，让其重建。</p>
+<p>查看cni0网卡</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ifconfig cni0 |grep -w inet</span>
+</span></span><span style="display:flex;"><span>        inet 10.244.5.1  netmask 255.255.255.0  broadcast 10.244.116.255
+</span></span></code></pre></div><p>查看flannel配置</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># cat /run/flannel/subnet.env</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">FLANNEL_NETWORK</span><span style="color:#ce5c00;font-weight:bold">=</span>10.244.0.0/16
+</span></span><span style="display:flex;"><span><span style="color:#000">FLANNEL_SUBNET</span><span style="color:#ce5c00;font-weight:bold">=</span>10.244.116.1/24
+</span></span><span style="display:flex;"><span><span style="color:#000">FLANNEL_MTU</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1450</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">FLANNEL_IPMASQ</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87">true</span>
+</span></span></code></pre></div><p>发现cni0 IP与FLANNEL_SUBNET网段不一致，因此删除cni0重建。</p>
 <p><strong>解决：</strong></p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ifconfig cni0 down    
 </span></span><span style="display:flex;"><span>ip link delete cni0
@@ -4877,7 +4887,8 @@ if (!doNotTrack) {
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>crictl ps <span style="color:#000;font-weight:bold">|</span>egrep <span style="color:#4e9a06">&#34;kube-apiserver|kube-scheduler|kube-controller&#34;</span><span style="color:#000;font-weight:bold">|</span>awk <span style="color:#4e9a06">&#39;{print $1}&#39;</span><span style="color:#000;font-weight:bold">|</span>xargs crictl stop 
 </span></span></code></pre></div><h2 id="2-4-更新默认的kubeconfig文件">2.4. 更新默认的kubeconfig文件</h2>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>cp -fr /etc/kubernetes/admin.conf <span style="color:#000">$HOME</span>/.kube/config
-</span></span></code></pre></div><p>由于kubelet默认支持证书轮转，当证书过期时，可以自动生成新的密钥，并从 Kubernetes API 申请新的证书。可以查看kubelet的配置检查是否已经开启。</p>
+</span></span></code></pre></div><h2 id="2-5-配置kubelet证书轮转">2.5. 配置kubelet证书轮转</h2>
+<p>由于kubelet默认支持证书轮转，当证书过期时，可以自动生成新的密钥，并从 Kubernetes API 申请新的证书。可以查看kubelet的配置检查是否已经开启。</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># cat /var/lib/kubelet/config.yaml |grep rotate</span>
 </span></span><span style="display:flex;"><span>rotateCertificates: <span style="color:#204a87">true</span>
 </span></span></code></pre></div><h1 id="3-修改kubeadm源码证书时间">3. 修改kubeadm源码证书时间</h1>
@@ -14103,7 +14114,7 @@ yum localinstall -y flannel-0.2.0-10.el7.x86_64.rpm
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-6e74d886e5b15f816335ffec854ee6d3">8.3 - 节点调度</h1>
+	<h1 id="pg-6e74d886e5b15f816335ffec854ee6d3">8.3 - 节点迁移</h1>
     
 	
 </div>
@@ -14284,7 +14295,11 @@ yum localinstall -y flannel-0.2.0-10.el7.x86_64.rpm
 </span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 设置节点为可调度</span>
 </span></span><span style="display:flex;"><span>kubectl uncordon &lt;NodeName&gt;
 </span></span></code></pre></div><h2 id="1-2-执行kubectl-drain命令">1.2. 执行kubectl drain命令</h2>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl drain &lt;NodeName&gt; --force --ignore-daemonsets
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 驱逐节点的所有pod</span>
+</span></span><span style="display:flex;"><span>kubectl drain &lt;NodeName&gt; --force --ignore-daemonsets
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 驱逐指定节点的pod</span>
+</span></span><span style="display:flex;"><span>kubectl drain  &lt;NodeName&gt; --ignore-daemonsets	--pod-selector<span style="color:#ce5c00;font-weight:bold">=</span>pod-template-hash<span style="color:#ce5c00;font-weight:bold">=</span>88964949c
 </span></span></code></pre></div><p>示例：</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl drain bjzw-prek8sredis-99-40 --force --ignore-daemonsets
 </span></span><span style="display:flex;"><span>node <span style="color:#4e9a06">&#34;bjzw-prek8sredis-99-40&#34;</span> already cordoned
@@ -14325,40 +14340,49 @@ yum localinstall -y flannel-0.2.0-10.el7.x86_64.rpm
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl drain --help
 </span></span><span style="display:flex;"><span>Drain node in preparation <span style="color:#204a87;font-weight:bold">for</span> maintenance.
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>The given node will be marked unschedulable to prevent new pods from arriving. <span style="color:#4e9a06">&#39;drain&#39;</span> evicts the pods <span style="color:#204a87;font-weight:bold">if</span> the APIServer
-</span></span><span style="display:flex;"><span>supports eviction <span style="color:#ce5c00;font-weight:bold">(</span>http://kubernetes.io/docs/admin/disruptions/<span style="color:#ce5c00;font-weight:bold">)</span>. Otherwise, it will use normal DELETE to delete the
-</span></span><span style="display:flex;"><span>pods. The <span style="color:#4e9a06">&#39;drain&#39;</span> evicts or deletes all pods except mirror pods <span style="color:#ce5c00;font-weight:bold">(</span>which cannot be deleted through the API server<span style="color:#ce5c00;font-weight:bold">)</span>.  If
-</span></span><span style="display:flex;"><span>there are DaemonSet-managed pods, drain will not proceed without --ignore-daemonsets, and regardless it will not delete
-</span></span><span style="display:flex;"><span>any DaemonSet-managed pods, because those pods would be immediately replaced by the DaemonSet controller, which ignores
-</span></span><span style="display:flex;"><span>unschedulable markings.  If there are any pods that are neither mirror pods nor managed by ReplicationController,
-</span></span><span style="display:flex;"><span>ReplicaSet, DaemonSet, StatefulSet or Job, <span style="color:#204a87;font-weight:bold">then</span> drain will not delete any pods unless you use --force.  --force will
-</span></span><span style="display:flex;"><span>also allow deletion to proceed <span style="color:#204a87;font-weight:bold">if</span> the managing resource of one or more pods is missing.
+</span></span><span style="display:flex;"><span> The given node will be marked unschedulable to prevent new pods from arriving. <span style="color:#4e9a06">&#39;drain&#39;</span> evicts the pods <span style="color:#204a87;font-weight:bold">if</span> the API
+</span></span><span style="display:flex;"><span>server supports https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ . Otherwise, it will use normal DELETE
+</span></span><span style="display:flex;"><span>to delete the pods. The <span style="color:#4e9a06">&#39;drain&#39;</span> evicts or deletes all pods except mirror pods <span style="color:#ce5c00;font-weight:bold">(</span>which cannot be deleted through the API
+</span></span><span style="display:flex;"><span>server<span style="color:#ce5c00;font-weight:bold">)</span>.  If there are daemon set-managed pods, drain will not proceed without --ignore-daemonsets, and regardless it
+</span></span><span style="display:flex;"><span>will not delete any daemon set-managed pods, because those pods would be immediately replaced by the daemon <span style="color:#204a87">set</span>
+</span></span><span style="display:flex;"><span>controller, which ignores unschedulable markings.  If there are any pods that are neither mirror pods nor managed by a
+</span></span><span style="display:flex;"><span>replication controller, replica set, daemon set, stateful set, or job, <span style="color:#204a87;font-weight:bold">then</span> drain will not delete any pods unless you
+</span></span><span style="display:flex;"><span>use --force.  --force will also allow deletion to proceed <span style="color:#204a87;font-weight:bold">if</span> the managing resource of one or more pods is missing.
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#4e9a06">&#39;drain&#39;</span> waits <span style="color:#204a87;font-weight:bold">for</span> graceful termination. You should not operate on the machine <span style="color:#204a87;font-weight:bold">until</span> the <span style="color:#204a87">command</span> completes.
+</span></span><span style="display:flex;"><span> <span style="color:#4e9a06">&#39;drain&#39;</span> waits <span style="color:#204a87;font-weight:bold">for</span> graceful termination. You should not operate on the machine <span style="color:#204a87;font-weight:bold">until</span> the <span style="color:#204a87">command</span> completes.
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>When you are ready to put the node back into service, use kubectl uncordon, which will make the node schedulable again.
+</span></span><span style="display:flex;"><span> When you are ready to put the node back into service, use kubectl uncordon, which will make the node schedulable again.
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>! http://kubernetes.io/images/docs/kubectl_drain.svg
+</span></span><span style="display:flex;"><span> https://kubernetes.io/images/docs/kubectl_drain.svg
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span>Examples:
-</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># Drain node &#34;foo&#34;, even if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or</span>
-</span></span><span style="display:flex;"><span>StatefulSet on it.
-</span></span><span style="display:flex;"><span>  $ kubectl drain foo --force
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># Drain node &#34;foo&#34;, even if there are pods not managed by a replication controller, replica set, job, daemon set or</span>
+</span></span><span style="display:flex;"><span>stateful <span style="color:#204a87">set</span> on it
+</span></span><span style="display:flex;"><span>  kubectl drain foo --force
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># As above, but abort if there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet or</span>
-</span></span><span style="display:flex;"><span>StatefulSet, and use a grace period of <span style="color:#0000cf;font-weight:bold">15</span> minutes.
-</span></span><span style="display:flex;"><span>  $ kubectl drain foo --grace-period<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">900</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># As above, but abort if there are pods not managed by a replication controller, replica set, job, daemon set or</span>
+</span></span><span style="display:flex;"><span>stateful set, and use a grace period of <span style="color:#0000cf;font-weight:bold">15</span> minutes
+</span></span><span style="display:flex;"><span>  kubectl drain foo --grace-period<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">900</span>
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span>Options:
-</span></span><span style="display:flex;"><span>      --delete-local-data<span style="color:#ce5c00;font-weight:bold">=</span>false: Continue even <span style="color:#204a87;font-weight:bold">if</span> there are pods using emptyDir <span style="color:#ce5c00;font-weight:bold">(</span><span style="color:#204a87">local</span> data that will be deleted when
+</span></span><span style="display:flex;"><span>      --chunk-size<span style="color:#ce5c00;font-weight:bold">=</span>500: Return large lists in chunks rather than all at once. Pass <span style="color:#0000cf;font-weight:bold">0</span> to disable. This flag is beta and
+</span></span><span style="display:flex;"><span>may change in the future.
+</span></span><span style="display:flex;"><span>      --delete-emptydir-data<span style="color:#ce5c00;font-weight:bold">=</span>false: Continue even <span style="color:#204a87;font-weight:bold">if</span> there are pods using emptyDir <span style="color:#ce5c00;font-weight:bold">(</span><span style="color:#204a87">local</span> data that will be deleted when
 </span></span><span style="display:flex;"><span>the node is drained<span style="color:#ce5c00;font-weight:bold">)</span>.
-</span></span><span style="display:flex;"><span>      --dry-run<span style="color:#ce5c00;font-weight:bold">=</span>false: If true, only print the object that would be sent, without sending it.
+</span></span><span style="display:flex;"><span>      --disable-eviction<span style="color:#ce5c00;font-weight:bold">=</span>false: Force drain to use delete, even <span style="color:#204a87;font-weight:bold">if</span> eviction is supported. This will bypass checking
+</span></span><span style="display:flex;"><span>PodDisruptionBudgets, use with caution.
+</span></span><span style="display:flex;"><span>      --dry-run<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;none&#39;</span>: Must be <span style="color:#4e9a06">&#34;none&#34;</span>, <span style="color:#4e9a06">&#34;server&#34;</span>, or <span style="color:#4e9a06">&#34;client&#34;</span>. If client strategy, only print the object that would be
+</span></span><span style="display:flex;"><span>sent, without sending it. If server strategy, submit server-side request without persisting the resource.
 </span></span><span style="display:flex;"><span>      --force<span style="color:#ce5c00;font-weight:bold">=</span>false: Continue even <span style="color:#204a87;font-weight:bold">if</span> there are pods not managed by a ReplicationController, ReplicaSet, Job, DaemonSet
 </span></span><span style="display:flex;"><span>or StatefulSet.
 </span></span><span style="display:flex;"><span>      --grace-period<span style="color:#ce5c00;font-weight:bold">=</span>-1: Period of <span style="color:#204a87">time</span> in seconds given to each pod to terminate gracefully. If negative, the default
 </span></span><span style="display:flex;"><span>value specified in the pod will be used.
 </span></span><span style="display:flex;"><span>      --ignore-daemonsets<span style="color:#ce5c00;font-weight:bold">=</span>false: Ignore DaemonSet-managed pods.
+</span></span><span style="display:flex;"><span>      --ignore-errors<span style="color:#ce5c00;font-weight:bold">=</span>false: Ignore errors occurred between drain nodes in group.
+</span></span><span style="display:flex;"><span>      --pod-selector<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;&#39;</span>: Label selector to filter pods on the node
 </span></span><span style="display:flex;"><span>  -l, --selector<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;&#39;</span>: Selector <span style="color:#ce5c00;font-weight:bold">(</span>label query<span style="color:#ce5c00;font-weight:bold">)</span> to filter on
+</span></span><span style="display:flex;"><span>      --skip-wait-for-delete-timeout<span style="color:#ce5c00;font-weight:bold">=</span>0: If pod DeletionTimestamp older than N seconds, skip waiting <span style="color:#204a87;font-weight:bold">for</span> the pod.
+</span></span><span style="display:flex;"><span>Seconds must be greater than <span style="color:#0000cf;font-weight:bold">0</span> to skip.
 </span></span><span style="display:flex;"><span>      --timeout<span style="color:#ce5c00;font-weight:bold">=</span>0s: The length of <span style="color:#204a87">time</span> to <span style="color:#204a87">wait</span> before giving up, zero means infinite
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span>Usage:
@@ -26171,10 +26195,14 @@ withfields： 使用InfluxDB fields(默认：false)。</p>
 <li><a href="setup/installer/install-k8s-by-kubespray.md">使用kubespray安装kubernetes</a></li>
 <li><a href="setup/installer/install-k8s-by-minikube.md">使用minikube安装kubernetes</a></li>
 <li><a href="setup/installer/install-k8s-by-kind.md">使用kind安装kubernetes</a></li>
+<li><a href="setup/installer/install-dashboard.md">安装k8s dashboard</a></li>
 </ul>
 </li>
+<li><a href="setup/kubeadm-upgrade.md">kubeadm升级k8s集群</a></li>
+<li><a href="setup/kubeadm-certs.md">kubeadm管理证书</a></li>
 <li><a href="setup/k8s-cert.md">k8s证书及秘钥</a></li>
 <li><a href="setup/k8s-version-release.md">k8s版本说明</a></li>
+<li><a href="setup/k8s-changelog.md">k8s版本记录</a></li>
 </ul>
 <h2 id="基本概念-a-id-concepts-a">基本概念 <a id="concepts"></a></h2>
 <ul>
@@ -26271,26 +26299,40 @@ withfields： 使用InfluxDB fields(默认：false)。</p>
 </ul>
 <h2 id="运维指南-a-id-operation-a">运维指南 <a id="operation"></a></h2>
 <ul>
+<li><a href="operation/kubernetes-troubleshooting.md">kubernetes集群问题排查</a></li>
 <li><a href="operation/kubectl/_index.md">kubectl工具</a>
 <ul>
 <li><a href="operation/kubectl/install-kubectl.md">kubectl安装与配置</a></li>
 <li><a href="operation/kubectl/kubectl-commands.md">kubectl命令说明</a></li>
 <li><a href="operation/kubectl/kubectl-alias.md">kubectl命令别名</a></li>
 <li><a href="operation/kubectl/kubectl-node-shell.md">kubectl进入node shell</a></li>
-<li><a href="operation/kubectl/helm-usage.md">helm的使用</a></li>
 </ul>
 </li>
-<li><a href="operation/kubernetes-troubleshooting.md">kubernetes集群问题排查</a></li>
-<li><a href="operation/node/_index.md">节点调度</a>
+<li><a href="operation/helm/_index.md">helm工具</a>
+<ul>
+<li><a href="operation/helm/helm-usage.md">helm的使用</a></li>
+</ul>
+</li>
+<li><a href="operation/node/_index.md">节点迁移</a>
 <ul>
 <li><a href="operation/node/safely-drain-node.md">安全迁移节点</a></li>
 <li><a href="operation/node/nodeselector-and-taint.md">指定Node调度与隔离</a></li>
 </ul>
 </li>
-<li><a href="operation/registry/_index.md">镜像仓库配置</a>
+<li><a href="operation/registry/_index.md">镜像仓库</a>
 <ul>
 <li><a href="operation/registry/config-private-registry.md">配置私有的镜像仓库</a></li>
 <li><a href="operation/registry/ImagePullSecrets.md">拉取私有镜像</a></li>
+</ul>
+</li>
+<li><a href="operation/access/_index.md">访问控制</a>
+<ul>
+<li><a href="operation/access/rbac-auth.md">使用RBAC鉴权</a></li>
+</ul>
+</li>
+<li><a href="operation/deployment/_index.md">版本发布</a>
+<ul>
+<li><a href="operation/deployment/canary-deployment.md">金丝雀发布</a></li>
 </ul>
 </li>
 </ul>
@@ -26306,8 +26348,10 @@ withfields： 使用InfluxDB fields(默认：false)。</p>
 <li><a href="develop/operator/_index.md">operator开发</a>
 <ul>
 <li><a href="develop/operator/kubebuilder.md">kubebuilder的使用</a></li>
+<li><a href="develop/operator/develop-operator.md">如何开发一个Operator</a></li>
 </ul>
 </li>
+<li><a href="develop/develop-k8s.md">k8s社区开发指南</a></li>
 </ul>
 <h2 id="问题排查-a-id-trouble-shooting-a">问题排查 <a id="trouble-shooting"></a></h2>
 <ul>
@@ -26433,6 +26477,13 @@ withfields： 使用InfluxDB fields(默认：false)。</p>
 <li><a href="edge/openyurt/update-k8s-for-openyurt.md">OpenYurt部署之调整k8s配置</a></li>
 </ul>
 </li>
+<li><a href="edge/openyurt/code-analysis/_index.md">OpenYurt源码分析</a>
+<ul>
+<li><a href="edge/openyurt/code-analysis/yurthub-code-analysis-1.md">YurtHub源码分析（1)</a></li>
+<li><a href="edge/openyurt/code-analysis/tunnel-server-code-analysis.md">TunnelServer源码分析（1）</a></li>
+<li><a href="edge/openyurt/code-analysis/tennel-agent-code-analysis.md">Tunnel-Agent源码分析</a></li>
+</ul>
+</li>
 </ul>
 <h2 id="虚拟化-a-id-kvm-a">虚拟化 <a id="kvm"></a></h2>
 <ul>
@@ -26447,6 +26498,7 @@ withfields： 使用InfluxDB fields(默认：false)。</p>
 <h2 id="监控体系-a-id-monitor-a">监控体系 <a id="monitor"></a></h2>
 <ul>
 <li><a href="monitor/kubernetes-cluster-monitoring.md">监控体系介绍</a></li>
+<li><a href="monitor/kube-promethus-stack.md">kube-prometheus-stack的使用</a></li>
 <li><a href="monitor/cadvisor-introduction.md">cAdvisor介绍</a></li>
 <li><a href="monitor/heapster-introduction.md">Heapster介绍</a></li>
 <li><a href="monitor/influxdb-introduction.md">Influxdb介绍</a></li>

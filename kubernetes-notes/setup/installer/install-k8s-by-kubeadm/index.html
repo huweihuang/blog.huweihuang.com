@@ -68,7 +68,7 @@ Kubernetes集群Master节点上运行着etcd、kube-apiserver、kube-controller�
 1.1. 设置防火墙端口策略 生产环境设置k8s节点的iptables端口访问规则。
 1.1.1. master节点端口配置 协议 方向 端口范围 目的 使用者 TCP 入站 6443 Kubernetes API server 所有 TCP 入站 2379-2380 etcd server client API kube-apiserver, etcd TCP 入站 10250 Kubelet API 自身, 控制面 TCP 入站 10259 kube-scheduler 自身 TCP 入站 10257 kube-controller-manager 自身 1.">
 <meta itemprop="dateModified" content="2022-12-25T15:59:59+08:00" />
-<meta itemprop="wordCount" content="1250">
+<meta itemprop="wordCount" content="1273">
 <meta itemprop="keywords" content="Kubernetes," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="使用kubeadm部署生产环境kubernetes集群"/>
 <meta name="twitter:description" content="本文为基于kubeadm搭建生产环境级别高可用的k8s集群。
@@ -195,7 +195,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.9597d56a4a74c3d61b8dc6e6dedb85ef.json"
+  data-offline-search-index-json-src="/offline-search-index.a3d53539abb4a3246127eeab2eb46ff3.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -217,7 +217,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.9597d56a4a74c3d61b8dc6e6dedb85ef.json"
+  data-offline-search-index-json-src="/offline-search-index.a3d53539abb4a3246127eeab2eb46ff3.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -613,7 +613,7 @@ if (!doNotTrack) {
   </ul>
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-operation-node-li">
   <input type="checkbox" id="m-kubernetes-notes-operation-node-check"/>
-  <label for="m-kubernetes-notes-operation-node-check"><a href="/kubernetes-notes/operation/node/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-operation-node"><span class="">节点调度</span></a></label>
+  <label for="m-kubernetes-notes-operation-node-check"><a href="/kubernetes-notes/operation/node/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-operation-node"><span class="">节点迁移</span></a></label>
   
   <ul class="ul-3 foldable">
     <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-node-nodeselector-and-taint-li">
@@ -1827,6 +1827,16 @@ if (!doNotTrack) {
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>  Warning  FailedCreatePodSandBox  4m6s                kubelet            Failed to create pod sandbox: rpc error: <span style="color:#000">code</span> <span style="color:#ce5c00;font-weight:bold">=</span> Unknown <span style="color:#000">desc</span> <span style="color:#ce5c00;font-weight:bold">=</span> failed to setup network <span style="color:#204a87;font-weight:bold">for</span> sandbox <span style="color:#4e9a06">&#34;300d9b570cc1e23b6335c407b8e7d0ef2c74dc2fe5d7a110678c2dc919c62edf&#34;</span>: plugin <span style="color:#000">type</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;flannel&#34;</span> failed <span style="color:#ce5c00;font-weight:bold">(</span>add<span style="color:#ce5c00;font-weight:bold">)</span>: failed to delegate add: failed to <span style="color:#204a87">set</span> bridge addr: <span style="color:#4e9a06">&#34;cni0&#34;</span> already has an IP address different from 10.244.3.1/24
 </span></span></code></pre></div><p><strong>原因：</strong></p>
 <p>宿主机节点有<code>cni0</code>网卡，且网卡的IP段与flannel的CIDR网段不同，因此需要删除该网卡，让其重建。</p>
+<p>查看cni0网卡</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ifconfig cni0 |grep -w inet</span>
+</span></span><span style="display:flex;"><span>        inet 10.244.5.1  netmask 255.255.255.0  broadcast 10.244.116.255
+</span></span></code></pre></div><p>查看flannel配置</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># cat /run/flannel/subnet.env</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">FLANNEL_NETWORK</span><span style="color:#ce5c00;font-weight:bold">=</span>10.244.0.0/16
+</span></span><span style="display:flex;"><span><span style="color:#000">FLANNEL_SUBNET</span><span style="color:#ce5c00;font-weight:bold">=</span>10.244.116.1/24
+</span></span><span style="display:flex;"><span><span style="color:#000">FLANNEL_MTU</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1450</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">FLANNEL_IPMASQ</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87">true</span>
+</span></span></code></pre></div><p>发现cni0 IP与FLANNEL_SUBNET网段不一致，因此删除cni0重建。</p>
 <p><strong>解决：</strong></p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ifconfig cni0 down    
 </span></span><span style="display:flex;"><span>ip link delete cni0
