@@ -18,15 +18,15 @@
 <link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
 <link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
 
-<title>胡伟煌</title>
-<meta name="description" content="kube-scheduler源码分析（六）之 preempt
-
+<title>kube-scheduler源码分析（六）之 抢占逻辑 | 胡伟煌</title>
+<meta name="description" content="
 以下代码分析基于 kubernetes v1.12.0 版本。
 
 本文主要分析调度中的抢占逻辑，当pod不适合任何节点的时候，可能pod会调度失败，这时候可能会发生抢占。抢占逻辑的具体实现函数为Scheduler.preempt。
-1. …">
-<meta property="og:title" content="" />
-<meta property="og:description" content="kube-scheduler源码分析（六）之 preempt 以下代码分析基于 kubernetes v1.12.0 版本。
+1. 调用入口
+当pod不适合任何节点的时候，可能pod会调度失 …">
+<meta property="og:title" content="kube-scheduler源码分析（六）之 抢占逻辑" />
+<meta property="og:description" content="以下代码分析基于 kubernetes v1.12.0 版本。
 本文主要分析调度中的抢占逻辑，当pod不适合任何节点的时候，可能pod会调度失败，这时候可能会发生抢占。抢占逻辑的具体实现函数为Scheduler.preempt。
 1. 调用入口 当pod不适合任何节点的时候，可能pod会调度失败。这时候可能会发生抢占。
 scheduleOne函数中关于抢占调用的逻辑如下：
@@ -37,18 +37,18 @@ scheduleOne函数中关于抢占调用的逻辑如下：
 
 <meta property="article:modified_time" content="2022-07-23T13:29:42+08:00" /><meta property="og:site_name" content="胡伟煌" />
 
-<meta itemprop="name" content="">
-<meta itemprop="description" content="kube-scheduler源码分析（六）之 preempt 以下代码分析基于 kubernetes v1.12.0 版本。
+<meta itemprop="name" content="kube-scheduler源码分析（六）之 抢占逻辑">
+<meta itemprop="description" content="以下代码分析基于 kubernetes v1.12.0 版本。
 本文主要分析调度中的抢占逻辑，当pod不适合任何节点的时候，可能pod会调度失败，这时候可能会发生抢占。抢占逻辑的具体实现函数为Scheduler.preempt。
 1. 调用入口 当pod不适合任何节点的时候，可能pod会调度失败。这时候可能会发生抢占。
 scheduleOne函数中关于抢占调用的逻辑如下：
 此部分的代码位于/pkg/scheduler/scheduler.go
 // scheduleOne does the entire scheduling workflow for a single pod. It is serialized on the scheduling algorithm&#39;s host fitting. func (sched *Scheduler) scheduleOne() { ... suggestedHost, err := sched.schedule(pod) if err != nil { // schedule() may have failed because the pod would not fit on any host, so we try to // preempt, with the expectation that the next time the pod is tried for scheduling it // will fit due to the preemption.">
 <meta itemprop="dateModified" content="2022-07-23T13:29:42+08:00" />
-<meta itemprop="wordCount" content="3181">
-<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content=""/>
-<meta name="twitter:description" content="kube-scheduler源码分析（六）之 preempt 以下代码分析基于 kubernetes v1.12.0 版本。
+<meta itemprop="wordCount" content="3179">
+<meta itemprop="keywords" content="源码分析," /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="kube-scheduler源码分析（六）之 抢占逻辑"/>
+<meta name="twitter:description" content="以下代码分析基于 kubernetes v1.12.0 版本。
 本文主要分析调度中的抢占逻辑，当pod不适合任何节点的时候，可能pod会调度失败，这时候可能会发生抢占。抢占逻辑的具体实现函数为Scheduler.preempt。
 1. 调用入口 当pod不适合任何节点的时候，可能pod会调度失败。这时候可能会发生抢占。
 scheduleOne函数中关于抢占调用的逻辑如下：
@@ -165,7 +165,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.a3d53539abb4a3246127eeab2eb46ff3.json"
+  data-offline-search-index-json-src="/offline-search-index.c9513e0f7afd3caa8b39aa077c52056b.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -187,7 +187,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.a3d53539abb4a3246127eeab2eb46ff3.json"
+  data-offline-search-index-json-src="/offline-search-index.c9513e0f7afd3caa8b39aa077c52056b.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -200,14 +200,29 @@ if (!doNotTrack) {
       <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-k8s-source-code-analysis-li">
   <a href="/k8s-source-code-analysis/" class="align-left pl-0 td-sidebar-link td-sidebar-link__section tree-root" id="m-k8s-source-code-analysis"><span class="">Kubernetes源码分析</span></a>
   <ul class="ul-1">
-    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-k8s-source-code-analysis-kube-apiserver-li">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-k8s-source-code-analysis-summary-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-summary-check"/>
+  <label for="m-k8s-source-code-analysis-summary-check"><a href="/k8s-source-code-analysis/summary/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-k8s-source-code-analysis-summary"><span class="">summary</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-summary-resource-object-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-summary-resource-object-check"/>
+  <label for="m-k8s-source-code-analysis-summary-resource-object-check"><a href="/k8s-source-code-analysis/summary/resource-object/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-summary-resource-object"><span class="">k8s核心数据结构分析</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-summary-etcd-storage-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-summary-etcd-storage-check"/>
+  <label for="m-k8s-source-code-analysis-summary-etcd-storage-check"><a href="/k8s-source-code-analysis/summary/etcd-storage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-summary-etcd-storage"><span class="">k8s中Etcd存储的实现</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-k8s-source-code-analysis-kube-apiserver-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kube-apiserver-check"/>
   <label for="m-k8s-source-code-analysis-kube-apiserver-check"><a href="/k8s-source-code-analysis/kube-apiserver/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-k8s-source-code-analysis-kube-apiserver"><span class="">kube-apiserver</span></a></label>
   
   <ul class="ul-2 foldable">
     <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand-check"/>
-  <label for="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand-check"><a href="/k8s-source-code-analysis/kube-apiserver/newapiservercommand/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand"><span class="">NewAPIServerCommand</span></a></label>
+  <label for="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand-check"><a href="/k8s-source-code-analysis/kube-apiserver/newapiservercommand/" title="kube-apiserver源码分析（一）之 NewAPIServerCommand" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand"><span class="">NewAPIServerCommand</span></a></label>
   
 </li>
   </ul>
@@ -218,19 +233,31 @@ if (!doNotTrack) {
   <ul class="ul-2 foldable">
     <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind-check"/>
-  <label for="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind-check"><a href="/k8s-source-code-analysis/kube-controller-manager/controller-manager-xmind/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind"><span class="">源码思维导图</span></a></label>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind-check"><a href="/k8s-source-code-analysis/kube-controller-manager/controller-manager-xmind/" title="controller-manager 源码思维导图" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind"><span class="">源码思维导图</span></a></label>
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand-check"/>
-  <label for="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand-check"><a href="/k8s-source-code-analysis/kube-controller-manager/newcontrollermanagercommand/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand"><span class="">NewControllerManagerCommand</span></a></label>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand-check"><a href="/k8s-source-code-analysis/kube-controller-manager/newcontrollermanagercommand/" title="kube-controller-manager源码分析（一）之 NewControllerManagerCommand" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand"><span class="">NewControllerManagerCommand</span></a></label>
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller-check"/>
-  <label for="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller-check"><a href="/k8s-source-code-analysis/kube-controller-manager/deployment-controller/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller"><span class="">DeploymentController</span></a></label>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller-check"><a href="/k8s-source-code-analysis/kube-controller-manager/deployment-controller/" title="kube-controller-manager源码分析（二）之 DeploymentController" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller"><span class="">DeploymentController</span></a></label>
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-informer-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-informer-check"/>
-  <label for="m-k8s-source-code-analysis-kube-controller-manager-informer-check"><a href="/k8s-source-code-analysis/kube-controller-manager/informer/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-informer"><span class="">Informer机制</span></a></label>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-informer-check"><a href="/k8s-source-code-analysis/kube-controller-manager/informer/" title="kube-controller-manager源码分析（三）之 Informer机制" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-informer"><span class="">Informer机制</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-replicaset-controller-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-replicaset-controller-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-replicaset-controller-check"><a href="/k8s-source-code-analysis/kube-controller-manager/replicaset-controller/" title="kube-controller-manager源码分析（四）之 ReplicaSetController" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-replicaset-controller"><span class="">ReplicaSetController</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-daemonset-controller-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-daemonset-controller-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-daemonset-controller-check"><a href="/k8s-source-code-analysis/kube-controller-manager/daemonset-controller/" title="kube-controller-manager源码分析（五）之 DaemonSetController" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-daemonset-controller"><span class="">DaemonSetController</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-controller-runtime-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-controller-runtime-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-controller-runtime-check"><a href="/k8s-source-code-analysis/kube-controller-manager/controller-runtime/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-controller-runtime"><span class="">controller-runtime源码分析</span></a></label>
   
 </li>
   </ul>
@@ -241,31 +268,31 @@ if (!doNotTrack) {
   <ul class="ul-2 foldable">
     <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind-check"/>
-  <label for="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind-check"><a href="/k8s-source-code-analysis/kube-scheduler/scheduler-xmind/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind"><span class="">源码思维导图</span></a></label>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind-check"><a href="/k8s-source-code-analysis/kube-scheduler/scheduler-xmind/" title="kube-scheduler 源码思维导图" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind"><span class="">源码思维导图</span></a></label>
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand-check"/>
-  <label for="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand-check"><a href="/k8s-source-code-analysis/kube-scheduler/newschedulercommand/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand"><span class="">Main函数</span></a></label>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand-check"><a href="/k8s-source-code-analysis/kube-scheduler/newschedulercommand/" title="kube-scheduler源码分析（一）之 NewSchedulerCommand" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand"><span class="">NewSchedulerCommand</span></a></label>
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider-check"/>
-  <label for="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider-check"><a href="/k8s-source-code-analysis/kube-scheduler/registeralgorithmprovider/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider"><span class="">调度算法</span></a></label>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider-check"><a href="/k8s-source-code-analysis/kube-scheduler/registeralgorithmprovider/" title="kube-scheduler源码分析（二）之 调度算法" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider"><span class="">调度算法</span></a></label>
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-scheduleone-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-scheduleone-check"/>
-  <label for="m-k8s-source-code-analysis-kube-scheduler-scheduleone-check"><a href="/k8s-source-code-analysis/kube-scheduler/scheduleone/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-scheduleone"><span class="">调度流程</span></a></label>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-scheduleone-check"><a href="/k8s-source-code-analysis/kube-scheduler/scheduleone/" title="kube-scheduler源码分析（三）之 调度流程" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-scheduleone"><span class="">调度流程</span></a></label>
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit-check"/>
-  <label for="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit-check"><a href="/k8s-source-code-analysis/kube-scheduler/findnodesthatfit/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit"><span class="">预选策略</span></a></label>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit-check"><a href="/k8s-source-code-analysis/kube-scheduler/findnodesthatfit/" title="kube-scheduler源码分析（四）之 预选策略" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit"><span class="">预选策略</span></a></label>
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes-check"/>
-  <label for="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes-check"><a href="/k8s-source-code-analysis/kube-scheduler/prioritizenodes/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes"><span class="">优选策略</span></a></label>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes-check"><a href="/k8s-source-code-analysis/kube-scheduler/prioritizenodes/" title="kube-scheduler源码分析（五）之 优选策略" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes"><span class="">优选策略</span></a></label>
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-preempt-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-preempt-check"/>
-  <label for="m-k8s-source-code-analysis-kube-scheduler-preempt-check"><a href="/k8s-source-code-analysis/kube-scheduler/preempt/" title="" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-preempt"><span class="td-sidebar-nav-active-item">抢占逻辑</span></a></label>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-preempt-check"><a href="/k8s-source-code-analysis/kube-scheduler/preempt/" title="kube-scheduler源码分析（六）之 抢占逻辑" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-preempt"><span class="td-sidebar-nav-active-item">抢占逻辑</span></a></label>
   
 </li>
   </ul>
@@ -276,38 +303,30 @@ if (!doNotTrack) {
   <ul class="ul-2 foldable">
     <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-kubelet-xmind-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-kubelet-xmind-check"/>
-  <label for="m-k8s-source-code-analysis-kubelet-kubelet-xmind-check"><a href="/k8s-source-code-analysis/kubelet/kubelet-xmind/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-kubelet-xmind"><span class="">源码思维导图</span></a></label>
+  <label for="m-k8s-source-code-analysis-kubelet-kubelet-xmind-check"><a href="/k8s-source-code-analysis/kubelet/kubelet-xmind/" title="kubelet 源码思维导图" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-kubelet-xmind"><span class="">源码思维导图</span></a></label>
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-newkubeletcommand-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-newkubeletcommand-check"/>
-  <label for="m-k8s-source-code-analysis-kubelet-newkubeletcommand-check"><a href="/k8s-source-code-analysis/kubelet/newkubeletcommand/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-newkubeletcommand"><span class="">NewKubeletCommand</span></a></label>
+  <label for="m-k8s-source-code-analysis-kubelet-newkubeletcommand-check"><a href="/k8s-source-code-analysis/kubelet/newkubeletcommand/" title="kubelet源码分析（一）之 NewKubeletCommand" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-newkubeletcommand"><span class="">NewKubeletCommand</span></a></label>
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-newmainkubelet-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-newmainkubelet-check"/>
-  <label for="m-k8s-source-code-analysis-kubelet-newmainkubelet-check"><a href="/k8s-source-code-analysis/kubelet/newmainkubelet/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-newmainkubelet"><span class="">NewMainKubelet</span></a></label>
+  <label for="m-k8s-source-code-analysis-kubelet-newmainkubelet-check"><a href="/k8s-source-code-analysis/kubelet/newmainkubelet/" title="kubelet源码分析（二）之 NewMainKubelet" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-newmainkubelet"><span class="">NewMainKubelet</span></a></label>
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-startkubelet-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-startkubelet-check"/>
-  <label for="m-k8s-source-code-analysis-kubelet-startkubelet-check"><a href="/k8s-source-code-analysis/kubelet/startkubelet/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-startkubelet"><span class="">startKubelet</span></a></label>
+  <label for="m-k8s-source-code-analysis-kubelet-startkubelet-check"><a href="/k8s-source-code-analysis/kubelet/startkubelet/" title="kubelet源码分析（三）之 RunKubelet" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-startkubelet"><span class="">startKubelet</span></a></label>
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-syncloopiteration-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-syncloopiteration-check"/>
-  <label for="m-k8s-source-code-analysis-kubelet-syncloopiteration-check"><a href="/k8s-source-code-analysis/kubelet/syncloopiteration/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-syncloopiteration"><span class="">syncLoopIteration</span></a></label>
+  <label for="m-k8s-source-code-analysis-kubelet-syncloopiteration-check"><a href="/k8s-source-code-analysis/kubelet/syncloopiteration/" title="kubelet源码分析（四）之 syncLoopIteration" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-syncloopiteration"><span class="">syncLoopIteration</span></a></label>
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-syncpod-li">
   <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-syncpod-check"/>
-  <label for="m-k8s-source-code-analysis-kubelet-syncpod-check"><a href="/k8s-source-code-analysis/kubelet/syncpod/" title="" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-syncpod"><span class="">syncPod</span></a></label>
+  <label for="m-k8s-source-code-analysis-kubelet-syncpod-check"><a href="/k8s-source-code-analysis/kubelet/syncpod/" title="kubelet源码分析（五）之 syncPod" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-syncpod"><span class="">syncPod</span></a></label>
   
 </li>
   </ul>
-</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-readme-li">
-  <input type="checkbox" id="m-k8s-source-code-analysis-readme-check"/>
-  <label for="m-k8s-source-code-analysis-readme-check"><a href="/k8s-source-code-analysis/readme/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-readme"><span class=""></span></a></label>
-  
-</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-summary-li">
-  <input type="checkbox" id="m-k8s-source-code-analysis-summary-check"/>
-  <label for="m-k8s-source-code-analysis-summary-check"><a href="/k8s-source-code-analysis/summary/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-summary"><span class=""></span></a></label>
-  
 </li>
   </ul>
 </li>
@@ -322,7 +341,7 @@ if (!doNotTrack) {
 <a href="https://github.com/huweihuang/blog.huweihuang.com/tree/master/content/zh-cn/k8s-source-code-analysis/kube-scheduler/preempt.md" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa fa-file-alt fa-fw"></i> 查看页面源码</a>
   <a href="https://github.com/huweihuang/blog.huweihuang.com/edit/master/content/zh-cn/k8s-source-code-analysis/kube-scheduler/preempt.md" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 编辑此页</a>
   <a href="https://github.com/huweihuang/blog.huweihuang.com/new/master/content/zh-cn/k8s-source-code-analysis/kube-scheduler/preempt.md?filename=change-me.md&amp;value=---%0Atitle%3A&#43;%22Long&#43;Page&#43;Title%22%0AlinkTitle%3A&#43;%22Short&#43;Nav&#43;Title%22%0Aweight%3A&#43;100%0Adescription%3A&#43;%3E-%0A&#43;&#43;&#43;&#43;&#43;Page&#43;description&#43;for&#43;heading&#43;and&#43;indexes.%0A---%0A%0A%23%23&#43;Heading%0A%0AEdit&#43;this&#43;template&#43;to&#43;create&#43;your&#43;new&#43;page.%0A%0A%2A&#43;Give&#43;it&#43;a&#43;good&#43;name%2C&#43;ending&#43;in&#43;%60.md%60&#43;-&#43;e.g.&#43;%60getting-started.md%60%0A%2A&#43;Edit&#43;the&#43;%22front&#43;matter%22&#43;section&#43;at&#43;the&#43;top&#43;of&#43;the&#43;page&#43;%28weight&#43;controls&#43;how&#43;its&#43;ordered&#43;amongst&#43;other&#43;pages&#43;in&#43;the&#43;same&#43;directory%3B&#43;lowest&#43;number&#43;first%29.%0A%2A&#43;Add&#43;a&#43;good&#43;commit&#43;message&#43;at&#43;the&#43;bottom&#43;of&#43;the&#43;page&#43;%28%3C80&#43;characters%3B&#43;use&#43;the&#43;extended&#43;description&#43;field&#43;for&#43;more&#43;detail%29.%0A%2A&#43;Create&#43;a&#43;new&#43;branch&#43;so&#43;you&#43;can&#43;preview&#43;your&#43;new&#43;file&#43;and&#43;request&#43;a&#43;review&#43;via&#43;Pull&#43;Request.%0A" class="td-page-meta--child" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 添加子页面</a>
-  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new?title=" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new?title=kube-scheduler%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90%ef%bc%88%e5%85%ad%ef%bc%89%e4%b9%8b%20%e6%8a%a2%e5%8d%a0%e9%80%bb%e8%be%91" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
   <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new" class="td-page-meta--project-issue" target="_blank" rel="noopener"><i class="fas fa-tasks fa-fw"></i> 提交项目问题</a>
   <a id="print" href="https://blog.huweihuang.com/k8s-source-code-analysis/kube-scheduler/_print/"><i class="fa fa-print fa-fw"></i> 整节打印</a>
 
@@ -333,7 +352,6 @@ if (!doNotTrack) {
 
 <div class="td-toc"><nav id="TableOfContents">
   <ul>
-    <li><a href="#kube-scheduler源码分析-六-之-preempt">kube-scheduler源码分析（六）之 preempt</a></li>
     <li><a href="#1-调用入口">1. 调用入口</a></li>
     <li><a href="#2-scheduler-preempt">2. Scheduler.preempt</a>
       <ul>
@@ -449,7 +467,7 @@ if (!doNotTrack) {
         
           <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%BF%AB%E6%8D%B7%E9%94%AE/" data-taxonomy-term="%E5%BF%AB%E6%8D%B7%E9%94%AE"><span class="taxonomy-label">快捷键</span><span class="taxonomy-count">5</span></a></li>
         
-          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-taxonomy-term="%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="taxonomy-label">源码分析</span><span class="taxonomy-count">3</span></a></li>
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-taxonomy-term="%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="taxonomy-label">源码分析</span><span class="taxonomy-count">23</span></a></li>
         
           <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E8%A3%B8%E9%87%91%E5%B1%9E/" data-taxonomy-term="%E8%A3%B8%E9%87%91%E5%B1%9E"><span class="taxonomy-label">裸金属</span><span class="taxonomy-count">1</span></a></li>
         
@@ -493,7 +511,7 @@ if (!doNotTrack) {
 </nav>
             
 <div class="td-content">
-	<h1></h1>
+	<h1>kube-scheduler源码分析（六）之 抢占逻辑</h1>
 	
 	<header class="article-meta">
 		
@@ -502,6 +520,15 @@ if (!doNotTrack) {
     
       
 
+
+<div class="taxonomy taxonomy-terms-article taxo-tags">
+  <h5 class="taxonomy-title">Tags:</h5>
+  <ul class="taxonomy-terms">
+    
+      <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-taxonomy-term="%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="taxonomy-label">源码分析</span></a></li>
+    
+  </ul>
+</div>
 
     
       
@@ -512,8 +539,7 @@ if (!doNotTrack) {
 
 		
 	</header>    
-	<h1 id="kube-scheduler源码分析-六-之-preempt">kube-scheduler源码分析（六）之 preempt</h1>
-<blockquote>
+	<blockquote>
 <p>以下代码分析基于 <code>kubernetes v1.12.0</code> 版本。</p>
 </blockquote>
 <p>本文主要分析调度中的抢占逻辑，当pod不适合任何节点的时候，可能pod会调度失败，这时候可能会发生抢占。抢占逻辑的具体实现函数为<code>Scheduler.preempt</code>。</p>
