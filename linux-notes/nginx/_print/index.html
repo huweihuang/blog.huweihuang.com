@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.c9513e0f7afd3caa8b39aa077c52056b.json"
+  data-offline-search-index-json-src="/offline-search-index.ca5969104322c788b7ff88fda62c7077.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -205,6 +205,14 @@ if (!doNotTrack) {
     
 	
 <li>3: <a href="#pg-fd3c37bc56a35cbed876a7ec53b56dc6">Nginx http服务器</a></li>
+
+
+    
+  
+    
+    
+	
+<li>4: <a href="#pg-703079dad1fd73ade9e4c50d7b207138">配置Nginx免费证书</a></li>
 
 
     
@@ -934,6 +942,80 @@ if (!doNotTrack) {
 </span></span><span style="display:flex;"><span>        endscript
 </span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
 </span></span></code></pre></div>
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-703079dad1fd73ade9e4c50d7b207138">4 - 配置Nginx免费证书</h1>
+    
+	<h1 id="1-介绍">1. 介绍</h1>
+<p>网站的 SSL/TLS 加密会为您的用户带来更靠前的搜索排名和更出色的安全性。但是最大障碍是证书获取成本高昂和所涉人工流程繁琐。</p>
+<p>Let’s Encrypt 是一家免费、开放、自动化的证书颁发机构 (CA)。本文介绍了如何使用 Let’s Encrypt 客户端生成证书，以及如何自动配置 NGINX 开源版和 NGINX Plus 以使用这些证书。</p>
+<h1 id="2-安装certbot">2. 安装certbot</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>apt-get update
+</span></span><span style="display:flex;"><span>sudo apt-get install certbot
+</span></span><span style="display:flex;"><span>apt-get install python3-certbot-nginx
+</span></span></code></pre></div><h1 id="3-为域名生成证书">3. 为域名生成证书</h1>
+<p>执行以下命令会生成一个<code>90天到期</code>的证书文件。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo certbot --nginx -d www.example.com
+</span></span></code></pre></div><p>以上命令会在<code>/etc/letsencrypt/live/</code>生成证书文件。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#204a87">cd</span> /etc/letsencrypt/live/www.example.com
+</span></span><span style="display:flex;"><span>ls
+</span></span><span style="display:flex;"><span>README  cert.pem  chain.pem  fullchain.pem  privkey.pem
+</span></span></code></pre></div><p>如果配置成功会生成以下信息：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>Congratulations! You have successfully enabled https://example.com and https://www.example.com 
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>-------------------------------------------------------------------------------------
+</span></span><span style="display:flex;"><span>IMPORTANT NOTES: 
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Congratulations! Your certificate and chain have been saved at: 
+</span></span><span style="display:flex;"><span>/etc/letsencrypt/live/example.com/fullchain.pem 
+</span></span><span style="display:flex;"><span>Your key file has been saved at: 
+</span></span><span style="display:flex;"><span>/etc/letsencrypt/live/example.com//privkey.pem
+</span></span><span style="display:flex;"><span>Your cert will expire on 2017-12-12.
+</span></span></code></pre></div><p>并且certbot会自动为<strong>domain‑name.conf</strong>文件自行修改证书路径。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>server <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    listen <span style="color:#0000cf;font-weight:bold">80</span> default_server<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>    listen <span style="color:#ce5c00;font-weight:bold">[</span>::<span style="color:#ce5c00;font-weight:bold">]</span>:80 default_server<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>    root /var/www/html<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>    server_name  example.com www.example.com<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    listen <span style="color:#0000cf;font-weight:bold">443</span> ssl<span style="color:#000;font-weight:bold">;</span> <span style="color:#8f5902;font-style:italic"># managed by Certbot</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic"># RSA certificate</span>
+</span></span><span style="display:flex;"><span>    ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem<span style="color:#000;font-weight:bold">;</span> <span style="color:#8f5902;font-style:italic"># managed by Certbot</span>
+</span></span><span style="display:flex;"><span>    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem<span style="color:#000;font-weight:bold">;</span> <span style="color:#8f5902;font-style:italic"># managed by Certbot</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    include /etc/letsencrypt/options-ssl-nginx.conf<span style="color:#000;font-weight:bold">;</span> <span style="color:#8f5902;font-style:italic"># managed by Certbot</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic"># Redirect non-https traffic to https</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#ce5c00;font-weight:bold">(</span><span style="color:#000">$scheme</span> !<span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;https&#34;</span><span style="color:#ce5c00;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#0000cf;font-weight:bold">301</span> https://<span style="color:#000">$host$request_uri</span><span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span> <span style="color:#8f5902;font-style:italic"># managed by Certbot</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="3-重启nginx">3. 重启Nginx</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>nginx -t <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> nginx -s reload
+</span></span></code></pre></div><h1 id="4-自动更新证书">4. 自动更新证书</h1>
+<p>Let’s Encrypt 证书将在 90 天后到期， 因此设置定时任务自动更新证书。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>crontab -e
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 将以下信息写入到crontab文件中</span>
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#0000cf;font-weight:bold">12</span> * * * /usr/bin/certbot renew --quiet
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="https://www.nginx-cn.net/blog/using-free-ssltls-certificates-from-lets-encrypt-with-nginx/">更新：为 NGINX 配置免费的 Let’s Encrypt SSL/TLS 证书</a></li>
+</ul>
+
 </div>
 
 

@@ -31,14 +31,14 @@ cache ├── controller.go # 包含：Config、Run、processLoop、NewInforme
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://blog.huweihuang.com/k8s-source-code-analysis/kube-controller-manager/informer/" /><meta property="article:section" content="k8s-source-code-analysis" />
 
-<meta property="article:modified_time" content="2022-07-23T13:29:42+08:00" /><meta property="og:site_name" content="胡伟煌" />
+<meta property="article:modified_time" content="2024-06-11T11:07:04+08:00" /><meta property="og:site_name" content="胡伟煌" />
 
 <meta itemprop="name" content="kube-controller-manager源码分析（三）之 Informer机制">
 <meta itemprop="description" content="以下代码分析基于 kubernetes v1.12.0 版本。
 本文主要分析k8s中各个核心组件经常使用到的Informer机制(即List-Watch)。该部分的代码主要位于client-go这个第三方包中。
 此部分的逻辑主要位于/vendor/k8s.io/client-go/tools/cache包中，代码目录结构如下：
 cache ├── controller.go # 包含：Config、Run、processLoop、NewInformer、NewIndexerInformer ├── delta_fifo.go # 包含：NewDeltaFIFO、DeltaFIFO、AddIfNotPresent ├── expiration_cache.go ├── expiration_cache_fakes.go ├── fake_custom_store.go ├── fifo.go # 包含：Queue、FIFO、NewFIFO ├── heap.go ├── index.go # 包含：Indexer、MetaNamespaceIndexFunc ├── listers.go ├── listwatch.go # 包含：ListerWatcher、ListWatch、List、Watch ├── mutation_cache.go ├── mutation_detector.go ├── reflector.go # 包含：Reflector、NewReflector、Run、ListAndWatch ├── reflector_metrics.go ├── shared_informer.go # 包含：NewSharedInformer、WaitForCacheSync、Run、HasSynced ├── store.go # 包含：Store、MetaNamespaceKeyFunc、SplitMetaNamespaceKey ├── testing │ ├── fake_controller_source.go ├── thread_safe_store.go # 包含：ThreadSafeStore、threadSafeMap ├── undelta_store.go 0. 原理示意图 示意图1：">
-<meta itemprop="dateModified" content="2022-07-23T13:29:42+08:00" />
+<meta itemprop="dateModified" content="2024-06-11T11:07:04+08:00" />
 <meta itemprop="wordCount" content="5185">
 <meta itemprop="keywords" content="源码分析," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="kube-controller-manager源码分析（三）之 Informer机制"/>
@@ -157,7 +157,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.c9513e0f7afd3caa8b39aa077c52056b.json"
+  data-offline-search-index-json-src="/offline-search-index.ca5969104322c788b7ff88fda62c7077.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -179,7 +179,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.c9513e0f7afd3caa8b39aa077c52056b.json"
+  data-offline-search-index-json-src="/offline-search-index.ca5969104322c788b7ff88fda62c7077.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -319,6 +319,14 @@ if (!doNotTrack) {
   
 </li>
   </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-readme-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-readme-check"/>
+  <label for="m-k8s-source-code-analysis-readme-check"><a href="/k8s-source-code-analysis/readme/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-readme"><span class=""></span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-summary-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-summary-check"/>
+  <label for="m-k8s-source-code-analysis-summary-check"><a href="/k8s-source-code-analysis/summary/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-summary"><span class=""></span></a></label>
+  
 </li>
   </ul>
 </li>
@@ -485,9 +493,9 @@ if (!doNotTrack) {
         
           <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/mysql/" data-taxonomy-term="mysql"><span class="taxonomy-label">Mysql</span><span class="taxonomy-count">3</span></a></li>
         
-          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/network/" data-taxonomy-term="network"><span class="taxonomy-label">Network</span><span class="taxonomy-count">2</span></a></li>
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/network/" data-taxonomy-term="network"><span class="taxonomy-label">Network</span><span class="taxonomy-count">3</span></a></li>
         
-          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/nginx/" data-taxonomy-term="nginx"><span class="taxonomy-label">Nginx</span><span class="taxonomy-count">3</span></a></li>
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/nginx/" data-taxonomy-term="nginx"><span class="taxonomy-label">Nginx</span><span class="taxonomy-count">4</span></a></li>
         
           <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/openyurt/" data-taxonomy-term="openyurt"><span class="taxonomy-label">OpenYurt</span><span class="taxonomy-count">5</span></a></li>
         
@@ -2011,7 +2019,7 @@ if (!doNotTrack) {
 	
 	
 	<div class="text-muted mt-5 pt-3 border-top">
-  最后修改 July 23, 2022: <a href="https://github.com/huweihuang/blog.huweihuang.com/commit/b87b88c166e34104906590631bf4fcd1c2079db0">add k8s code analysis (b87b88c)</a>
+  最后修改 June 11, 2024: <a href="https://github.com/huweihuang/blog.huweihuang.com/commit/70fbaf7d4e37589417dd7fab2d696384fbe55185">add code analysis for controller-manager (70fbaf7)</a>
 </div>
 
 </div>

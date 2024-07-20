@@ -4,7 +4,7 @@
     <link>https://blog.huweihuang.com/tags/network/</link>
     <description>Recent content in Network on 胡伟煌</description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Fri, 06 Jan 2023 10:50:57 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 04 Jul 2024 10:50:57 +0000</lastBuildDate>
     
 	  <atom:link href="https://blog.huweihuang.com/tags/network/index.xml" rel="self" type="application/rss+xml" />
     
@@ -451,6 +451,49 @@
 &lt;li&gt;
 &lt;p&gt;&lt;a href=&#34;https://coredns.io/plugins/forward/&#34;&gt;forward&lt;/a&gt;&lt;/p&gt;
 &lt;/li&gt;
+&lt;/ul&gt;
+
+      </description>
+    </item>
+    
+    <item>
+      <title>Linux-Notes: VLAN介绍</title>
+      <link>https://blog.huweihuang.com/linux-notes/network/vlan/</link>
+      <pubDate>Thu, 04 Jul 2024 10:50:57 +0000</pubDate>
+      
+      <guid>https://blog.huweihuang.com/linux-notes/network/vlan/</guid>
+      <description>
+        
+        
+        &lt;h1 id=&#34;1-vlan是什么&#34;&gt;1. vlan是什么&lt;/h1&gt;
+&lt;p&gt;VLAN（Virtual Local Area Network）即虚拟局域网，是将一个物理的LAN在逻辑上划分成多个广播域的通信技术。每个VLAN是一个广播域，VLAN内的主机间可以直接通信，而VLAN间则不能直接互通。这样，广播报文就被限制在一个VLAN内。&lt;/p&gt;
+&lt;h1 id=&#34;2-为什么需要vlan&#34;&gt;2. 为什么需要vlan&lt;/h1&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1719749729/article/linux/network/vlan.webp&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;没有vlan前，广播报文会被发送到较大的广播域，主机数量较多时候会造成广播泛滥，性能低下，网络不可用等问题。&lt;strong&gt;如果把一个LAN网分成多个逻辑LAN网，每个逻辑LAN网通过id进行标识，相同逻辑LAN内的主机可以直接通信，不同逻辑LAN网内的主机不能直接通信，那么广播报文就限制在一个逻辑LAN网内，而这个逻辑LAN就是所谓的VLAN。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;由此可见，VLAN有以下的优点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;限制广播域：节省了带宽，提高网络处理效率。&lt;/li&gt;
+&lt;li&gt;增加安全性：不同VLAN互相隔离，增加安全性。&lt;/li&gt;
+&lt;li&gt;灵活构建局域网：可以方便的构建安全的局域网。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;3-vlan-id及vlan-tag&#34;&gt;3. vlan ID及vlan tag&lt;/h1&gt;
+&lt;p&gt;为了让交换机识别不同vlan的报文，则需要通过某种标识来区分，因此在报文中加了vlan tag的字段，其中包括vlan id的信息，&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1719751351/article/linux/network/vlan_tag.webp&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Vlan id(简称VID)，取值范围为0-4095,0和4095为保留字段，因此VLAN ID的有效范围为1-4094。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;交换机内部处理的数据帧都带有VLAN标签。而交换机连接的部分设备（如用户主机、服务器）只会收发不带VLAN tag的传统以太网数据帧。因此，要与这些设备交互，就需要交换机的接口能够识别传统以太网数据帧，并在收发时给帧添加、剥除VLAN标签。添加什么VLAN标签，由接口上的缺省VLAN（Port Default VLAN ID，PVID）决定。&lt;/p&gt;
+&lt;h1 id=&#34;4-vlan的接口类型&#34;&gt;4. vlan的接口类型&lt;/h1&gt;
+&lt;p&gt;现网中属于同一个VLAN的用户可能会被连接在不同的交换机上，且跨越交换机的VLAN可能不止一个，如果需要用户间的互通，就需要交换机间的接口能够同时识别和发送多个VLAN的数据帧。根据接口连接对象以及对收发数据帧处理的不同，当前有VLAN的多种接口类型，以适应不同的连接和组网。&lt;/p&gt;
+&lt;p&gt;常见的VLAN接口类型有三种，包括：Access、Trunk和Hybrid。&lt;/p&gt;
+&lt;h2 id=&#34;4-1-access接口&#34;&gt;4.1. Access接口&lt;/h2&gt;
+&lt;p&gt;Access接口一般用于和不能识别Tag的用户终端（如用户主机、服务器）相连，或者不需要区分不同VLAN成员时使用。&lt;/p&gt;
+&lt;h2 id=&#34;4-2-trunk接口&#34;&gt;4.2. Trunk接口&lt;/h2&gt;
+&lt;p&gt;Trunk接口一般用于连接交换机、路由器、AP以及可同时收发Tagged帧和Untagged帧的语音终端。它可以允许多个VLAN的帧带Tag通过，但只允许属于缺省VLAN的帧从该类接口上发出时不带Tag（即剥除Tag）。&lt;/p&gt;
+&lt;h2 id=&#34;4-3-hybrid接口&#34;&gt;4.3. Hybrid接口&lt;/h2&gt;
+&lt;p&gt;Hybrid接口既可以用于连接不能识别Tag的用户终端（如用户主机、服务器）和网络设备（如Hub），也可以用于连接交换机、路由器以及可同时收发Tagged帧和Untagged帧的语音终端、AP。它可以允许多个VLAN的帧带Tag通过，且允许从该类接口发出的帧根据需要配置某些VLAN的帧带Tag（即不剥除Tag）、某些VLAN的帧不带Tag（即剥除Tag）。&lt;/p&gt;
+&lt;p&gt;参考：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://mp.weixin.qq.com/s/5wH9QbBTGKpYaolRbMijMA&#34;&gt;https://mp.weixin.qq.com/s/5wH9QbBTGKpYaolRbMijMA&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.wpgdadatong.com.cn/blog/detail/71784&#34;&gt;https://www.wpgdadatong.com.cn/blog/detail/71784&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
       </description>

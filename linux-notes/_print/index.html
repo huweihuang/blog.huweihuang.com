@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.c9513e0f7afd3caa8b39aa077c52056b.json"
+  data-offline-search-index-json-src="/offline-search-index.ca5969104322c788b7ff88fda62c7077.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -389,6 +389,14 @@ if (!doNotTrack) {
     
 	
 <li>4.4: <a href="#pg-05f4d807ce9b3245e03b30114a0acab5">wrk的使用</a></li>
+
+
+    
+  
+    
+    
+	
+<li>4.5: <a href="#pg-47e00858ae348d66329dcfca96f7a676">VLAN介绍</a></li>
 
 
     
@@ -786,6 +794,14 @@ if (!doNotTrack) {
     
 	
 <li>11.3: <a href="#pg-fd3c37bc56a35cbed876a7ec53b56dc6">Nginx http服务器</a></li>
+
+
+    
+  
+    
+    
+	
+<li>11.4: <a href="#pg-703079dad1fd73ade9e4c50d7b207138">配置Nginx免费证书</a></li>
 
 
     
@@ -4005,6 +4021,53 @@ if (!doNotTrack) {
 <li>
 <p><a href="https://www.cnblogs.com/quanxiaoha/p/10661650.html">https://www.cnblogs.com/quanxiaoha/p/10661650.html</a></p>
 </li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-47e00858ae348d66329dcfca96f7a676">4.5 - VLAN介绍</h1>
+    
+	<h1 id="1-vlan是什么">1. vlan是什么</h1>
+<p>VLAN（Virtual Local Area Network）即虚拟局域网，是将一个物理的LAN在逻辑上划分成多个广播域的通信技术。每个VLAN是一个广播域，VLAN内的主机间可以直接通信，而VLAN间则不能直接互通。这样，广播报文就被限制在一个VLAN内。</p>
+<h1 id="2-为什么需要vlan">2. 为什么需要vlan</h1>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1719749729/article/linux/network/vlan.webp" alt=""></p>
+<p>没有vlan前，广播报文会被发送到较大的广播域，主机数量较多时候会造成广播泛滥，性能低下，网络不可用等问题。<strong>如果把一个LAN网分成多个逻辑LAN网，每个逻辑LAN网通过id进行标识，相同逻辑LAN内的主机可以直接通信，不同逻辑LAN网内的主机不能直接通信，那么广播报文就限制在一个逻辑LAN网内，而这个逻辑LAN就是所谓的VLAN。</strong></p>
+<p>由此可见，VLAN有以下的优点：</p>
+<ul>
+<li>限制广播域：节省了带宽，提高网络处理效率。</li>
+<li>增加安全性：不同VLAN互相隔离，增加安全性。</li>
+<li>灵活构建局域网：可以方便的构建安全的局域网。</li>
+</ul>
+<h1 id="3-vlan-id及vlan-tag">3. vlan ID及vlan tag</h1>
+<p>为了让交换机识别不同vlan的报文，则需要通过某种标识来区分，因此在报文中加了vlan tag的字段，其中包括vlan id的信息，</p>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1719751351/article/linux/network/vlan_tag.webp" alt=""></p>
+<p><strong>Vlan id(简称VID)，取值范围为0-4095,0和4095为保留字段，因此VLAN ID的有效范围为1-4094。</strong></p>
+<p>交换机内部处理的数据帧都带有VLAN标签。而交换机连接的部分设备（如用户主机、服务器）只会收发不带VLAN tag的传统以太网数据帧。因此，要与这些设备交互，就需要交换机的接口能够识别传统以太网数据帧，并在收发时给帧添加、剥除VLAN标签。添加什么VLAN标签，由接口上的缺省VLAN（Port Default VLAN ID，PVID）决定。</p>
+<h1 id="4-vlan的接口类型">4. vlan的接口类型</h1>
+<p>现网中属于同一个VLAN的用户可能会被连接在不同的交换机上，且跨越交换机的VLAN可能不止一个，如果需要用户间的互通，就需要交换机间的接口能够同时识别和发送多个VLAN的数据帧。根据接口连接对象以及对收发数据帧处理的不同，当前有VLAN的多种接口类型，以适应不同的连接和组网。</p>
+<p>常见的VLAN接口类型有三种，包括：Access、Trunk和Hybrid。</p>
+<h2 id="4-1-access接口">4.1. Access接口</h2>
+<p>Access接口一般用于和不能识别Tag的用户终端（如用户主机、服务器）相连，或者不需要区分不同VLAN成员时使用。</p>
+<h2 id="4-2-trunk接口">4.2. Trunk接口</h2>
+<p>Trunk接口一般用于连接交换机、路由器、AP以及可同时收发Tagged帧和Untagged帧的语音终端。它可以允许多个VLAN的帧带Tag通过，但只允许属于缺省VLAN的帧从该类接口上发出时不带Tag（即剥除Tag）。</p>
+<h2 id="4-3-hybrid接口">4.3. Hybrid接口</h2>
+<p>Hybrid接口既可以用于连接不能识别Tag的用户终端（如用户主机、服务器）和网络设备（如Hub），也可以用于连接交换机、路由器以及可同时收发Tagged帧和Untagged帧的语音终端、AP。它可以允许多个VLAN的帧带Tag通过，且允许从该类接口发出的帧根据需要配置某些VLAN的帧带Tag（即不剥除Tag）、某些VLAN的帧不带Tag（即剥除Tag）。</p>
+<p>参考：</p>
+<ul>
+<li><a href="https://mp.weixin.qq.com/s/5wH9QbBTGKpYaolRbMijMA">https://mp.weixin.qq.com/s/5wH9QbBTGKpYaolRbMijMA</a></li>
+<li><a href="https://www.wpgdadatong.com.cn/blog/detail/71784">https://www.wpgdadatong.com.cn/blog/detail/71784</a></li>
 </ul>
 
 </div>
@@ -12500,6 +12563,80 @@ a. 重命名远程分支对应的本地分支</p>
     
 	
   
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-703079dad1fd73ade9e4c50d7b207138">11.4 - 配置Nginx免费证书</h1>
+    
+	<h1 id="1-介绍">1. 介绍</h1>
+<p>网站的 SSL/TLS 加密会为您的用户带来更靠前的搜索排名和更出色的安全性。但是最大障碍是证书获取成本高昂和所涉人工流程繁琐。</p>
+<p>Let’s Encrypt 是一家免费、开放、自动化的证书颁发机构 (CA)。本文介绍了如何使用 Let’s Encrypt 客户端生成证书，以及如何自动配置 NGINX 开源版和 NGINX Plus 以使用这些证书。</p>
+<h1 id="2-安装certbot">2. 安装certbot</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>apt-get update
+</span></span><span style="display:flex;"><span>sudo apt-get install certbot
+</span></span><span style="display:flex;"><span>apt-get install python3-certbot-nginx
+</span></span></code></pre></div><h1 id="3-为域名生成证书">3. 为域名生成证书</h1>
+<p>执行以下命令会生成一个<code>90天到期</code>的证书文件。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo certbot --nginx -d www.example.com
+</span></span></code></pre></div><p>以上命令会在<code>/etc/letsencrypt/live/</code>生成证书文件。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#204a87">cd</span> /etc/letsencrypt/live/www.example.com
+</span></span><span style="display:flex;"><span>ls
+</span></span><span style="display:flex;"><span>README  cert.pem  chain.pem  fullchain.pem  privkey.pem
+</span></span></code></pre></div><p>如果配置成功会生成以下信息：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>Congratulations! You have successfully enabled https://example.com and https://www.example.com 
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>-------------------------------------------------------------------------------------
+</span></span><span style="display:flex;"><span>IMPORTANT NOTES: 
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Congratulations! Your certificate and chain have been saved at: 
+</span></span><span style="display:flex;"><span>/etc/letsencrypt/live/example.com/fullchain.pem 
+</span></span><span style="display:flex;"><span>Your key file has been saved at: 
+</span></span><span style="display:flex;"><span>/etc/letsencrypt/live/example.com//privkey.pem
+</span></span><span style="display:flex;"><span>Your cert will expire on 2017-12-12.
+</span></span></code></pre></div><p>并且certbot会自动为<strong>domain‑name.conf</strong>文件自行修改证书路径。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>server <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    listen <span style="color:#0000cf;font-weight:bold">80</span> default_server<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>    listen <span style="color:#ce5c00;font-weight:bold">[</span>::<span style="color:#ce5c00;font-weight:bold">]</span>:80 default_server<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>    root /var/www/html<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>    server_name  example.com www.example.com<span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    listen <span style="color:#0000cf;font-weight:bold">443</span> ssl<span style="color:#000;font-weight:bold">;</span> <span style="color:#8f5902;font-style:italic"># managed by Certbot</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic"># RSA certificate</span>
+</span></span><span style="display:flex;"><span>    ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem<span style="color:#000;font-weight:bold">;</span> <span style="color:#8f5902;font-style:italic"># managed by Certbot</span>
+</span></span><span style="display:flex;"><span>    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem<span style="color:#000;font-weight:bold">;</span> <span style="color:#8f5902;font-style:italic"># managed by Certbot</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    include /etc/letsencrypt/options-ssl-nginx.conf<span style="color:#000;font-weight:bold">;</span> <span style="color:#8f5902;font-style:italic"># managed by Certbot</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic"># Redirect non-https traffic to https</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#ce5c00;font-weight:bold">(</span><span style="color:#000">$scheme</span> !<span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;https&#34;</span><span style="color:#ce5c00;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#0000cf;font-weight:bold">301</span> https://<span style="color:#000">$host$request_uri</span><span style="color:#000;font-weight:bold">;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span> <span style="color:#8f5902;font-style:italic"># managed by Certbot</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="3-重启nginx">3. 重启Nginx</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>nginx -t <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> nginx -s reload
+</span></span></code></pre></div><h1 id="4-自动更新证书">4. 自动更新证书</h1>
+<p>Let’s Encrypt 证书将在 90 天后到期， 因此设置定时任务自动更新证书。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>crontab -e
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 将以下信息写入到crontab文件中</span>
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#0000cf;font-weight:bold">12</span> * * * /usr/bin/certbot renew --quiet
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="https://www.nginx-cn.net/blog/using-free-ssltls-certificates-from-lets-encrypt-with-nginx/">更新：为 NGINX 配置免费的 Let’s Encrypt SSL/TLS 证书</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
 
     
 	
@@ -16408,6 +16545,7 @@ a. 重命名远程分支对应的本地分支</p>
 <ul>
 <li><a href="disk/lvm-usage.md">LVM的使用</a></li>
 <li><a href="disk/disk-command.md">磁盘命令</a></li>
+<li><a href="disk/disk-raid.md">Raid介绍</a></li>
 </ul>
 </li>
 </ul>
@@ -16429,7 +16567,10 @@ a. 重命名远程分支对应的本地分支</p>
 </li>
 <li><a href="">网络命令</a>
 <ul>
-<li><a href="network/iptables.md">iptables</a></li>
+<li><a href="network/iptables.md">iptables介绍</a></li>
+<li><a href="network/iptables-command.md">iptables命令</a></li>
+<li><a href="network/tcpdump.md">tcpdump命令</a></li>
+<li><a href="network/wrk-usage.md">wrk压测命令</a></li>
 </ul>
 </li>
 </ul>
@@ -16503,6 +16644,7 @@ a. 重命名远程分支对应的本地分支</p>
 <li><a href="nginx/install-nginx.md">Nginx安装与配置</a></li>
 <li><a href="nginx/nginx-proxy.md">Nginx作为反向代理</a></li>
 <li><a href="nginx/nginx-http.md">Nginx http服务器</a></li>
+<li><a href="nginx/config-ssl-for-nginx.md">配置Nginx免费证书</a></li>
 </ul>
 </li>
 <li><a href="">Keepalived</a>
@@ -16511,6 +16653,11 @@ a. 重命名远程分支对应的本地分支</p>
 <li><a href="keepalived/install-keepalived.md">Keepalived的安装与配置</a></li>
 <li><a href="keepalived/keepalived-operation.md">Keepalived的相关操作</a></li>
 <li><a href="keepalived/keepalived-conf.md">Keepalived的配置详解</a></li>
+</ul>
+</li>
+<li><a href="">Baremetal</a>
+<ul>
+<li><a href="baremetal/bmc.md">bmc概念</a></li>
 </ul>
 </li>
 </ul>
@@ -16533,9 +16680,9 @@ a. 重命名远程分支对应的本地分支</p>
 </li>
 <li><a href="">vim</a>
 <ul>
-<li><a href="vim/vim-keymap.md">vim命令</a></li>
-<li><a href="vim/vimrc-cn.md">vimrc配置</a></li>
-<li><a href="vim/basic-vimrc.md">basic vimrc</a></li>
+<li><a href="ide/vim/vim-keymap.md">vim命令</a></li>
+<li><a href="ide/vim/vimrc-cn.md">vimrc配置</a></li>
+<li><a href="ide/vim/basic-vimrc.md">basic vimrc</a></li>
 </ul>
 </li>
 </ul>
