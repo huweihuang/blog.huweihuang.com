@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.b8fc3823ae0d1da0e663a0aff640a2c4.json"
+  data-offline-search-index-json-src="/offline-search-index.aef4cd147e0341a6f479f66edd82c33b.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -229,6 +229,14 @@ if (!doNotTrack) {
     
 	
 <li>6: <a href="#pg-3c94e21a7f8d25dbd0f1027dd1ff8ac0">netplan介绍</a></li>
+
+
+    
+  
+    
+    
+	
+<li>7: <a href="#pg-6b897bd3369333340265bef5a501a17a">网卡Bonding介绍</a></li>
 
 
     
@@ -1145,6 +1153,147 @@ if (!doNotTrack) {
 <li><a href="https://manpages.ubuntu.com/manpages/bionic/man5/systemd.netdev.5.html">https://manpages.ubuntu.com/manpages/bionic/man5/systemd.netdev.5.html</a></li>
 </ul>
 
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-6b897bd3369333340265bef5a501a17a">7 - 网卡Bonding介绍</h1>
+    
+	<h1 id="1-概述">1. 概述</h1>
+<p>网络接口绑定（Network Interface Bonding），也称为链路聚合（Link Aggregation）或NIC Teaming，是将多个物理网络接口聚合成一个逻辑接口，以提高带宽和提供冗余性的技术。这种技术广泛应用于服务器和高性能计算环境中，以确保网络的高可用性和高性能。</p>
+<h1 id="2-优势">2. 优势</h1>
+<ol>
+<li><strong>增加带宽</strong>：通过聚合多个网络接口，整体带宽增加，从而提升网络吞吐量。</li>
+<li><strong>高可用性</strong>：在一个接口发生故障时，其他接口可以继续工作，确保网络连接的连续性。</li>
+<li><strong>负载均衡</strong>：数据流量可以在多个接口之间均衡分配，避免单一接口成为瓶颈。</li>
+<li><strong>简化管理</strong>：将多个接口管理为一个逻辑接口，简化了网络配置和管理。</li>
+</ol>
+<h1 id="3-bonding-模式">3. Bonding 模式</h1>
+<p>Linux 支持多种 Bonding 模式，每种模式都有其独特的特点和应用场景：</p>
+<ol>
+<li><strong>mode=0 (balance-rr)</strong>：循环方式（Round-robin），每个数据包依次从每个接口发送。提供负载均衡和容错功能。</li>
+<li><strong>mode=1 (active-backup)</strong>：主备模式（Active-backup），一个接口为主接口，其他接口为备份接口。当主接口失败时，备份接口接管。提供高可用性。</li>
+<li><strong>mode=2 (balance-xor)</strong>：根据传输散列算法选择接口。提供负载均衡和容错功能。</li>
+<li><strong>mode=3 (broadcast)</strong>：广播模式，所有数据包通过所有接口发送。提供容错功能。</li>
+<li><strong>mode=4 (802.3ad)</strong>：动态链路聚合（LACP），需要交换机支持 IEEE 802.3ad。提供负载均衡和高可用性。</li>
+<li><strong>mode=5 (balance-tlb)</strong>：基于发送负载的自适应传输负载均衡（Adaptive Transmit Load Balancing）。无需特殊交换机支持。</li>
+<li><strong>mode=6 (balance-alb)</strong>：基于接收负载的自适应负载均衡（Adaptive Load Balancing）。无需特殊交换机支持。</li>
+</ol>
+<h1 id="4-配置示例">4. 配置示例</h1>
+<p>以下是使用 <code>systemd-networkd</code> 配置 Bonding 的示例。</p>
+<h2 id="4-1-配置物理接口">4.1. 配置物理接口</h2>
+<p>首先，配置要绑定的物理接口。例如，<code>enp26s0f0</code> 和 <code>enp26s0f1</code>：</p>
+<p>创建文件 <code>/etc/systemd/network/10-enp26s0f0.network</code>：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Match<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Name</span><span style="color:#ce5c00;font-weight:bold">=</span>enp26s0f0
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Network<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Bond</span><span style="color:#ce5c00;font-weight:bold">=</span>bond0
+</span></span></code></pre></div><p>创建文件 <code>/etc/systemd/network/10-enp26s0f1.network</code>：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Match<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Name</span><span style="color:#ce5c00;font-weight:bold">=</span>enp26s0f1
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Network<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Bond</span><span style="color:#ce5c00;font-weight:bold">=</span>bond0
+</span></span></code></pre></div><h2 id="4-2-配置-bonding-接口">4.2. 配置 Bonding 接口</h2>
+<p>创建文件 <code>/etc/systemd/network/bond0.netdev</code> 来定义 Bonding 接口：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>NetDev<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Name</span><span style="color:#ce5c00;font-weight:bold">=</span>bond0
+</span></span><span style="display:flex;"><span><span style="color:#000">Kind</span><span style="color:#ce5c00;font-weight:bold">=</span>bond
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Bond<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Mode</span><span style="color:#ce5c00;font-weight:bold">=</span>802.3ad
+</span></span><span style="display:flex;"><span><span style="color:#000">MIIMonitorSec</span><span style="color:#ce5c00;font-weight:bold">=</span>1s
+</span></span><span style="display:flex;"><span><span style="color:#000">LACPTransmitRate</span><span style="color:#ce5c00;font-weight:bold">=</span>fast
+</span></span></code></pre></div><h2 id="4-3-配置-bonding-接口的网络设置">4.3. 配置 Bonding 接口的网络设置</h2>
+<p>创建文件 <code>/etc/systemd/network/10-bond0.network</code> 来配置 Bonding 接口的网络设置：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Match<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Name</span><span style="color:#ce5c00;font-weight:bold">=</span>bond0
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Network<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Address</span><span style="color:#ce5c00;font-weight:bold">=</span>192.168.1.10/24
+</span></span><span style="display:flex;"><span><span style="color:#000">Gateway</span><span style="color:#ce5c00;font-weight:bold">=</span>192.168.1.1
+</span></span><span style="display:flex;"><span><span style="color:#000">DNS</span><span style="color:#ce5c00;font-weight:bold">=</span>8.8.8.8
+</span></span><span style="display:flex;"><span><span style="color:#000">DNS</span><span style="color:#ce5c00;font-weight:bold">=</span>8.8.4.4
+</span></span></code></pre></div><h2 id="4-4-应用配置">4.4. 应用配置</h2>
+<p>保存配置文件后，重新启动 <code>systemd-networkd</code> 服务以应用新的网络配置：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo systemctl restart systemd-networkd
+</span></span></code></pre></div><h2 id="4-5-检查配置">4.5. 检查配置</h2>
+<p>或者查看具体接口的详细信息：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># networkctl status bond0</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>● 8: bond0
+</span></span><span style="display:flex;"><span>                   Link File: /usr/lib/systemd/network/99-default.link
+</span></span><span style="display:flex;"><span>                Network File: /run/systemd/network/10-netplan-bond0.network
+</span></span><span style="display:flex;"><span>                       State: degraded <span style="color:#ce5c00;font-weight:bold">(</span>configured<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>                Online state: online
+</span></span><span style="display:flex;"><span>                        Type: bond
+</span></span><span style="display:flex;"><span>                        Kind: bond
+</span></span><span style="display:flex;"><span>                      Driver: bonding
+</span></span><span style="display:flex;"><span>            Hardware Address: 4e:0e:43:ba:f7:82
+</span></span><span style="display:flex;"><span>                         MTU: <span style="color:#0000cf;font-weight:bold">1500</span> <span style="color:#ce5c00;font-weight:bold">(</span>min: 68, max: 65535<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>                       QDisc: noqueue
+</span></span><span style="display:flex;"><span>IPv6 Address Generation Mode: eui64
+</span></span><span style="display:flex;"><span>                        Mode: 802.3ad
+</span></span><span style="display:flex;"><span>                      Miimon: 100ms
+</span></span><span style="display:flex;"><span>                     Updelay: <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>                   Downdelay: <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>    Number of Queues <span style="color:#ce5c00;font-weight:bold">(</span>Tx/Rx<span style="color:#ce5c00;font-weight:bold">)</span>: 16/16
+</span></span><span style="display:flex;"><span>            Auto negotiation: no
+</span></span><span style="display:flex;"><span>                       Speed: 20Gbps
+</span></span><span style="display:flex;"><span>                      Duplex: full
+</span></span><span style="display:flex;"><span>                     Address: xxx::4c0e:43ff:feba:xxx
+</span></span><span style="display:flex;"><span>           Activation Policy: up
+</span></span><span style="display:flex;"><span>         Required For Online: yes
+</span></span><span style="display:flex;"><span>           DHCP6 Client DUID: DUID-EN/Vendor:0000ab111fbd6366525ac0ea
+</span></span></code></pre></div><h1 id="5-通过命令配置bond">5. 通过命令配置bond</h1>
+<h2 id="5-1-通过ip命令做bond">5.1. 通过IP命令做bond</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#!/bin/bash
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 安装必要的软件包</span>
+</span></span><span style="display:flex;"><span>sudo apt-get update
+</span></span><span style="display:flex;"><span>sudo apt-get install -y ifenslave
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建 Bond 接口</span>
+</span></span><span style="display:flex;"><span>sudo ip link add bond0 <span style="color:#204a87">type</span> bond
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 设置 Bond 模式</span>
+</span></span><span style="display:flex;"><span>sudo ip link <span style="color:#204a87">set</span> bond0 <span style="color:#204a87">type</span> bond mode 802.3ad
+</span></span><span style="display:flex;"><span>或者
+</span></span><span style="display:flex;"><span>modprobe bonding <span style="color:#000">mode</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">4</span> <span style="color:#000">miimon</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">100</span> <span style="color:#000">lacp_rate</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1</span> <span style="color:#000">xmit_hash_policy</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 添加从接口到 Bond 接口</span>
+</span></span><span style="display:flex;"><span>sudo ip link <span style="color:#204a87">set</span> enp26s0f0 down
+</span></span><span style="display:flex;"><span>sudo ip link <span style="color:#204a87">set</span> enp26s0f0 master bond0
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>sudo ip link <span style="color:#204a87">set</span> enp26s0f1 down
+</span></span><span style="display:flex;"><span>sudo ip link <span style="color:#204a87">set</span> enp26s0f1 master bond0
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 配置 Bond 接口的 IP 地址</span>
+</span></span><span style="display:flex;"><span>sudo ip addr add 192.168.1.10/24 dev bond0
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 启用 Bond 接口</span>
+</span></span><span style="display:flex;"><span>sudo ip link <span style="color:#204a87">set</span> bond0 up
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 启用从接口</span>
+</span></span><span style="display:flex;"><span>sudo ip link <span style="color:#204a87">set</span> enp26s0f0 up
+</span></span><span style="display:flex;"><span>sudo ip link <span style="color:#204a87">set</span> enp26s0f1 up
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> <span style="color:#4e9a06">&#34;Bond 接口配置完成&#34;</span>
+</span></span></code></pre></div><p>查看bond状态</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>cat /proc/net/bonding/bond0
+</span></span></code></pre></div>
 </div>
 
 
