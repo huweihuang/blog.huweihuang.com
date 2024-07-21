@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.94b706af0121f8fad79fa39659815f4b.json"
+  data-offline-search-index-json-src="/offline-search-index.bf85a20125f857bfed7e85716ba74f1b.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -2130,7 +2130,34 @@ if (!doNotTrack) {
     
     
 	
-<li>17: <a href="#pg-0b0757037fa2d97bf46505f9dd60576d"></a></li>
+<li>17: <a href="#pg-7b4b96a3a83b45c497c96ca31639e4fe">Serverless</a></li>
+
+
+    
+    <ul>
+        
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>17.1: <a href="#pg-e44de3d390def178636536ce707a8319">knative介绍</a></li>
+
+
+    
+  
+
+    </ul>
+    
+  
+    
+    
+	
+<li>18: <a href="#pg-0b0757037fa2d97bf46505f9dd60576d"></a></li>
 
 
     
@@ -26260,7 +26287,187 @@ withfields： 使用InfluxDB fields(默认：false)。</p>
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-0b0757037fa2d97bf46505f9dd60576d">17 - </h1>
+	<h1 id="pg-7b4b96a3a83b45c497c96ca31639e4fe">17 - Serverless</h1>
+    
+	
+</div>
+
+
+
+    
+      
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-e44de3d390def178636536ce707a8319">17.1 - knative介绍</h1>
+    
+	<h1 id="1-knative简介">1. knative简介</h1>
+<p>knative是一个将serverless的能力扩展到k8s中的开源项目。serverless让开发者无需关注容器、镜像、运维等事项，集中精力于开发代码本身，即将代码通过免运维的形式交付给serverless平台。代码会在设定的条件下运行，并自动实现扩缩容。</p>
+<h1 id="2-knative的组件">2. knative的组件</h1>
+<p>knative主要包含三个部分：</p>
+<ul>
+<li>
+<p><strong>build</strong>: 将代码转换为容器，主要包括</p>
+<ul>
+<li>将源代码从git仓库拉取下来，安装相关的依赖</li>
+<li>构建容器镜像</li>
+<li>将容器镜像推送到镜像仓库</li>
+</ul>
+</li>
+<li>
+<p><strong>Serving</strong>：创建一个可伸缩的部署。</p>
+<ul>
+<li>配置定义了服务的状态，包括版本管理，每次修改都创建一个新版本部署，并保留旧版本。</li>
+<li>灵活的路由控制，可以控制百分比的路由到新版本和旧版本服务。</li>
+<li>自动弹性伸缩，可以快速创建上千个实例或快速调整实例数为0。</li>
+</ul>
+</li>
+<li>
+<p><strong>Eventing</strong>：事件触发，通过定义各种事件使用knative自动来完成这些任务，而无需手动编写脚本。</p>
+</li>
+</ul>
+<h1 id="3-部署knative">3. 部署knative</h1>
+<p>部署knative主要是部署Serving和Eventing两个组件，可以单独部署也可以同时部署。</p>
+<h2 id="3-1-部署serving">3.1. 部署Serving</h2>
+<ol>
+<li>
+<p>部署CRD</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl apply -f https://github.com/knative/serving/releases/download/knative-v1.10.1/serving-crds.yaml
+</span></span></code></pre></div></li>
+<li>
+<p>部署Serving</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl apply -f https://github.com/knative/serving/releases/download/knative-v1.10.1/serving-core.yaml
+</span></span></code></pre></div></li>
+<li>
+<p>部署HPA autoscaling（可选）</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl apply -f https://github.com/knative/serving/releases/download/knative-v1.10.1/serving-hpa.yaml
+</span></span></code></pre></div></li>
+</ol>
+<p>查看部署结果</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kgdep -n knative-serving</span>
+</span></span><span style="display:flex;"><span>NAME                                    READY   UP-TO-DATE   AVAILABLE   AGE
+</span></span><span style="display:flex;"><span>deployment.apps/activator               1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           107s
+</span></span><span style="display:flex;"><span>deployment.apps/autoscaler              1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           107s
+</span></span><span style="display:flex;"><span>deployment.apps/autoscaler-hpa          1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           107s
+</span></span><span style="display:flex;"><span>deployment.apps/controller              1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           107s
+</span></span><span style="display:flex;"><span>deployment.apps/domain-mapping          1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           107s
+</span></span><span style="display:flex;"><span>deployment.apps/domainmapping-webhook   1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           107s
+</span></span><span style="display:flex;"><span>deployment.apps/webhook                 1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           107s
+</span></span></code></pre></div><h2 id="3-2-部署eventing">3.2. 部署Eventing</h2>
+<ol>
+<li>
+<p>部署CRD</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl apply -f https://github.com/knative/eventing/releases/download/knative-v1.10.0/eventing-crds.yaml
+</span></span></code></pre></div></li>
+<li>
+<p>部署Eventing</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl apply -f https://github.com/knative/eventing/releases/download/knative-v1.10.0/eventing-core.yaml
+</span></span></code></pre></div></li>
+</ol>
+<p>查看部署结果</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kgdep -n knative-eventing</span>
+</span></span><span style="display:flex;"><span>NAME                    READY   UP-TO-DATE   AVAILABLE   AGE
+</span></span><span style="display:flex;"><span>eventing-controller     1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           2m13s
+</span></span><span style="display:flex;"><span>eventing-webhook        1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           2m13s
+</span></span><span style="display:flex;"><span>pingsource-mt-adapter   0/0     <span style="color:#0000cf;font-weight:bold">0</span>            <span style="color:#0000cf;font-weight:bold">0</span>           2m13s
+</span></span></code></pre></div><h1 id="4-部署knative客户端">4. 部署knative客户端</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span> wget https://github.com/knative/client/releases/download/knative-v1.10.0/kn-linux-amd64
+</span></span><span style="display:flex;"><span> chmod +x kn-linux-amd64
+</span></span><span style="display:flex;"><span> mv kn-linux-amd64 /usr/bin/kn
+</span></span></code></pre></div><p>kn命令：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kn
+</span></span><span style="display:flex;"><span>kn is the <span style="color:#204a87">command</span> line interface <span style="color:#204a87;font-weight:bold">for</span> managing Knative Serving and Eventing resources
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Find more information about Knative at: https://knative.dev
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Serving Commands:
+</span></span><span style="display:flex;"><span>  service      Manage Knative services
+</span></span><span style="display:flex;"><span>  revision     Manage service revisions
+</span></span><span style="display:flex;"><span>  route        List and describe service routes
+</span></span><span style="display:flex;"><span>  domain       Manage domain mappings
+</span></span><span style="display:flex;"><span>  container    Manage service<span style="color:#a40000">&#39;</span>s containers <span style="color:#ce5c00;font-weight:bold">(</span>experimental<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Eventing Commands:
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">source</span>       Manage event sources
+</span></span><span style="display:flex;"><span>  broker       Manage message brokers
+</span></span><span style="display:flex;"><span>  trigger      Manage event triggers
+</span></span><span style="display:flex;"><span>  channel      Manage event channels
+</span></span><span style="display:flex;"><span>  subscription Manage event subscriptions
+</span></span><span style="display:flex;"><span>  eventtype    Manage eventtypes
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Other Commands:
+</span></span><span style="display:flex;"><span>  plugin       Manage kn plugins
+</span></span><span style="display:flex;"><span>  secret       Manage secrets
+</span></span><span style="display:flex;"><span>  completion   Output shell completion code
+</span></span><span style="display:flex;"><span>  version      Show the version of this client
+</span></span></code></pre></div><h1 id="5-创建示例服务">5. 创建示例服务</h1>
+<p>以下通过yaml的方式演示。</p>
+<blockquote>
+<p>vi hello.yaml</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">serving.knative.dev/v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Service</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">hello</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">template</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span>- <span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">ghcr.io/knative/helloworld-go:latest</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">ports</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">            </span>- <span style="color:#204a87;font-weight:bold">containerPort</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">8080</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">env</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">            </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">TARGET</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">              </span><span style="color:#204a87;font-weight:bold">value</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;World&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>创建文件</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl apply -f hello.yaml
+</span></span></code></pre></div><p>查看服务</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kubectl get ksvc</span>
+</span></span><span style="display:flex;"><span>NAME    URL                                      LATESTCREATED   LATESTREADY   READY     REASON
+</span></span><span style="display:flex;"><span>hello   http://hello.default.svc.cluster.local   hello-00001     hello-00001   Unknown   IngressNotConfigured
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kubectl get po</span>
+</span></span><span style="display:flex;"><span>NAME                                     READY   STATUS    RESTARTS   AGE
+</span></span><span style="display:flex;"><span>hello-00001-deployment-6469df75c-qpp5v   2/2     Running   <span style="color:#0000cf;font-weight:bold">0</span>          15m
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="https://www.ibm.com/topics/knative">https://www.ibm.com/topics/knative</a></li>
+<li><a href="https://knative.dev/docs/concepts/">https://knative.dev/docs/concepts/</a></li>
+<li><a href="https://knative.dev/docs/serving/">https://knative.dev/docs/serving/</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-0b0757037fa2d97bf46505f9dd60576d">18 - </h1>
     
 	<h1 id="summary">Summary</h1>
 <h2 id="目录-a-id-introduction-a">目录 <a id="introduction"></a></h2>
