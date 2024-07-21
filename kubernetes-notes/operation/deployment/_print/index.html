@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.aef4cd147e0341a6f479f66edd82c33b.json"
+  data-offline-search-index-json-src="/offline-search-index.94b706af0121f8fad79fa39659815f4b.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -189,6 +189,14 @@ if (!doNotTrack) {
     
 	
 <li>1: <a href="#pg-95b06c53cc40973b00b544beeff601fb">金丝雀发布</a></li>
+
+
+    
+  
+    
+    
+	
+<li>2: <a href="#pg-41c516f97d3e1fa8b834aa015c334c1e">HPA[自动扩缩容]配置</a></li>
 
 
     
@@ -257,6 +265,78 @@ if (!doNotTrack) {
 <li><a href="https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/deployment/">https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/deployment/</a></li>
 <li><a href="https://kubernetes.io/zh-cn/docs/concepts/cluster-administration/manage-deployment/#canary-deployments">https://kubernetes.io/zh-cn/docs/concepts/cluster-administration/manage-deployment/#canary-deployments</a></li>
 <li><a href="https://kubernetes.renkeju.com/chapter_5/5.3.4.Canary_release.html">https://kubernetes.renkeju.com/chapter_5/5.3.4.Canary_release.html</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-41c516f97d3e1fa8b834aa015c334c1e">2 - HPA[自动扩缩容]配置</h1>
+    
+	<h1 id="1-hpa简介">1. HPA简介</h1>
+<p>HPA全称<strong>HorizontalPodAutoscaler</strong>，即pod水平扩容，增加或减少pod的数量。相对于VPA而言，VPA是增加或减少单个pod的CPU或内存。HPA主要作用于Deployment或Statefulset的工作负载，无法作用于Daemonset的工作负载。</p>
+<p>示例图：</p>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1685108029/article/kubernetes/pod/hpa.png" alt=""></p>
+<p>Kubernetes 将水平 Pod 自动扩缩实现为一个间歇运行的控制回路（它不是一个连续的过程）。间隔由 <a href="https://kubernetes.io/zh-cn/docs/reference/command-line-tools-reference/kube-controller-manager/"><code>kube-controller-manager</code></a> 的 <code>--horizontal-pod-autoscaler-sync-period</code> 参数设置（默认间隔为 15 秒）。</p>
+<p>在每个时间段内，控制器管理器都会根据每个 HorizontalPodAutoscaler 定义中指定的指标查询资源利用率。 控制器管理器找到由 <code>scaleTargetRef</code> 定义的目标资源，然后根据目标资源的 <code>.spec.selector</code> 标签选择 Pod， 并从资源指标 API（针对每个 Pod 的资源指标）或自定义指标获取指标 API（适用于所有其他指标）。</p>
+<p>HPA依赖metrics-server来获取CPU和内存数据，以下说明metrics-server的部署流程。</p>
+<h1 id="2-部署metrics-server">2. 部署metrics-server</h1>
+<p>下载metrics-server文件</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>wget https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+</span></span></code></pre></div><p>修改启动参数，增加<code>--kubelet-insecure-tls</code>，否则会报获取接口证书失败。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>    spec:
+</span></span><span style="display:flex;"><span>      containers:
+</span></span><span style="display:flex;"><span>      - args:
+</span></span><span style="display:flex;"><span>        - --cert-dir<span style="color:#ce5c00;font-weight:bold">=</span>/tmp
+</span></span><span style="display:flex;"><span>        - --secure-port<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">4443</span>
+</span></span><span style="display:flex;"><span>        - --kubelet-preferred-address-types<span style="color:#ce5c00;font-weight:bold">=</span>InternalIP,ExternalIP,Hostname
+</span></span><span style="display:flex;"><span>        - --kubelet-use-node-status-port
+</span></span><span style="display:flex;"><span>        - --metric-resolution<span style="color:#ce5c00;font-weight:bold">=</span>15s
+</span></span><span style="display:flex;"><span>        - --kubelet-insecure-tls  <span style="color:#8f5902;font-style:italic"># 增加该参数</span>
+</span></span></code></pre></div><p>创建yaml服务</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl apply -f components.yaml
+</span></span></code></pre></div><p>通过kubectl top查看资源信息</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kubectl top node</span>
+</span></span><span style="display:flex;"><span>NAME          CPU<span style="color:#ce5c00;font-weight:bold">(</span>cores<span style="color:#ce5c00;font-weight:bold">)</span>   CPU%   MEMORY<span style="color:#ce5c00;font-weight:bold">(</span>bytes<span style="color:#ce5c00;font-weight:bold">)</span>   MEMORY%
+</span></span><span style="display:flex;"><span>node1         144m         0%     5762Mi          2%
+</span></span><span style="display:flex;"><span>node2         337m         0%     5475Mi          2%
+</span></span><span style="display:flex;"><span>node3         100m         0%     5326Mi          2%
+</span></span><span style="display:flex;"><span>node4         302m         0%     5649Mi          2%
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kubectl top pod -n prometheus</span>
+</span></span><span style="display:flex;"><span>NAME                                                        CPU<span style="color:#ce5c00;font-weight:bold">(</span>cores<span style="color:#ce5c00;font-weight:bold">)</span>   MEMORY<span style="color:#ce5c00;font-weight:bold">(</span>bytes<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>alertmanager-kube-prometheus-stack-alertmanager-0           1m           30Mi
+</span></span><span style="display:flex;"><span>kube-prometheus-stack-grafana-7688b45b4c-mvwd6              1m           225Mi
+</span></span><span style="display:flex;"><span>kube-prometheus-stack-kube-state-metrics-5d6578867c-25xbq   1m           21Mi
+</span></span><span style="display:flex;"><span>kube-prometheus-stack-operator-9c5fbdc68-nrn7h              1m           33Mi
+</span></span><span style="display:flex;"><span>kube-prometheus-stack-prometheus-node-exporter-8ghd8        1m           4Mi
+</span></span><span style="display:flex;"><span>kube-prometheus-stack-prometheus-node-exporter-brtp9        1m           4Mi
+</span></span><span style="display:flex;"><span>kube-prometheus-stack-prometheus-node-exporter-n4kdp        1m           4Mi
+</span></span><span style="display:flex;"><span>kube-prometheus-stack-prometheus-node-exporter-ttksv        1m           4Mi
+</span></span><span style="display:flex;"><span>prometheus-kube-prometheus-stack-prometheus-0               8m           622Mi
+</span></span></code></pre></div><p>同时在k8s dashboard上也可以查看到实时的CPU和内存信息。</p>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1685346450/article/kubernetes/monitor/pod-metrics.png" alt=""></p>
+<h1 id="3-hpa配置">3. HPA配置</h1>
+<blockquote>
+<p>todo</p>
+</blockquote>
+<p>参考：</p>
+<ul>
+<li><a href="https://kubernetes.io/zh-cn/docs/tasks/run-application/horizontal-pod-autoscale/">https://kubernetes.io/zh-cn/docs/tasks/run-application/horizontal-pod-autoscale/</a></li>
+<li><a href="https://kubernetes.io/zh-cn/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/">https://kubernetes.io/zh-cn/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/</a></li>
+<li><a href="https://kubernetes.io/zh-cn/docs/tasks/debug/debug-cluster/resource-metrics-pipeline/#metrics-server">https://kubernetes.io/zh-cn/docs/tasks/debug/debug-cluster/resource-metrics-pipeline/#metrics-server</a></li>
+<li><a href="https://github.com/kubernetes-sigs/metrics-server">https://github.com/kubernetes-sigs/metrics-server</a></li>
+<li><a href="https://www.qikqiak.com/post/k8s-hpa-usage/">https://www.qikqiak.com/post/k8s-hpa-usage/</a></li>
 </ul>
 
 </div>
