@@ -58,7 +58,7 @@ RAID的基本思想是将多个容量较小、速度较慢、可靠性较差的�
 3. Raid的级别 RAID级别命名方式如，RAID 0、RAID 1/RAID 5、RAID 10等。RAID每一个级别代表一种RAID组合实现方法和技术，级别之间并无高低之分。不同等级的 RAID 采用其中一个或多个技术，得到的是不同的容量、I/O性能、可靠性、可用性。在决定选择哪种RAID级别之前，需要深入理解系统需求，根据自身情况进行合理选择，综合评估可靠性、性能和成本来进行折中的选择。
 Raid等级 Raid0 Raid1 Raid3 Raid5 Raid6 Raid10 别名 条带 镜像 专用奇偶校验条带 分布奇偶校验条带 双重奇偶校验条带 镜像&#43;条带 容错性 无 有 有 有 有 有 冗余类型 无 有 有 有 有 有 热备份选择 无 有 有 有 有 有 读性能 高 低 高 高 高 高 随机写性能 高 低 低 一般 低 一般 连续写性能 高 低 低 低 低 一般 需要磁盘数 n&gt;=1 2n(n&gt;=1) n&gt;=3 n&gt;=3 n&gt;=4 2n&gt;=4 可用容量 全部 50% （n-1）/n （n-1）/n （n-2）/n 50% 4."><meta itemprop="datePublished" content="2024-04-01T10:50:57+00:00" />
 <meta itemprop="dateModified" content="2024-04-02T17:57:00+08:00" />
-<meta itemprop="wordCount" content="140">
+<meta itemprop="wordCount" content="235">
 <meta itemprop="keywords" content="disk," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Raid介绍"/>
 <meta name="twitter:description" content="1. Raid是什么 RAID英文全称Redundant Array of Independent Disk，翻译过来就是“独立磁盘冗余系统”。RAID是一种可提高性能或提供容错功能的磁盘子系统。
@@ -186,7 +186,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.7ba6cbff0a0d8893865c3d04b293d931.json"
+  data-offline-search-index-json-src="/offline-search-index.878aa2fdd4f93c7eb2644102ec64efba.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -208,7 +208,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.7ba6cbff0a0d8893865c3d04b293d931.json"
+  data-offline-search-index-json-src="/offline-search-index.878aa2fdd4f93c7eb2644102ec64efba.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -650,7 +650,8 @@ if (!doNotTrack) {
         <li><a href="#4-5-raid10">4.5. Raid10</a></li>
       </ul>
     </li>
-    <li><a href="#5-如何查看和制作raid">5. 如何查看和制作Raid</a></li>
+    <li><a href="#5-硬raid和软raid区别">5. 硬Raid和软Raid区别</a></li>
+    <li><a href="#6-如何配置硬raid">6. 如何配置硬Raid</a></li>
   </ul>
 </nav></div>
 
@@ -995,10 +996,57 @@ if (!doNotTrack) {
 <p>RAID10其实就是RAID1与RAID0的一个合体。RAID10兼备了RAID1和RAID0的有优点。</p>
 <p>首先基于RAID1模式将磁盘分为2份，当要写入数据的时候，将所有的数据在两份磁盘上同时写入，相当于写了双份数据，起到了数据保障的作用。且在每一份磁盘上又会基于RAID0技术讲数据分为N份并发的读写，这样也保障了数据的效率。RAID10模式是有一半的磁盘空间用于存储冗余数据的，浪费的很严重，因此用的也不是很多。</p>
 <p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1712049569/article/linux/disk/raid10.png" alt=""></p>
-<h1 id="5-如何查看和制作raid">5. 如何查看和制作Raid</h1>
-<blockquote>
-<p>todo</p>
-</blockquote>
+<h1 id="5-硬raid和软raid区别">5. 硬Raid和软Raid区别</h1>
+<p>硬raid主要是通过厂商的硬件raid卡控制器来实现，而软raid主要是操作系统的raid命令来实现（例如 mdadm 命令）。</p>
+<p>以下是2者的区别：</p>
+<table>
+<thead>
+<tr>
+<th>分类</th>
+<th>硬raid</th>
+<th>软raid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>实现方式</td>
+<td>硬件 RAID 使用专用的 RAID 控制器卡，这是一块独立的硬件，通常插入到服务器或工作站的 PCIe 插槽中。该控制器处理所有 RAID 计算和磁盘管理任务，减轻了主机 CPU 的负担。</td>
+<td>软件 RAID 通过操作系统提供的 RAID 功能来实现（如 Linux 的 mdadm 或 Windows 的 Storage Spaces）。RAID 操作由主机的 CPU 处理。</td>
+</tr>
+<tr>
+<td>性能</td>
+<td>硬件 RAID 控制器有专用的处理器和缓存，用于处理 RAID 操作，因此通常提供更高的性能，特别是在高负载或复杂 RAID 配置（如 RAID 5 或 RAID 6）下。</td>
+<td>由于 RAID 操作由主机 CPU 处理，软件 RAID 在高负载或复杂 RAID 配置下的性能可能不如硬件 RAID。</td>
+</tr>
+<tr>
+<td>系统依赖性</td>
+<td>RAID 配置存储在控制器上，因此更换主机系统或操作系统不会影响 RAID 阵列的数据完整性。</td>
+<td>RAID 配置依赖于操作系统，因此更换操作系统或重新安装系统可能需要重新配置 RAID 阵列。</td>
+</tr>
+<tr>
+<td>成本</td>
+<td>硬件 RAID 控制器通常价格较高，增加了系统的总体成本。</td>
+<td>不需要额外的硬件，降低了成本。对于预算有限的小型企业或个人用户来说，这是一个经济的选择。</td>
+</tr>
+<tr>
+<td>数据安全与可靠性</td>
+<td>硬件 RAID 提供更高的可靠性和数据保护功能，如热备用盘和电池备份缓存。</td>
+<td>软件 RAID 在数据安全和可靠性上依赖于操作系统的实现和配置。</td>
+</tr>
+<tr>
+<td>灵活性</td>
+<td>依赖不同厂商不同的raid卡命令，配置比较复杂</td>
+<td>软件 RAID 配置和管理更灵活，可以通过操作系统的命令行工具或图形界面轻松实现。</td>
+</tr>
+<tr>
+<td>高级功能</td>
+<td>硬件 RAID 控制器通常提供高级功能，如热插拔、在线扩展、热备用盘、硬件级别的加密和电池备份缓存。</td>
+<td>软件 RAID 通常缺乏一些高级功能，如硬件 RAID 提供的电池备份缓存和专用处理器。</td>
+</tr>
+</tbody>
+</table>
+<h1 id="6-如何配置硬raid">6. 如何配置硬Raid</h1>
+<p>配置硬件raid可以通过raid配置界面操作，也可以通过厂商提供的cli工具操作，本文主要介绍cli工具配置硬Raid。</p>
 <p>参考：</p>
 <ul>
 <li><a href="https://www.chinastor.com/baike/raid/">https://www.chinastor.com/baike/raid/</a></li>

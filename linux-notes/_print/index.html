@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.7ba6cbff0a0d8893865c3d04b293d931.json"
+  data-offline-search-index-json-src="/offline-search-index.878aa2fdd4f93c7eb2644102ec64efba.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -2558,10 +2558,57 @@ if (!doNotTrack) {
 <p>RAID10其实就是RAID1与RAID0的一个合体。RAID10兼备了RAID1和RAID0的有优点。</p>
 <p>首先基于RAID1模式将磁盘分为2份，当要写入数据的时候，将所有的数据在两份磁盘上同时写入，相当于写了双份数据，起到了数据保障的作用。且在每一份磁盘上又会基于RAID0技术讲数据分为N份并发的读写，这样也保障了数据的效率。RAID10模式是有一半的磁盘空间用于存储冗余数据的，浪费的很严重，因此用的也不是很多。</p>
 <p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1712049569/article/linux/disk/raid10.png" alt=""></p>
-<h1 id="5-如何查看和制作raid">5. 如何查看和制作Raid</h1>
-<blockquote>
-<p>todo</p>
-</blockquote>
+<h1 id="5-硬raid和软raid区别">5. 硬Raid和软Raid区别</h1>
+<p>硬raid主要是通过厂商的硬件raid卡控制器来实现，而软raid主要是操作系统的raid命令来实现（例如 mdadm 命令）。</p>
+<p>以下是2者的区别：</p>
+<table>
+<thead>
+<tr>
+<th>分类</th>
+<th>硬raid</th>
+<th>软raid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>实现方式</td>
+<td>硬件 RAID 使用专用的 RAID 控制器卡，这是一块独立的硬件，通常插入到服务器或工作站的 PCIe 插槽中。该控制器处理所有 RAID 计算和磁盘管理任务，减轻了主机 CPU 的负担。</td>
+<td>软件 RAID 通过操作系统提供的 RAID 功能来实现（如 Linux 的 mdadm 或 Windows 的 Storage Spaces）。RAID 操作由主机的 CPU 处理。</td>
+</tr>
+<tr>
+<td>性能</td>
+<td>硬件 RAID 控制器有专用的处理器和缓存，用于处理 RAID 操作，因此通常提供更高的性能，特别是在高负载或复杂 RAID 配置（如 RAID 5 或 RAID 6）下。</td>
+<td>由于 RAID 操作由主机 CPU 处理，软件 RAID 在高负载或复杂 RAID 配置下的性能可能不如硬件 RAID。</td>
+</tr>
+<tr>
+<td>系统依赖性</td>
+<td>RAID 配置存储在控制器上，因此更换主机系统或操作系统不会影响 RAID 阵列的数据完整性。</td>
+<td>RAID 配置依赖于操作系统，因此更换操作系统或重新安装系统可能需要重新配置 RAID 阵列。</td>
+</tr>
+<tr>
+<td>成本</td>
+<td>硬件 RAID 控制器通常价格较高，增加了系统的总体成本。</td>
+<td>不需要额外的硬件，降低了成本。对于预算有限的小型企业或个人用户来说，这是一个经济的选择。</td>
+</tr>
+<tr>
+<td>数据安全与可靠性</td>
+<td>硬件 RAID 提供更高的可靠性和数据保护功能，如热备用盘和电池备份缓存。</td>
+<td>软件 RAID 在数据安全和可靠性上依赖于操作系统的实现和配置。</td>
+</tr>
+<tr>
+<td>灵活性</td>
+<td>依赖不同厂商不同的raid卡命令，配置比较复杂</td>
+<td>软件 RAID 配置和管理更灵活，可以通过操作系统的命令行工具或图形界面轻松实现。</td>
+</tr>
+<tr>
+<td>高级功能</td>
+<td>硬件 RAID 控制器通常提供高级功能，如热插拔、在线扩展、热备用盘、硬件级别的加密和电池备份缓存。</td>
+<td>软件 RAID 通常缺乏一些高级功能，如硬件 RAID 提供的电池备份缓存和专用处理器。</td>
+</tr>
+</tbody>
+</table>
+<h1 id="6-如何配置硬raid">6. 如何配置硬Raid</h1>
+<p>配置硬件raid可以通过raid配置界面操作，也可以通过厂商提供的cli工具操作，本文主要介绍cli工具配置硬Raid。</p>
 <p>参考：</p>
 <ul>
 <li><a href="https://www.chinastor.com/baike/raid/">https://www.chinastor.com/baike/raid/</a></li>
@@ -4074,12 +4121,20 @@ if (!doNotTrack) {
 <h1 id="4-vlan的接口类型">4. vlan的接口类型</h1>
 <p>现网中属于同一个VLAN的用户可能会被连接在不同的交换机上，且跨越交换机的VLAN可能不止一个，如果需要用户间的互通，就需要交换机间的接口能够同时识别和发送多个VLAN的数据帧。根据接口连接对象以及对收发数据帧处理的不同，当前有VLAN的多种接口类型，以适应不同的连接和组网。</p>
 <p>常见的VLAN接口类型有三种，包括：Access、Trunk和Hybrid。</p>
-<h2 id="4-1-access接口">4.1. Access接口</h2>
+<h2 id="4-1-access接口-接入vlan">4.1. Access接口（接入VLAN）</h2>
 <p>Access接口一般用于和不能识别Tag的用户终端（如用户主机、服务器）相连，或者不需要区分不同VLAN成员时使用。</p>
-<h2 id="4-2-trunk接口">4.2. Trunk接口</h2>
+<p><strong>定义</strong>：Access VLAN接口是一种用于连接终端设备（如计算机、打印机等）的接口，每个接口只属于一个VLAN。</p>
+<p><strong>使用场景</strong>：适用于接入层交换机端口，每个端口连接一个终端设备，只能传输单个VLAN的流量。例如，一个办公区域内的计算机都连接到Access VLAN，以便这些计算机能够互相通信。</p>
+<h2 id="4-2-trunk接口-干线vlan">4.2. Trunk接口（干线VLAN）</h2>
 <p>Trunk接口一般用于连接交换机、路由器、AP以及可同时收发Tagged帧和Untagged帧的语音终端。它可以允许多个VLAN的帧带Tag通过，但只允许属于缺省VLAN的帧从该类接口上发出时不带Tag（即剥除Tag）。</p>
-<h2 id="4-3-hybrid接口">4.3. Hybrid接口</h2>
+<ul>
+<li><strong>定义</strong>：Trunk VLAN接口用于在交换机之间传输多个VLAN的流量。Trunk端口能够标记（tagging）VLAN信息，以便区分不同的VLAN流量。</li>
+<li><strong>使用场景</strong>：适用于交换机之间或交换机与路由器之间的连接，用于传输多VLAN流量。例如，在数据中心内，需要通过Trunk端口将多个VLAN的数据传输到核心交换机。</li>
+</ul>
+<h2 id="4-3-hybrid接口-混合vlan">4.3. Hybrid接口（混合VLAN）</h2>
 <p>Hybrid接口既可以用于连接不能识别Tag的用户终端（如用户主机、服务器）和网络设备（如Hub），也可以用于连接交换机、路由器以及可同时收发Tagged帧和Untagged帧的语音终端、AP。它可以允许多个VLAN的帧带Tag通过，且允许从该类接口发出的帧根据需要配置某些VLAN的帧带Tag（即不剥除Tag）、某些VLAN的帧不带Tag（即剥除Tag）。</p>
+<p><strong>定义</strong>：Hybrid VLAN接口可以同时处理Access VLAN和Trunk VLAN的流量。它可以将未标记的流量作为Access VLAN流量处理，并将标记的流量作为Trunk VLAN流量处理。</p>
+<p><strong>使用场景</strong>：适用于需要灵活配置的环境，既需要处理来自终端设备的单一VLAN流量，又需要处理来自交换机的多VLAN流量。例如，在一个网络中，需要同时连接计算机和其他交换机的端口可以配置为Hybrid VLAN。</p>
 <p>参考：</p>
 <ul>
 <li><a href="https://mp.weixin.qq.com/s/5wH9QbBTGKpYaolRbMijMA">https://mp.weixin.qq.com/s/5wH9QbBTGKpYaolRbMijMA</a></li>
@@ -4106,7 +4161,7 @@ if (!doNotTrack) {
 <p><code>netplan</code>是一个linux<code>网络配置的渲染器</code>，可以通过创建一个网络配置的yaml文件，netplan将该文件渲染成linux network所需的配置。</p>
 <h1 id="2-netplan原理">2. netplan原理</h1>
 <p>netplan读取<code>/etc/netplan/*.yaml</code>的配置文件，Netplan在<code>/run</code>（例如：<code>/run/systemd/network/</code>）中生成特定于后端的配置文件，将设备的控制交给特定的网络守护进程。</p>
-<img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1721465066/article/linux/network/netplan.svg" width="40%" />
+<img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1721465066/article/linux/network/netplan.svg" width="30%" />
 <h1 id="3-netplan配置">3. netplan配置</h1>
 <p>具体的netplan配置可以参考：</p>
 <ul>
@@ -4319,7 +4374,9 @@ if (!doNotTrack) {
 </span></span><span style="display:flex;"><span>        via: <span style="color:#4e9a06">&#34;b.x.x.x&#34;</span>
 </span></span><span style="display:flex;"><span>      id: <span style="color:#0000cf;font-weight:bold">1000</span>
 </span></span><span style="display:flex;"><span>      link: <span style="color:#4e9a06">&#34;bond0&#34;</span>
-</span></span></code></pre></div><h1 id="5-systemd-networkd">5. Systemd-networkd</h1>
+</span></span></code></pre></div><h2 id="4-2-netplan-apply">4.2. netplan apply</h2>
+<p>通过编辑/etc/netplan/*.yaml的文件，再执行<code>netplan apply</code>的命令可以使得网络配置生效。</p>
+<h1 id="5-systemd-networkd">5. Systemd-networkd</h1>
 <p>可以通过<code>man systemd-networkd</code>查看说明</p>
 <ul>
 <li>
@@ -4632,7 +4689,10 @@ if (!doNotTrack) {
 </span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> <span style="color:#4e9a06">&#34;Bond 接口配置完成&#34;</span>
 </span></span></code></pre></div><p>查看bond状态</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>cat /proc/net/bonding/bond0
-</span></span></code></pre></div>
+</span></span></code></pre></div><blockquote>
+<p>使用 modprobe 工具配置网络接口的 Bond（绑定）操作是另一种在 Linux 上设置链路聚合的方法。modprobe 用于加载和卸载内核模块，而 bonding 模块是用于实现网络接口绑定的内核模块。</p>
+</blockquote>
+
 </div>
 
 

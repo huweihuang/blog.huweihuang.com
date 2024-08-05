@@ -484,12 +484,20 @@
 &lt;h1 id=&#34;4-vlan的接口类型&#34;&gt;4. vlan的接口类型&lt;/h1&gt;
 &lt;p&gt;现网中属于同一个VLAN的用户可能会被连接在不同的交换机上，且跨越交换机的VLAN可能不止一个，如果需要用户间的互通，就需要交换机间的接口能够同时识别和发送多个VLAN的数据帧。根据接口连接对象以及对收发数据帧处理的不同，当前有VLAN的多种接口类型，以适应不同的连接和组网。&lt;/p&gt;
 &lt;p&gt;常见的VLAN接口类型有三种，包括：Access、Trunk和Hybrid。&lt;/p&gt;
-&lt;h2 id=&#34;4-1-access接口&#34;&gt;4.1. Access接口&lt;/h2&gt;
+&lt;h2 id=&#34;4-1-access接口-接入vlan&#34;&gt;4.1. Access接口（接入VLAN）&lt;/h2&gt;
 &lt;p&gt;Access接口一般用于和不能识别Tag的用户终端（如用户主机、服务器）相连，或者不需要区分不同VLAN成员时使用。&lt;/p&gt;
-&lt;h2 id=&#34;4-2-trunk接口&#34;&gt;4.2. Trunk接口&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;定义&lt;/strong&gt;：Access VLAN接口是一种用于连接终端设备（如计算机、打印机等）的接口，每个接口只属于一个VLAN。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;使用场景&lt;/strong&gt;：适用于接入层交换机端口，每个端口连接一个终端设备，只能传输单个VLAN的流量。例如，一个办公区域内的计算机都连接到Access VLAN，以便这些计算机能够互相通信。&lt;/p&gt;
+&lt;h2 id=&#34;4-2-trunk接口-干线vlan&#34;&gt;4.2. Trunk接口（干线VLAN）&lt;/h2&gt;
 &lt;p&gt;Trunk接口一般用于连接交换机、路由器、AP以及可同时收发Tagged帧和Untagged帧的语音终端。它可以允许多个VLAN的帧带Tag通过，但只允许属于缺省VLAN的帧从该类接口上发出时不带Tag（即剥除Tag）。&lt;/p&gt;
-&lt;h2 id=&#34;4-3-hybrid接口&#34;&gt;4.3. Hybrid接口&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;定义&lt;/strong&gt;：Trunk VLAN接口用于在交换机之间传输多个VLAN的流量。Trunk端口能够标记（tagging）VLAN信息，以便区分不同的VLAN流量。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;使用场景&lt;/strong&gt;：适用于交换机之间或交换机与路由器之间的连接，用于传输多VLAN流量。例如，在数据中心内，需要通过Trunk端口将多个VLAN的数据传输到核心交换机。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;4-3-hybrid接口-混合vlan&#34;&gt;4.3. Hybrid接口（混合VLAN）&lt;/h2&gt;
 &lt;p&gt;Hybrid接口既可以用于连接不能识别Tag的用户终端（如用户主机、服务器）和网络设备（如Hub），也可以用于连接交换机、路由器以及可同时收发Tagged帧和Untagged帧的语音终端、AP。它可以允许多个VLAN的帧带Tag通过，且允许从该类接口发出的帧根据需要配置某些VLAN的帧带Tag（即不剥除Tag）、某些VLAN的帧不带Tag（即剥除Tag）。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;定义&lt;/strong&gt;：Hybrid VLAN接口可以同时处理Access VLAN和Trunk VLAN的流量。它可以将未标记的流量作为Access VLAN流量处理，并将标记的流量作为Trunk VLAN流量处理。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;使用场景&lt;/strong&gt;：适用于需要灵活配置的环境，既需要处理来自终端设备的单一VLAN流量，又需要处理来自交换机的多VLAN流量。例如，在一个网络中，需要同时连接计算机和其他交换机的端口可以配置为Hybrid VLAN。&lt;/p&gt;
 &lt;p&gt;参考：&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;a href=&#34;https://mp.weixin.qq.com/s/5wH9QbBTGKpYaolRbMijMA&#34;&gt;https://mp.weixin.qq.com/s/5wH9QbBTGKpYaolRbMijMA&lt;/a&gt;&lt;/li&gt;
@@ -512,7 +520,7 @@
 &lt;p&gt;&lt;code&gt;netplan&lt;/code&gt;是一个linux&lt;code&gt;网络配置的渲染器&lt;/code&gt;，可以通过创建一个网络配置的yaml文件，netplan将该文件渲染成linux network所需的配置。&lt;/p&gt;
 &lt;h1 id=&#34;2-netplan原理&#34;&gt;2. netplan原理&lt;/h1&gt;
 &lt;p&gt;netplan读取&lt;code&gt;/etc/netplan/*.yaml&lt;/code&gt;的配置文件，Netplan在&lt;code&gt;/run&lt;/code&gt;（例如：&lt;code&gt;/run/systemd/network/&lt;/code&gt;）中生成特定于后端的配置文件，将设备的控制交给特定的网络守护进程。&lt;/p&gt;
-&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1721465066/article/linux/network/netplan.svg&#34; width=&#34;40%&#34; /&gt;
+&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1721465066/article/linux/network/netplan.svg&#34; width=&#34;30%&#34; /&gt;
 &lt;h1 id=&#34;3-netplan配置&#34;&gt;3. netplan配置&lt;/h1&gt;
 &lt;p&gt;具体的netplan配置可以参考：&lt;/p&gt;
 &lt;ul&gt;
@@ -725,7 +733,9 @@
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        via: &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;b.x.x.x&amp;#34;&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      id: &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1000&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      link: &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;bond0&amp;#34;&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;5-systemd-networkd&#34;&gt;5. Systemd-networkd&lt;/h1&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;4-2-netplan-apply&#34;&gt;4.2. netplan apply&lt;/h2&gt;
+&lt;p&gt;通过编辑/etc/netplan/*.yaml的文件，再执行&lt;code&gt;netplan apply&lt;/code&gt;的命令可以使得网络配置生效。&lt;/p&gt;
+&lt;h1 id=&#34;5-systemd-networkd&#34;&gt;5. Systemd-networkd&lt;/h1&gt;
 &lt;p&gt;可以通过&lt;code&gt;man systemd-networkd&lt;/code&gt;查看说明&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;
@@ -1034,7 +1044,10 @@
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87&#34;&gt;echo&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;Bond 接口配置完成&amp;#34;&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;查看bond状态&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;cat /proc/net/bonding/bond0
-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;blockquote&gt;
+&lt;p&gt;使用 modprobe 工具配置网络接口的 Bond（绑定）操作是另一种在 Linux 上设置链路聚合的方法。modprobe 用于加载和卸载内核模块，而 bonding 模块是用于实现网络接口绑定的内核模块。&lt;/p&gt;
+&lt;/blockquote&gt;
+
       </description>
     </item>
     
