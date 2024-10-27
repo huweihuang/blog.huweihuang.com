@@ -335,6 +335,83 @@
     </item>
     
     <item>
+      <title>Kubernetes-Notes: Flannel介绍</title>
+      <link>https://blog.huweihuang.com/kubernetes-notes/network/flannel/flannel-introduction/</link>
+      <pubDate>Sat, 08 Jul 2017 10:50:57 +0000</pubDate>
+      
+      <guid>https://blog.huweihuang.com/kubernetes-notes/network/flannel/flannel-introduction/</guid>
+      <description>
+        
+        
+        &lt;h1 id=&#34;1-flannel是什么-what&#34;&gt;1. flannel是什么（what）&lt;/h1&gt;
+&lt;h2 id=&#34;1-1-概述&#34;&gt;1.1. 概述&lt;/h2&gt;
+&lt;p&gt;Flannel是CoreOS团队针对Kubernetes设计的一个网络规划服务，简单来说，它的功能是让集群中的不同节点主机创建的Docker容器都具有全集群唯一的虚拟IP地址。
+Flannel官网：https://github.com/coreos/flannel&lt;/p&gt;
+&lt;h2 id=&#34;1-2-补充知识点&#34;&gt;1.2. 补充知识点&lt;/h2&gt;
+&lt;h2 id=&#34;1-覆盖网络-overlay-network&#34;&gt;&lt;strong&gt;1、覆盖网络[overlay network]&lt;/strong&gt;&lt;/h2&gt;
+&lt;p&gt;运行在一个网上的网（应用层网络），并不依靠ip地址来传递消息，而是采用一种映射机制，把ip地址和identifiers做映射来资源定位。&lt;/p&gt;
+&lt;h2 id=&#34;2-路由&#34;&gt;&lt;strong&gt;2、路由&lt;/strong&gt;&lt;/h2&gt;
+&lt;p&gt;互联网是由路由器连接的网络组合而成，路由器按照路由表、路由协议等机制实现对数据包正确地转发，从而到达目标主机。路由器根据数据包中目标主机的IP地址和路由控制表比较得出下一个接收数据的路由器。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;1）静态路由：事先设置好路由器和主机中的路由表信息。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578569/article/flannel/static-route.png&#34; alt=&#34;静态路由&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;2）动态路由：让路由协议在运行中自动修改并设置路由表信息。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578568/article/flannel/dynamic-route.png&#34; alt=&#34;动态路由&#34;&gt;&lt;/p&gt;
+&lt;h1 id=&#34;2-为什么使用flannel-why&#34;&gt;2. 为什么使用flannel（why）&lt;/h1&gt;
+&lt;p&gt;在默认的Docker配置中，每个节点上的Docker服务会分别负责所在节点容器的IP分配。这样导致的一个问题是，不同节点上容器可能获得相同的内外IP地址。&lt;/p&gt;
+&lt;p&gt;Flannel的设计目的就是为集群中的所有节点重新规划IP地址的使用规则，从而使得不同节点上的容器能够获得“同属一个内网”且”不重复的”IP地址，并让属于不同节点上的容器能够直接通过内网IP通信。&lt;/p&gt;
+&lt;h1 id=&#34;3-如何实现flannel-how&#34;&gt;3. 如何实现flannel（how）&lt;/h1&gt;
+&lt;p&gt;Flannel实质上是一种“覆盖网络(overlay network)”，也就是将TCP数据包装在另一种网络包里面进行路由转发和通信，目前已经支持UDP、VxLAN、AWS VPC和GCE路由等数据转发方式，默认的节点间数据通信方式是UDP转发。&lt;/p&gt;
+&lt;h2 id=&#34;3-1-flannel原理图&#34;&gt;3.1. flannel原理图&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578568/article/flannel/flannel.png&#34; alt=&#34;flannel&#34;&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;数据从源容器中发出后，经由所在主机的docker0虚拟网卡转发到flannel0虚拟网卡，这是个P2P的虚拟网卡，flanneld服务监听在网卡的另外一端。&lt;/li&gt;
+&lt;li&gt;Flannel通过Etcd服务维护了一张节点间的路由表。&lt;/li&gt;
+&lt;li&gt;源主机的flanneld服务将原本的数据内容UDP封装后根据自己的路由表投递给目的节点的flanneld服务，数据到达以后被解包，然后直 接进入目的节点的flannel0虚拟网卡，然后被转发到目的主机的docker0虚拟网卡，最后就像本机容器通信一下的有docker0路由到达目标容 器。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;3-2-实现说明&#34;&gt;3.2. 实现说明&lt;/h2&gt;
+&lt;h2 id=&#34;1-udp封装&#34;&gt;&lt;strong&gt;1、UDP封装&lt;/strong&gt;&lt;/h2&gt;
+&lt;p&gt;原始数据是在起始节点的Flannel服务上进行UDP封装的，投递到目的节点后就被另一端的Flannel服务还原成了原始的数据包，两边的Docker服务都感觉不到这个过程的存在。 UDP的数据内容部分其实是另一个ICMP（也就是ping命令）的数据包。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578569/article/flannel/udp.png&#34; alt=&#34;UDP封装&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;2-为docker分配不同的ip段&#34;&gt;&lt;strong&gt;2、为docker分配不同的IP段&lt;/strong&gt;&lt;/h2&gt;
+&lt;p&gt;Flannel通过Etcd分配了每个节点可用的IP地址段后，偷偷的修改了Docker的启动参数。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578568/article/flannel/docker-init-args.png&#34; alt=&#34;docker启动参数&#34;&gt;&lt;/p&gt;
+&lt;p&gt;注意其中的“--bip=172.17.18.1/24”这个参数，它限制了所在节点容器获得的IP范围。&lt;/p&gt;
+&lt;p&gt;这个IP范围是由Flannel自动分配的，由Flannel通过保存在Etcd服务中的记录确保它们不会重复。&lt;/p&gt;
+&lt;h2 id=&#34;3-路由规则&#34;&gt;&lt;strong&gt;3、路由规则&lt;/strong&gt;&lt;/h2&gt;
+&lt;p&gt;1）数据发送节点的路由表&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578568/article/flannel/DataSendRouteTable.png&#34; alt=&#34;数据发送节点路由表&#34;&gt;&lt;/p&gt;
+&lt;p&gt;2）数据接收节点的路由表&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578568/article/flannel/DataReceiveRouteTable.png&#34; alt=&#34;数据接收节点路由表&#34;&gt;&lt;/p&gt;
+&lt;p&gt;例如现在有一个数据包要从IP为172.17.18.2的容器发到IP为172.17.46.2的容器。根据数据发送节点的路由表，它只与 172.17.0.0/16匹配这条记录匹配，因此数据从docker0出来以后就被投递到了flannel0。同理在目标节点，由于投递的地址是一个容 器，因此目的地址一定会落在docker0对于的172.17.46.0/24这个记录上，自然的被投递到了docker0网卡。&lt;/p&gt;
+&lt;h2 id=&#34;3-3-flannel的安装与配置&#34;&gt;3.3. flannel的安装与配置&lt;/h2&gt;
+&lt;h2 id=&#34;1-安装&#34;&gt;&lt;strong&gt;1、安装&lt;/strong&gt;&lt;/h2&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;wget http://&amp;lt;官网&amp;gt;/flannel/flannel-0.2.0-10.el7.x86_64.rpm
+yum localinstall -y flannel-0.2.0-10.el7.x86_64.rpm
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;2-配置&#34;&gt;&lt;strong&gt;2、配置&lt;/strong&gt;&lt;/h2&gt;
+&lt;p&gt;vi /etc/sysconfig/flanneld&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# Flanneld configuration options&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# etcd url location. Point this to the server where etcd runs&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000&#34;&gt;FLANNEL_ETCD&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;http://127.0.0.1:4001&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# etcd config key. This is the configuration key that flannel queries&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# For address range assignment&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000&#34;&gt;FLANNEL_ETCD_KEY&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;/xxx/flannel/product/network&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# Any additional options that you want to pass&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000&#34;&gt;FLANNEL_OPTIONS&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34; -iface=eth0&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;3-初始化flannel的etcd配置&#34;&gt;&lt;strong&gt;3、初始化flannel的etcd配置&lt;/strong&gt;&lt;/h2&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;etcdctl set /xxx/flannel/network/config &amp;#39;{
+   &amp;#34;Network&amp;#34;: &amp;#34;10.0.0.0/16&amp;#34;,
+   &amp;#34;Backend&amp;#34;: {
+       &amp;#34;Type&amp;#34;: &amp;#34;vxlan&amp;#34;
+   }
+}&amp;#39;
+&lt;/code&gt;&lt;/pre&gt;
+      </description>
+    </item>
+    
+    <item>
       <title>Kubernetes-Notes: Macvlan介绍</title>
       <link>https://blog.huweihuang.com/kubernetes-notes/network/cni/macvlan/</link>
       <pubDate>Sat, 10 Jul 2021 10:50:57 +0000</pubDate>
