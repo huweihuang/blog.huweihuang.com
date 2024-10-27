@@ -4,7 +4,7 @@
     <link>https://blog.huweihuang.com/tags/cni/</link>
     <description>Recent content in CNI on 胡伟煌</description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Sat, 10 Jul 2021 10:50:57 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 26 Oct 2024 10:50:57 +0000</lastBuildDate>
     
 	  <atom:link href="https://blog.huweihuang.com/tags/cni/index.xml" rel="self" type="application/rss+xml" />
     
@@ -13,6 +13,203 @@
         
       
     
+    
+    <item>
+      <title>Kubernetes-Notes: Calico介绍</title>
+      <link>https://blog.huweihuang.com/kubernetes-notes/network/calico/calico-arch/</link>
+      <pubDate>Sat, 26 Oct 2024 10:50:57 +0000</pubDate>
+      
+      <guid>https://blog.huweihuang.com/kubernetes-notes/network/calico/calico-arch/</guid>
+      <description>
+        
+        
+        &lt;h1 id=&#34;1-calico简介&#34;&gt;1. Calico简介&lt;/h1&gt;
+&lt;p&gt;&lt;strong&gt;Calico&lt;/strong&gt; 是一个开源的网络和网络安全解决方案，主要用于 Kubernetes 等容器编排系统。它通过提供高效的网络连接和强大的安全控制来满足容器化和微服务架构的需求。Calico 以其灵活性、可扩展性和性能著称，是许多企业和云原生应用的首选网络插件。&lt;/p&gt;
+&lt;h2 id=&#34;1-1-主要功能和特点&#34;&gt;1.1. 主要功能和特点&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;网络架构&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;L3 路由架构&lt;/strong&gt;：Calico 基于第三层（L3）网络构建，不依赖传统的覆盖网络（overlay network），使其可以利用 IP 路由来实现跨节点的直接通信。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;BGP 支持&lt;/strong&gt;：Calico 使用 BGP（边界网关协议）来分发和同步路由信息，使得容器和 Pod 能够跨节点直接通信，减少网络延迟，提升性能。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;支持多种后端&lt;/strong&gt;：除了默认的 IP 路由模式，Calico 也支持 VXLAN、IPIP、WireGuard 和 eBPF 后端，适应不同的网络环境和需求。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;网络安全&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;网络策略&lt;/strong&gt;：Calico 支持标准的 Kubernetes NetworkPolicy，用户可以通过策略控制 Pod 之间的通信权限。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;GlobalNetworkPolicy&lt;/strong&gt;：Calico 提供 GlobalNetworkPolicy，可以实现跨命名空间、跨集群的统一策略管理，用于多租户隔离或更高的安全控制。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;支持 eBPF&lt;/strong&gt;：Calico 在启用 eBPF 模式时，可以通过 eBPF 提供更高效的网络数据处理，并支持 L4 层的负载均衡和网络策略控制。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;可观测性和可视化&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Calico 集成了多种可观测性工具，支持 Prometheus 等监控系统，并可以生成网络流量和策略的监控指标，帮助运维人员了解网络状况。&lt;/li&gt;
+&lt;li&gt;支持与 EFK（Elasticsearch, Fluentd, Kibana）集成，便于可视化网络流量和策略。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;高扩展性&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Calico 可以在不同的基础设施中运行，包括本地数据中心和云平台（AWS、GCP、Azure），并支持与 VM 及裸金属服务器互联。&lt;/li&gt;
+&lt;li&gt;使用 IP 路由和 BGP，使得 Calico 在大规模集群中也能保持良好的性能和扩展性。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;1-2-适用场景&#34;&gt;1.2. 适用场景&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;容器化应用的网络管理&lt;/strong&gt;：适用于 Kubernetes 等容器编排平台，为容器提供高效、安全的网络连接。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;混合云和多集群部署&lt;/strong&gt;：Calico 支持跨数据中心和云环境的多集群部署，非常适合混合云和多租户环境。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;网络安全&lt;/strong&gt;：对于需要细粒度的网络安全策略控制和多租户隔离的场景，Calico 提供多层次的安全控制和隔离。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;2-calico架构图&#34;&gt;2. Calico架构图&lt;/h1&gt;
+&lt;blockquote&gt;
+&lt;p&gt;来自官网&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1693626884/article/calico/calico-architecture.png&#34; title=&#34;&#34; alt=&#34;&#34; width=&#34;1046&#34;&gt;
+&lt;h2 id=&#34;2-1-calico-架构概览&#34;&gt;2.1. Calico 架构概览&lt;/h2&gt;
+&lt;p&gt;Calico 通过 BGP（边界网关协议）在 Kubernetes 集群节点之间进行路由广播，无需使用复杂的隧道协议（如 VXLAN 或 GRE），这使得 Calico 的网络性能较高。它主要由以下组件组成：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;calico-node&lt;/strong&gt;：这是 Calico 的核心组件，运行在每个节点上，负责设置路由、管理 IP 地址，并通过 Felix 实现网络策略的执行。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;BGP Daemon (Bird)&lt;/strong&gt;：负责节点之间的路由传播，以实现不同节点 Pod 之间的流量路由。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Felix&lt;/strong&gt;：作为 Calico 的主代理，负责监控 etcd 中存储的网络策略并将其应用于节点的网络接口，同时负责设置 IP 路由、管理 ACLs 以确保流量符合策略。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Typha&lt;/strong&gt;：当节点数较多时，可以通过 Typha 组件来减少 etcd 的访问负载。它会将 etcd 中的策略变化缓存起来，并同步给每个节点的 Felix 代理。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;etcd&lt;/strong&gt;：Calico 使用 etcd 作为存储后端，用于存储网络策略、IP 池等配置。也可以使用 Kubernetes 的 API Server 作为存储后端，便于集成。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;2-2-calico-的核心组件&#34;&gt;2.2. Calico 的核心组件&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;calicoctl&lt;/strong&gt;：这是 Calico 提供的命令行工具，用于配置和管理 Calico 的资源，比如 IP 池、策略、网络设置等。可以通过该工具查看、创建、更新和删除网络策略。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;IPAM (IP Address Management)&lt;/strong&gt;：Calico 自带的 IP 地址管理模块，可以为集群中的 Pod 自动分配 IP 地址。IPAM 支持灵活的 IP 池设置，可以对不同的节点、命名空间或工作负载分配特定的 IP 范围。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;2-3-工作流程&#34;&gt;2.3. 工作流程&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;每个节点上运行的 calico-node 组件会和其他节点进行 BGP 路由信息交换，确保不同节点的 Pod 可以互相通信。&lt;/li&gt;
+&lt;li&gt;Felix 组件负责将网络策略的定义应用到实际的网络接口上，以确保流量符合预设的策略。&lt;/li&gt;
+&lt;li&gt;Typha 组件在大规模集群中可以有效地减少 etcd 的压力，帮助 Felix 快速同步网络策略。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;2-4-calico-网络策略-network-policy&#34;&gt;2.4. Calico 网络策略 (Network Policy)&lt;/h2&gt;
+&lt;p&gt;Calico 支持丰富的网络策略，用于定义不同的 Pod 或服务之间的网络访问规则。网络策略的主要功能包括：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;基于标签的策略&lt;/strong&gt;：可以根据 Pod 或命名空间的标签来控制网络流量的允许和拒绝。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;支持 Egress 和 Ingress 策略&lt;/strong&gt;：不仅可以控制进入 Pod 的流量，还可以控制 Pod 发出的流量。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;灵活的规则定义&lt;/strong&gt;：支持基于 IP 地址、端口、协议的规则配置，能够精细地控制网络流量。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;3-calico组件及配置&#34;&gt;3. Calico组件及配置&lt;/h1&gt;
+&lt;p&gt;calico的部署可参考：&lt;a href=&#34;https://github.com/huweihuang/kubeadm-scripts/blob/main/cni/install-calico.sh&#34;&gt;kubeadm-scripts/cni/install-calico.sh&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;部署完成后可以在k8s集群中看到以下组件：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;中控组件：calico-kube-controllers&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;节点组件：calico-node&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;calico-system   calico-kube-controllers-8945657f7-ntbxm             1/1     Running   &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;             421d
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;calico-system   calico-node-2df8c                                   1/1     Running   &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;             421d
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;calico-system   calico-node-5vq6z                                   1/1     Running   &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;             421d
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;calico-system   calico-node-dpnkd                                   1/1     Running   &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;             421d
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;calico-system   calico-node-sms2h                                   1/1     Running   &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;             421d
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;calico-system   calico-node-w95l2                                   1/1     Running   &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;             414d
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;3-1-calico-node进程树&#34;&gt;3.1. calico node进程树&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;\_&lt;/span&gt; /usr/local/bin/runsvdir -P /etc/service/enabled
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#4e9a06&#34;&gt;\_&lt;/span&gt; runsv confd
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;   &lt;span style=&#34;color:#4e9a06&#34;&gt;\_&lt;/span&gt; calico-node -confd
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#4e9a06&#34;&gt;\_&lt;/span&gt; runsv allocate-tunnel-addrs
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;   &lt;span style=&#34;color:#4e9a06&#34;&gt;\_&lt;/span&gt; calico-node -allocate-tunnel-addrs
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#4e9a06&#34;&gt;\_&lt;/span&gt; runsv monitor-addresses
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;   &lt;span style=&#34;color:#4e9a06&#34;&gt;\_&lt;/span&gt; calico-node -monitor-addresses
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#4e9a06&#34;&gt;\_&lt;/span&gt; runsv bird
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;   &lt;span style=&#34;color:#4e9a06&#34;&gt;\_&lt;/span&gt; bird -R -s /var/run/calico/bird.ctl -d -c /etc/calico/confd/config/bird.cfg
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#4e9a06&#34;&gt;\_&lt;/span&gt; runsv felix
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;   &lt;span style=&#34;color:#4e9a06&#34;&gt;\_&lt;/span&gt; calico-node -felix
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#4e9a06&#34;&gt;\_&lt;/span&gt; runsv cni
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;   &lt;span style=&#34;color:#4e9a06&#34;&gt;\_&lt;/span&gt; calico-node -monitor-token
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#4e9a06&#34;&gt;\_&lt;/span&gt; runsv node-status-reporter
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;   &lt;span style=&#34;color:#4e9a06&#34;&gt;\_&lt;/span&gt; calico-node -status-reporter
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#4e9a06&#34;&gt;\_&lt;/span&gt; runsv bird6
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#4e9a06&#34;&gt;\_&lt;/span&gt; bird6 -R -s /var/run/calico/bird6.ctl -d -c /etc/calico/confd/config/bird6.cfg
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;3-2-calico-kube-controllers进程树&#34;&gt;3.2. calico-kube-controllers进程树&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;/usr/bin/kube-controllers
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;3-3-cni-calico二进制&#34;&gt;3.3. CNI calico二进制&lt;/h2&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87&#34;&gt;cd&lt;/span&gt; /opt/cni/bin
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;-- calico
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;-- calico-ipam
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;-- install
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;3-4-cni-calico配置&#34;&gt;3.4. CNI calico配置&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;10-calico.conflist&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87&#34;&gt;cd&lt;/span&gt; /etc/cni/net.d
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# cat 10-calico.conflist&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;name&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;k8s-pod-network&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;cniVersion&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;0.3.1&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;plugins&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;[&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;type&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;calico&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;log_level&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;info&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;log_file_path&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;/var/log/calico/cni/cni.log&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;datastore_type&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;kubernetes&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;nodename&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;node1&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;mtu&amp;#34;&lt;/span&gt;: 0,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;ipam&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;          &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;type&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;calico-ipam&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;}&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;policy&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;          &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;type&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;k8s&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;}&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;kubernetes&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;          &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;kubeconfig&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;/etc/cni/net.d/calico-kubeconfig&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;}&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;type&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;portmap&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;snat&amp;#34;&lt;/span&gt;: true,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;capabilities&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;{&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;portMappings&amp;#34;&lt;/span&gt;: true&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;}&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;type&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;bandwidth&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;capabilities&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;{&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;bandwidth&amp;#34;&lt;/span&gt;: true&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;calico-kubeconfig&lt;/strong&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# Kubeconfig file for Calico CNI plugin. Installed by calico/node.&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;apiVersion: v1
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kind: Config
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;clusters:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;- name: &lt;span style=&#34;color:#204a87&#34;&gt;local&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  cluster:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    server: https://10.96.0.1:443
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    certificate-authority-data: &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;xxx&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;users:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;- name: calico
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  user:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    token:xxx
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;contexts:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;- name: calico-context
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  context:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    cluster: &lt;span style=&#34;color:#204a87&#34;&gt;local&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    user: calico
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;参考：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://docs.tigera.io/calico/latest/about/&#34;&gt;https://docs.tigera.io/calico/latest/about/&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://docs.tigera.io/calico/latest/reference/architecture/overview&#34;&gt;https://docs.tigera.io/calico/latest/reference/architecture/overview&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://docs.tigera.io/calico/latest/getting-started/kubernetes/quickstart&#34;&gt;https://docs.tigera.io/calico/latest/getting-started/kubernetes/quickstart&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://www.tigera.io/blog/live-migration-from-flannel-to-calico/&#34;&gt;Live Migration from Flannel to Calico&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+
+      </description>
+    </item>
     
     <item>
       <title>Kubernetes-Notes: CNI接口介绍</title>
