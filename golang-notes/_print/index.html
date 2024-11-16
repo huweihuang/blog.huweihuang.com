@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.bdbc378fa28d9cdbac3ee1b4c59e1536.json"
+  data-offline-search-index-json-src="/offline-search-index.bf6af85810d05783b4c3f0ffa68bb8a7.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -634,6 +634,14 @@ if (!doNotTrack) {
     
 	
 <li>9.2: <a href="#pg-90d3042b02510958c3ff4d2692b71a2e">性能分析之go pprof工具使用</a></li>
+
+
+    
+  
+    
+    
+	
+<li>9.3: <a href="#pg-21a4783efdcb47f7fe6f823d275c9aa5">golangci-lint的使用</a></li>
 
 
     
@@ -5884,6 +5892,163 @@ go test -v -test.run TestFunction
 <li>
 <p><a href="https://www.likakuli.com/posts/docker-leak3/">Dockerd资源泄露系列</a></p>
 </li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-21a4783efdcb47f7fe6f823d275c9aa5">9.3 - golangci-lint的使用</h1>
+    
+	<p>golangci-lint是一种go lint的工具，支持快速，可配置多种lint参数的功能。在go项目中使用golangci-lint可以帮助多人团队开发的代码风格及质量的一致性，同时也可以帮助开发者提高代码质量。可以结合<a href="https://blog.huweihuang.com/golang-notes/summary/go-style-guide/">Golang 代码规范</a>配置golangci-lint的参数。</p>
+<p>本文主要介绍该工具的使用及常见推荐配置。</p>
+<h1 id="1-golangci-lint安装">1. golangci-lint安装</h1>
+<p>golangci-lint推荐在Makefile文件中配置安装和执行命令，参考如下Makefile内容：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-makefile" data-lang="makefile"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">## golangci-lint的安装及命令
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">GOLANGCI_LINT</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#204a87;font-weight:bold">$(</span>shell <span style="color:#204a87">pwd</span><span style="color:#204a87;font-weight:bold">)</span>/bin/golangci-lint
+</span></span><span style="display:flex;"><span><span style="color:#000">GOLANGCI_LINT_VERSION</span> <span style="color:#ce5c00;font-weight:bold">?=</span> v1.54.2
+</span></span><span style="display:flex;"><span><span style="color:#000">golangci-lint</span><span style="color:#ce5c00;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>	@<span style="color:#ce5c00;font-weight:bold">[</span> -f <span style="color:#204a87;font-weight:bold">$(</span>GOLANGCI_LINT<span style="color:#204a87;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">||</span> <span style="color:#ce5c00;font-weight:bold">{</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>	<span style="color:#204a87">set</span> -e <span style="color:#000;font-weight:bold">;</span><span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh <span style="color:#000;font-weight:bold">|</span> sh -s -- -b <span style="color:#204a87;font-weight:bold">$(</span>shell dirname <span style="color:#204a87;font-weight:bold">$(</span>GOLANGCI_LINT<span style="color:#204a87;font-weight:bold">))</span> <span style="color:#204a87;font-weight:bold">$(</span>GOLANGCI_LINT_VERSION<span style="color:#204a87;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">;</span><span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>	<span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#000">.PHONY</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#000">lint</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">lint</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#000">golangci</span>-<span style="color:#000">lint</span> <span style="color:#8f5902;font-style:italic">## Run golangci-lint linter &amp; yamllint
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#204a87;font-weight:bold">$(</span>GOLANGCI_LINT<span style="color:#204a87;font-weight:bold">)</span> run --timeout<span style="color:#ce5c00;font-weight:bold">=</span>10m
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#000">.PHONY</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#000">lint</span>-<span style="color:#000">fix</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">lint-fix</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#000">golangci</span>-<span style="color:#000">lint</span> <span style="color:#8f5902;font-style:italic">## Run golangci-lint linter and perform fixes
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#204a87;font-weight:bold">$(</span>GOLANGCI_LINT<span style="color:#204a87;font-weight:bold">)</span> run --fix
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">## 配置在build阶段执行lint命令
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">##@ Build
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>
+</span></span><span style="display:flex;"><span><span style="color:#000">.PHONY</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#000">build</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">build</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#000">fmt</span> <span style="color:#000">vet</span> <span style="color:#000">lint</span> <span style="color:#8f5902;font-style:italic">## Build manager binary.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	bash hack/build.sh
+</span></span></code></pre></div><p>可以在makefile中集成golangci-lint，同时集成到代码CI的流程中，在代码提交和merge前自动执行golangci-lint的操作。</p>
+<p>通过执行<code>make lint</code>的命令即可运行golangci-lint。</p>
+<h1 id="2-配置参数说明">2. 配置参数说明</h1>
+<h3 id="基础检测-推荐所有项目开启"><strong>基础检测（推荐所有项目开启）</strong></h3>
+<p>这些 linters 检查常见的代码错误和潜在问题：</p>
+<ul>
+<li><strong><code>govet</code></strong>: [默认开启]Go 内置的静态分析工具，用于检查可能导致运行时错误的问题。</li>
+<li><strong><code>gosimple</code></strong>:  [默认开启]提示可以简化的代码。</li>
+<li><strong><code>staticcheck</code></strong>:  [默认开启]检测潜在错误、不良代码风格以及性能优化建议。</li>
+<li><strong><code>errcheck</code></strong>: [默认开启] 检查未处理的错误。</li>
+<li><strong><code>ineffassign</code></strong>: [默认开启] 检测无效的变量赋值。</li>
+<li><strong><code>unused</code></strong>:  [默认开启]检测未使用的代码（变量、函数等）。</li>
+</ul>
+<hr>
+<h3 id="代码风格和一致性"><strong>代码风格和一致性</strong></h3>
+<p>这些 linters 确保代码风格一致，易于维护：</p>
+<ul>
+<li><strong><code>gofmt</code></strong>: 强制格式化代码。</li>
+<li><strong><code>goimports</code></strong>: 格式化代码并管理导入的包。</li>
+<li><strong><code>typecheck</code></strong>: 检查类型错误。</li>
+<li><strong><code>misspell</code></strong>: 检测并修复拼写错误。</li>
+<li><strong><code>stylecheck</code></strong>: 提供风格建议，确保代码符合 Go 的约定。</li>
+<li><strong><code>dupl</code></strong>: 检测代码中的重复部分。</li>
+<li><strong><code>wsl</code></strong>: 确保 <code>if</code> 语句等块代码之间有适当的空行。</li>
+</ul>
+<hr>
+<h3 id="复杂度和性能"><strong>复杂度和性能</strong></h3>
+<p>用于优化代码的可读性和性能：</p>
+<ul>
+<li><strong><code>gocyclo</code></strong>: 检测代码的圈复杂度，确保函数复杂度不会过高（默认阈值为 30）。</li>
+<li><strong><code>funlen</code></strong>: 检查函数和文件的长度（如上所述）。</li>
+<li><strong><code>megacheck</code></strong>: 组合了 <code>gosimple</code>, <code>unused</code>, 和 <code>staticcheck</code>。</li>
+<li><strong><code>prealloc</code></strong>: 检测在大型切片中是否提前分配了容量。</li>
+</ul>
+<hr>
+<h3 id="安全性"><strong>安全性</strong></h3>
+<p>检测安全问题，适合对代码安全性有要求的项目：</p>
+<ul>
+<li><strong><code>nakedret</code></strong>: 检查是否有裸返回值，可能导致混淆或错误。</li>
+<li><strong><code>gosec</code></strong>: 检测常见的安全问题，例如 SQL 注入、弱密码等。</li>
+<li><strong><code>maligned</code></strong>: 检测结构体字段排列是否影响内存对齐。</li>
+</ul>
+<h1 id="3-golangci-yml推荐配置">3. golangci.yml推荐配置</h1>
+<p>可以通过<code>.golangci.yml</code>配置文件来配置详细的lint参数，在项目的根目录下创建该文件。常用推荐配置如下：</p>
+<p>为了可以精准控制开启的类型，可以<code>把disable-all设置为true</code>，然后再根据团队需要逐步添加enable的类型，避免开启检查过多影响开发效率。</p>
+<ul>
+<li>linters：主要配置开启或关闭的检查类型。</li>
+<li>linters-settings：针对linters中的具体检查类型配置该类型的参数。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">run</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">timeout</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;10m&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">linters</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">disable-all</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#204a87;font-weight:bold">true</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">enable</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># basic</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">govet</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">staticcheck</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">errcheck</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">ineffassign</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">gosimple</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">unused</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># style</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">gofmt</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">goimports</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">misspell</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">stylecheck</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">dupl</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">wsl</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">goconst</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># complexity</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">funlen</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">gocyclo</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">lll</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># security</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#000">gosec</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">linters-settings</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">funlen</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># Checks the number of lines in a function.</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">lines</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">80</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># Checks the number of statements in a function.</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">statements</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">40</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># Ignore comments when counting lines.</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">ignore-comments</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#204a87;font-weight:bold">true</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">lines-in-file</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">800</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">gocyclo</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># Minimal code complexity to report.</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># Default: 30 (but we recommend 10-20)</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">min-complexity</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">15</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">lll</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># Max line length, lines longer will be reported.</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># Default: 120.</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">line-length</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">120</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">dupl</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># Tokens count to trigger issue.</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># Default: 150</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">threshold</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">100</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"> 
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">output</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#8f5902;font-style:italic"># 输出格式：可选的值有 plain、colored-line-number、json、tab、checkstyle。</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">format</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">colored-line-number</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#8f5902;font-style:italic"># 是否显示行号</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">print-issued-lines</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#204a87;font-weight:bold">true</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#8f5902;font-style:italic"># 是否显示默认规则</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">print-config</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#204a87;font-weight:bold">true</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="https://golangci-lint.run/">https://golangci-lint.run/</a></li>
+<li><a href="https://golangci-lint.run/usage/configuration/">https://golangci-lint.run/usage/configuration/</a></li>
+<li><a href="https://golangci-lint.run/usage/linters/">https://golangci-lint.run/usage/linters/</a></li>
 </ul>
 
 </div>
