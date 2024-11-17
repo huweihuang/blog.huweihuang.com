@@ -896,6 +896,258 @@ yum localinstall -y flannel-0.2.0-10.el7.x86_64.rpm
     </item>
     
     <item>
+      <title>Kubernetes-Notes: CNI插件选型</title>
+      <link>https://blog.huweihuang.com/kubernetes-notes/network/cni/cni-plugin-comparison/</link>
+      <pubDate>Sat, 16 Nov 2024 10:50:57 +0000</pubDate>
+      
+      <guid>https://blog.huweihuang.com/kubernetes-notes/network/cni/cni-plugin-comparison/</guid>
+      <description>
+        
+        
+        &lt;p&gt;本文主要描述常用的CNI插件的选型，主要包括cilium，calico，flannel三种插件的对比。&lt;/p&gt;
+&lt;h1 id=&#34;1-技术特点对比&#34;&gt;1. 技术特点对比&lt;/h1&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;特性&lt;/th&gt;
+&lt;th&gt;&lt;strong&gt;Cilium&lt;/strong&gt;&lt;/th&gt;
+&lt;th&gt;&lt;strong&gt;Calico&lt;/strong&gt;&lt;/th&gt;
+&lt;th&gt;&lt;strong&gt;Flannel&lt;/strong&gt;&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;数据面技术&lt;/td&gt;
+&lt;td&gt;eBPF 加速&lt;/td&gt;
+&lt;td&gt;基于 iptables（支持 eBPF）&lt;/td&gt;
+&lt;td&gt;vxlan、host-gw、ipip 等隧道技术&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;转发效率&lt;/td&gt;
+&lt;td&gt;高（内核级加速，直通流量）&lt;/td&gt;
+&lt;td&gt;高（支持原生路由）&lt;/td&gt;
+&lt;td&gt;中（隧道技术增加开销）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;可扩展性&lt;/td&gt;
+&lt;td&gt;优（支持高级 L7 策略）&lt;/td&gt;
+&lt;td&gt;优（支持原生路由和简单网络策略）&lt;/td&gt;
+&lt;td&gt;较低（以 L3 网络为主）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;延迟&lt;/td&gt;
+&lt;td&gt;低（无需额外隧道或规则）&lt;/td&gt;
+&lt;td&gt;低（无隧道或 eBPF 模式）&lt;/td&gt;
+&lt;td&gt;较高（隧道封装增加延迟）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;吞吐量&lt;/td&gt;
+&lt;td&gt;高（eBPF 高效转发）&lt;/td&gt;
+&lt;td&gt;中（依赖 iptables 或 eBPF）&lt;/td&gt;
+&lt;td&gt;较低（隧道开销显著）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h1 id=&#34;2-性能指标对比&#34;&gt;2. 性能指标对比&lt;/h1&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;性能指标&lt;/th&gt;
+&lt;th&gt;&lt;strong&gt;Cilium&lt;/strong&gt;&lt;/th&gt;
+&lt;th&gt;&lt;strong&gt;Calico&lt;/strong&gt;&lt;/th&gt;
+&lt;th&gt;&lt;strong&gt;Flannel&lt;/strong&gt;&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;吞吐量&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;高（eBPF 高效转发）&lt;/td&gt;
+&lt;td&gt;中-高（取决于模式）&lt;/td&gt;
+&lt;td&gt;较低（隧道封装损耗较大）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;延迟&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;低（直接路由模式最佳）&lt;/td&gt;
+&lt;td&gt;较低（非隧道模式表现良好）&lt;/td&gt;
+&lt;td&gt;较高（隧道增加延迟）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;CPU使用&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;较高（eBPF 和可观测性功能）&lt;/td&gt;
+&lt;td&gt;中（iptables/eBPF 开销）&lt;/td&gt;
+&lt;td&gt;低（简单架构）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;内存使用&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;较高（功能丰富）&lt;/td&gt;
+&lt;td&gt;中&lt;/td&gt;
+&lt;td&gt;低&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h1 id=&#34;3-测试数据示例&#34;&gt;3. 测试数据示例&lt;/h1&gt;
+&lt;p&gt;以下是根据典型测试场景总结的指标（单位为吞吐量 Mbps 和延迟 ms）：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;测试场景&lt;/th&gt;
+&lt;th&gt;&lt;strong&gt;Cilium&lt;/strong&gt;&lt;/th&gt;
+&lt;th&gt;&lt;strong&gt;Calico&lt;/strong&gt;&lt;/th&gt;
+&lt;th&gt;&lt;strong&gt;Flannel&lt;/strong&gt;&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;吞吐量 (单节点)&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;~9,000 Mbps&lt;/td&gt;
+&lt;td&gt;~8,500 Mbps&lt;/td&gt;
+&lt;td&gt;~6,000 Mbps&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;吞吐量 (跨节点)&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;~8,000 Mbps&lt;/td&gt;
+&lt;td&gt;~7,500 Mbps&lt;/td&gt;
+&lt;td&gt;~5,000 Mbps&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;延迟 (单节点)&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;~0.2 ms&lt;/td&gt;
+&lt;td&gt;~0.3 ms&lt;/td&gt;
+&lt;td&gt;~1.0 ms&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;延迟 (跨节点)&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;~0.4 ms&lt;/td&gt;
+&lt;td&gt;~0.5 ms&lt;/td&gt;
+&lt;td&gt;~2.0 ms&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;2020年测试数据：&lt;/p&gt;
+&lt;p&gt;数据来源：&lt;a href=&#34;https://itnext.io/benchmark-results-of-kubernetes-network-plugins-cni-over-10gbit-s-network-updated-august-2020-6e1b757b9e49&#34;&gt;Benchmark results of Kubernetes network plugins (CNI) over 10Gbit/s network (Updated: August 2020)&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1731839739/article/kubernetes/network/cni/cni-comparison.webp&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;[2024年]单位带宽消耗的CPU和内存数据：&lt;/p&gt;
+&lt;p&gt;数据来源：&lt;a href=&#34;https://itnext.io/benchmark-results-of-kubernetes-network-plugins-cni-over-40gbit-s-network-2024-156f085a5e4e#89d8-90c23c8caeb4-reply&#34;&gt;Benchmark results of Kubernetes network plugins (CNI) over 40Gbit/s network -2024&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1731839992/article/kubernetes/network/cni/Resource-efficiency-per-CNI.webp&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;以上可以看出cilium单位消耗的CPU和内存相比于flannel高。&lt;/p&gt;
+&lt;h1 id=&#34;4-网络性能分析&#34;&gt;4. 网络性能分析&lt;/h1&gt;
+&lt;h2 id=&#34;4-1-cilium&#34;&gt;4.1. Cilium&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;吞吐量&lt;/strong&gt;：基于 eBPF 的数据面技术，可直接在 Linux 内核中高效转发流量，减少上下文切换。使用直连路由模式（&lt;code&gt;--tunnel=disabled&lt;/code&gt;）时，进一步减少封装开销。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;延迟&lt;/strong&gt;：支持 Sidecar-less 的服务网格架构，能够降低服务间通信延迟。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;资源消耗&lt;/strong&gt;：由于其高级功能（如 Hubble 可观测性和 L7 策略），在 CPU 和内存使用上高于其他插件。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;4-2-calico&#34;&gt;4.2. Calico&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;吞吐量&lt;/strong&gt;：非隧道模式下，基于 BGP 的原生路由性能接近裸机水平；启用 eBPF 模式时，性能进一步提升。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;延迟&lt;/strong&gt;：表现良好，但在复杂网络策略下可能增加延迟。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;资源消耗&lt;/strong&gt;：资源使用适中，适合大多数生产环境。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;4-3-flannel&#34;&gt;4.3. Flannel&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;吞吐量&lt;/strong&gt;：由于采用 VXLAN、IPIP 等隧道封装方式，其性能通常不如 Cilium 和 Calico。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;延迟&lt;/strong&gt;：封装和解封装的额外操作导致延迟增加。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;资源消耗&lt;/strong&gt;：架构简单，资源使用最低，适合资源有限的小型集群。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;5-业务场景选型&#34;&gt;5. 业务场景选型&lt;/h1&gt;
+&lt;p&gt;&lt;strong&gt;1. Cilium：适合高性能与安全需求的场景&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;适用场景：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;微服务架构&lt;/strong&gt;：Cilium 的 eBPF 技术支持 L7 数据包过滤、服务可观测性和无 Sidecar 服务网格，非常适合复杂微服务环境。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;边缘计算&lt;/strong&gt;：在边缘节点上，需要低延迟和高吞吐量，Cilium 的直连路由模式（&lt;code&gt;--tunnel=disabled&lt;/code&gt;）非常高效。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;多云和混合云&lt;/strong&gt;：支持多种高级网络功能，如网络策略的灵活配置和透明的加密。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;局限性：
+&lt;ul&gt;
+&lt;li&gt;部署复杂度相对较高，对 Linux 内核版本有要求（推荐 5.3+）。&lt;/li&gt;
+&lt;li&gt;资源消耗比 Flannel 高。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;2. Calico：适合大规模、灵活策略的企业集群&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;适用场景：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;大规模 Kubernetes 集群&lt;/strong&gt;：基于 BGP 的网络路由能够高效扩展，适合公有云和企业级大规模集群。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;注重安全策略&lt;/strong&gt;：支持丰富的网络安全策略，并提供对接 eBPF 的能力，兼顾性能和策略灵活性。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;混合部署&lt;/strong&gt;：Calico 可以在非 Kubernetes 工作负载中实现一致的网络策略。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;局限性：
+&lt;ul&gt;
+&lt;li&gt;默认基于 iptables 的实现在高负载下性能可能不如 Cilium 的 eBPF 数据面。&lt;/li&gt;
+&lt;li&gt;网络策略复杂度较高时，可能增加运维工作量。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;3. Flannel：适合轻量级和资源有限的集群&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;适用场景：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;小型集群&lt;/strong&gt;：Flannel 架构简单，资源使用少，适合轻量化的 Kubernetes 部署。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;测试环境&lt;/strong&gt;：性能需求较低的开发和测试环境中，可以快速搭建和运行。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;边缘计算（非高性能）&lt;/strong&gt;：对网络性能要求较低的小型边缘节点可以使用。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;局限性：
+&lt;ul&gt;
+&lt;li&gt;在吞吐量和延迟上不如 Cilium 和 Calico，尤其是需要大量隧道封装时。&lt;/li&gt;
+&lt;li&gt;缺乏高级网络功能，例如复杂的网络策略和观测能力。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;4. 推荐选择总结&lt;/strong&gt;&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;场景类型&lt;/th&gt;
+&lt;th&gt;推荐插件&lt;/th&gt;
+&lt;th&gt;原因&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;高性能微服务架构&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;Cilium&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;提供 eBPF 技术，支持复杂策略和低延迟网络&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;大规模企业集群&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;Calico&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;稳定、灵活，适合多样化和大规模 Kubernetes 部署&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;资源受限环境&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;Flannel&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;简单易用，资源消耗低&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;边缘计算&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;Cilium/Flannel&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Cilium 适合高性能需求，Flannel 适合轻量级节点&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;混合云/多云&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;Cilium/Calico&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Cilium 支持透明加密和现代架构，Calico 提供灵活网络策略支持&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;参考：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://docs.cilium.io/en/latest/operations/performance/benchmark/&#34;&gt;https://docs.cilium.io/en/latest/operations/performance/benchmark/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://cilium.io/blog/2018/12/03/cni-performance/&#34;&gt;https://cilium.io/blog/2018/12/03/cni-performance/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://cilium.io/blog/2021/05/11/cni-benchmark/&#34;&gt;https://cilium.io/blog/2021/05/11/cni-benchmark/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://itnext.io/benchmark-results-of-kubernetes-network-plugins-cni-over-40gbit-s-network-2024-156f085a5e4e#89d8-90c23c8caeb4-reply&#34;&gt;Benchmark results of Kubernetes network plugins (CNI) over 40Gbit/s network -2024&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://itnext.io/benchmark-results-of-kubernetes-network-plugins-cni-over-10gbit-s-network-updated-august-2020-6e1b757b9e49&#34;&gt;Benchmark results of Kubernetes network plugins (CNI) over 10Gbit/s network (Updated: August 2020)&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+      </description>
+    </item>
+    
+    <item>
       <title>Kubernetes-Notes: Macvlan介绍</title>
       <link>https://blog.huweihuang.com/kubernetes-notes/network/cni/macvlan/</link>
       <pubDate>Sat, 10 Jul 2021 10:50:57 +0000</pubDate>
