@@ -18,22 +18,48 @@
 <link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
 <link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
 
-<title>修复golangci-lint问题 | 胡伟煌</title>
-<meta name="description" content="">
-<meta property="og:title" content="修复golangci-lint问题" />
-<meta property="og:description" content="" />
+<title>golangci-lint问题优化 | 胡伟煌</title>
+<meta name="description" content="在golangci-lint的使用介绍一文中我们提到了linter常见的几种配置，例如，gocyclo（圈复杂度），dupl（重复代码）等。本文主要介绍这几种常见linter的问题如何优化。
+1. gocyclo（圈复杂度）
+在 Go 中，圈复杂度（Cyclomatic Complexity） 是一 …">
+<meta property="og:title" content="golangci-lint问题优化" />
+<meta property="og:description" content="在golangci-lint的使用介绍一文中我们提到了linter常见的几种配置，例如，gocyclo（圈复杂度），dupl（重复代码）等。本文主要介绍这几种常见linter的问题如何优化。
+1. gocyclo（圈复杂度） 在 Go 中，圈复杂度（Cyclomatic Complexity） 是一种衡量代码复杂度的指标，表示代码中可能的独立执行路径的数量。它反映了程序的逻辑复杂度，也就是代码有多少个分支或决策点（如 if、for、switch 等）。圈复杂度越高，代码的理解和维护成本就越大。
+.golangci.yml中圈复杂度的配置如下：
+linters: enabel: - gocycle linters-settings: gocyclo: # Minimal code complexity to report. # Default: 30 (but we recommend 10-20) min-complexity: 10 1.1. 计算规则 圈复杂度的计算公式为：
+M=E−N&#43;2P
+其中：
+E：代码中的边数（控制流图中的边，表示程序中的控制流路径，例如从一条语句跳转到下一条语句）。 N：代码中的节点数（控制流图中的节点，表示程序中的基本块或语句）。 P：控制流图中连通部分的数量（通常为 1）。 简单来说，圈复杂度可以通过统计代码中的以下决策点来估算，其中初始值为1，即默认返回路径，再根据以下规则累加：
+每个 if 或 else if 增加 1。 每个 for 或 while 循环增加 1。 每个 case（不包括 default）增加 1。 每个 &amp;&amp; 或 || 表达式增加 1。 举例说明：
+func Example(a, b int) int { if a &gt; 0 { // if语句 &#43;1 if b &gt; 0 { // if语句 &#43;1 return a &#43; b } else { return a - b } } return 0 初始值为1 } 控制流路径为：" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://blog.huweihuang.com/golang-notes/standard/fix-golangci-lint/" /><meta property="article:section" content="golang-notes" />
 
-<meta property="og:site_name" content="胡伟煌" />
+<meta property="article:modified_time" content="2024-11-23T12:36:01+08:00" /><meta property="og:site_name" content="胡伟煌" />
 
-<meta itemprop="name" content="修复golangci-lint问题">
-<meta itemprop="description" content="">
-
-<meta itemprop="wordCount" content="0">
+<meta itemprop="name" content="golangci-lint问题优化">
+<meta itemprop="description" content="在golangci-lint的使用介绍一文中我们提到了linter常见的几种配置，例如，gocyclo（圈复杂度），dupl（重复代码）等。本文主要介绍这几种常见linter的问题如何优化。
+1. gocyclo（圈复杂度） 在 Go 中，圈复杂度（Cyclomatic Complexity） 是一种衡量代码复杂度的指标，表示代码中可能的独立执行路径的数量。它反映了程序的逻辑复杂度，也就是代码有多少个分支或决策点（如 if、for、switch 等）。圈复杂度越高，代码的理解和维护成本就越大。
+.golangci.yml中圈复杂度的配置如下：
+linters: enabel: - gocycle linters-settings: gocyclo: # Minimal code complexity to report. # Default: 30 (but we recommend 10-20) min-complexity: 10 1.1. 计算规则 圈复杂度的计算公式为：
+M=E−N&#43;2P
+其中：
+E：代码中的边数（控制流图中的边，表示程序中的控制流路径，例如从一条语句跳转到下一条语句）。 N：代码中的节点数（控制流图中的节点，表示程序中的基本块或语句）。 P：控制流图中连通部分的数量（通常为 1）。 简单来说，圈复杂度可以通过统计代码中的以下决策点来估算，其中初始值为1，即默认返回路径，再根据以下规则累加：
+每个 if 或 else if 增加 1。 每个 for 或 while 循环增加 1。 每个 case（不包括 default）增加 1。 每个 &amp;&amp; 或 || 表达式增加 1。 举例说明：
+func Example(a, b int) int { if a &gt; 0 { // if语句 &#43;1 if b &gt; 0 { // if语句 &#43;1 return a &#43; b } else { return a - b } } return 0 初始值为1 } 控制流路径为：">
+<meta itemprop="dateModified" content="2024-11-23T12:36:01+08:00" />
+<meta itemprop="wordCount" content="344">
 <meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="修复golangci-lint问题"/>
-<meta name="twitter:description" content=""/>
+<meta name="twitter:title" content="golangci-lint问题优化"/>
+<meta name="twitter:description" content="在golangci-lint的使用介绍一文中我们提到了linter常见的几种配置，例如，gocyclo（圈复杂度），dupl（重复代码）等。本文主要介绍这几种常见linter的问题如何优化。
+1. gocyclo（圈复杂度） 在 Go 中，圈复杂度（Cyclomatic Complexity） 是一种衡量代码复杂度的指标，表示代码中可能的独立执行路径的数量。它反映了程序的逻辑复杂度，也就是代码有多少个分支或决策点（如 if、for、switch 等）。圈复杂度越高，代码的理解和维护成本就越大。
+.golangci.yml中圈复杂度的配置如下：
+linters: enabel: - gocycle linters-settings: gocyclo: # Minimal code complexity to report. # Default: 30 (but we recommend 10-20) min-complexity: 10 1.1. 计算规则 圈复杂度的计算公式为：
+M=E−N&#43;2P
+其中：
+E：代码中的边数（控制流图中的边，表示程序中的控制流路径，例如从一条语句跳转到下一条语句）。 N：代码中的节点数（控制流图中的节点，表示程序中的基本块或语句）。 P：控制流图中连通部分的数量（通常为 1）。 简单来说，圈复杂度可以通过统计代码中的以下决策点来估算，其中初始值为1，即默认返回路径，再根据以下规则累加：
+每个 if 或 else if 增加 1。 每个 for 或 while 循环增加 1。 每个 case（不包括 default）增加 1。 每个 &amp;&amp; 或 || 表达式增加 1。 举例说明：
+func Example(a, b int) int { if a &gt; 0 { // if语句 &#43;1 if b &gt; 0 { // if语句 &#43;1 return a &#43; b } else { return a - b } } return 0 初始值为1 } 控制流路径为："/>
 
 
 
@@ -145,7 +171,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.ada3dacbf96b951599876ff50f00b9ab.json"
+  data-offline-search-index-json-src="/offline-search-index.288ab8c9d8633998f479a61cd67eab0a.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -167,7 +193,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.ada3dacbf96b951599876ff50f00b9ab.json"
+  data-offline-search-index-json-src="/offline-search-index.288ab8c9d8633998f479a61cd67eab0a.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -392,7 +418,7 @@ if (!doNotTrack) {
   
 </li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-standard-fix-golangci-lint-li">
   <input type="checkbox" id="m-golang-notes-standard-fix-golangci-lint-check"/>
-  <label for="m-golang-notes-standard-fix-golangci-lint-check"><a href="/golang-notes/standard/fix-golangci-lint/" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-golang-notes-standard-fix-golangci-lint"><span class="td-sidebar-nav-active-item">修复golangci-lint问题</span></a></label>
+  <label for="m-golang-notes-standard-fix-golangci-lint-check"><a href="/golang-notes/standard/fix-golangci-lint/" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-golang-notes-standard-fix-golangci-lint"><span class="td-sidebar-nav-active-item">golangci-lint问题优化</span></a></label>
   
 </li>
   </ul>
@@ -455,7 +481,7 @@ if (!doNotTrack) {
 <a href="https://github.com/huweihuang/blog.huweihuang.com/tree/master/content/zh-cn/golang-notes/standard/fix-golangci-lint.md" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa fa-file-alt fa-fw"></i> 查看页面源码</a>
   <a href="https://github.com/huweihuang/blog.huweihuang.com/edit/master/content/zh-cn/golang-notes/standard/fix-golangci-lint.md" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 编辑此页</a>
   <a href="https://github.com/huweihuang/blog.huweihuang.com/new/master/content/zh-cn/golang-notes/standard/fix-golangci-lint.md?filename=change-me.md&amp;value=---%0Atitle%3A&#43;%22Long&#43;Page&#43;Title%22%0AlinkTitle%3A&#43;%22Short&#43;Nav&#43;Title%22%0Aweight%3A&#43;100%0Adescription%3A&#43;%3E-%0A&#43;&#43;&#43;&#43;&#43;Page&#43;description&#43;for&#43;heading&#43;and&#43;indexes.%0A---%0A%0A%23%23&#43;Heading%0A%0AEdit&#43;this&#43;template&#43;to&#43;create&#43;your&#43;new&#43;page.%0A%0A%2A&#43;Give&#43;it&#43;a&#43;good&#43;name%2C&#43;ending&#43;in&#43;%60.md%60&#43;-&#43;e.g.&#43;%60getting-started.md%60%0A%2A&#43;Edit&#43;the&#43;%22front&#43;matter%22&#43;section&#43;at&#43;the&#43;top&#43;of&#43;the&#43;page&#43;%28weight&#43;controls&#43;how&#43;its&#43;ordered&#43;amongst&#43;other&#43;pages&#43;in&#43;the&#43;same&#43;directory%3B&#43;lowest&#43;number&#43;first%29.%0A%2A&#43;Add&#43;a&#43;good&#43;commit&#43;message&#43;at&#43;the&#43;bottom&#43;of&#43;the&#43;page&#43;%28%3C80&#43;characters%3B&#43;use&#43;the&#43;extended&#43;description&#43;field&#43;for&#43;more&#43;detail%29.%0A%2A&#43;Create&#43;a&#43;new&#43;branch&#43;so&#43;you&#43;can&#43;preview&#43;your&#43;new&#43;file&#43;and&#43;request&#43;a&#43;review&#43;via&#43;Pull&#43;Request.%0A" class="td-page-meta--child" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 添加子页面</a>
-  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new?title=%e4%bf%ae%e5%a4%8dgolangci-lint%e9%97%ae%e9%a2%98" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new?title=golangci-lint%e9%97%ae%e9%a2%98%e4%bc%98%e5%8c%96" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
   <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new" class="td-page-meta--project-issue" target="_blank" rel="noopener"><i class="fas fa-tasks fa-fw"></i> 提交项目问题</a>
   <a id="print" href="https://blog.huweihuang.com/golang-notes/standard/_print/"><i class="fa fa-print fa-fw"></i> 整节打印</a>
 
@@ -463,6 +489,26 @@ if (!doNotTrack) {
 
             
 
+
+<div class="td-toc"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-gocyclo-圈复杂度">1. gocyclo（圈复杂度）</a>
+      <ul>
+        <li><a href="#1-1-计算规则">1.1. 计算规则</a></li>
+        <li><a href="#1-2-常见标准">1.2. 常见标准</a></li>
+        <li><a href="#1-3-优化圈复杂度">1.3. 优化圈复杂度</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-dupl-重复代码">2. dupl（重复代码）</a>
+      <ul>
+        <li><a href="#2-1-计算规则">2.1. 计算规则</a></li>
+        <li><a href="#2-2-配置方式">2.2. 配置方式</a></li>
+        <li><a href="#2-3-优化重复代码">2.3. 优化重复代码</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-总结">3. 总结</a></li>
+  </ul>
+</nav></div>
 
 
 
@@ -591,13 +637,13 @@ if (!doNotTrack) {
     <a href="https://blog.huweihuang.com/golang-notes/standard/">代码规范</a>
   </li>
   <li class="breadcrumb-item active" aria-current="page">
-    <a href="https://blog.huweihuang.com/golang-notes/standard/fix-golangci-lint/">修复golangci-lint问题</a>
+    <a href="https://blog.huweihuang.com/golang-notes/standard/fix-golangci-lint/">golangci-lint问题优化</a>
   </li>
   </ol>
 </nav>
             
 <div class="td-content">
-	<h1>修复golangci-lint问题</h1>
+	<h1>golangci-lint问题优化</h1>
 	
 	<header class="article-meta">
 		
@@ -616,7 +662,184 @@ if (!doNotTrack) {
 
 		
 	</header>    
-	
+	<p>在<a href="https://blog.huweihuang.com/golang-notes/standard/golangci-lint/">golangci-lint的使用介绍</a>一文中我们提到了linter常见的几种配置，例如，gocyclo（圈复杂度），dupl（重复代码）等。本文主要介绍这几种常见linter的问题如何优化。</p>
+<h1 id="1-gocyclo-圈复杂度">1. gocyclo（圈复杂度）</h1>
+<p>在 Go 中，<strong>圈复杂度（Cyclomatic Complexity）</strong> 是一种衡量代码复杂度的指标，表示代码中可能的独立执行路径的数量。它反映了程序的逻辑复杂度，也就是代码有多少个分支或决策点（如 <code>if</code>、<code>for</code>、<code>switch</code> 等）。圈复杂度越高，代码的理解和维护成本就越大。</p>
+<p><code>.golangci.yml</code>中圈复杂度的配置如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">linters</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">	</span><span style="color:#204a87;font-weight:bold">enabel</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">	  </span>- <span style="color:#000">gocycle</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">linters-settings</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">gocyclo</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># Minimal code complexity to report.</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># Default: 30 (but we recommend 10-20)</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">min-complexity</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">10</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h2 id="1-1-计算规则">1.1. 计算规则</h2>
+<p>圈复杂度的计算公式为：</p>
+<p><code>M=E−N+2P</code></p>
+<p>其中：</p>
+<ul>
+<li>E：代码中的边数（控制流图中的边，表示程序中的控制流路径，例如从一条语句跳转到下一条语句）。</li>
+<li>N：代码中的节点数（控制流图中的节点，表示程序中的基本块或语句）。</li>
+<li>P：控制流图中连通部分的数量（通常为 1）。</li>
+</ul>
+<p>简单来说，圈复杂度可以通过统计代码中的以下决策点来估算，其中<code>初始值为1，即默认返回路径，再根据以下规则累加</code>：</p>
+<ul>
+<li>每个 <code>if</code> 或 <code>else if</code> 增加 1。</li>
+<li>每个 <code>for</code> 或 <code>while</code> 循环增加 1。</li>
+<li>每个 <code>case</code>（不包括 <code>default</code>）增加 1。</li>
+<li>每个 <code>&amp;&amp;</code> 或 <code>||</code> 表达式增加 1。</li>
+</ul>
+<p>举例说明：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">Example</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">a</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">b</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">int</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">a</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>  <span style="color:#8f5902;font-style:italic">// if语句 +1
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">b</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>  <span style="color:#8f5902;font-style:italic">// if语句 +1
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">a</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#000">b</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span> <span style="color:#204a87;font-weight:bold">else</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">a</span> <span style="color:#ce5c00;font-weight:bold">-</span> <span style="color:#000">b</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#0000cf;font-weight:bold">0</span>   <span style="color:#000">初始值为1</span> 
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>控制流路径为：</p>
+<ul>
+<li>初始值为1</li>
+<li>2个if语句 + 2</li>
+</ul>
+<p>因此该函数的圈复杂度为3。</p>
+<h2 id="1-2-常见标准">1.2. 常见标准</h2>
+<p>通常，<code>圈复杂度以合理的范围为佳（例如：10-15），过低的圈复杂度会导致拆分函数过多，代码可读性变差</code>。</p>
+<p>以下是圈复杂度的参考标准：</p>
+<ul>
+<li><strong>1-10</strong>：代码逻辑简单，可维护性高。</li>
+<li><strong>11-20</strong>：代码逻辑较复杂，可能需要重构。</li>
+<li><strong>21+</strong>：代码逻辑非常复杂，维护成本高，建议拆分函数。</li>
+</ul>
+<h2 id="1-3-优化圈复杂度">1.3. 优化圈复杂度</h2>
+<ol>
+<li><code>拆分函数</code>：（最常见的方式）将复杂的函数拆分成多个小函数，每个函数只处理一种逻辑。</li>
+<li><code>减少嵌套</code>：使用 <code>early return</code> 减少嵌套层级。</li>
+<li><code>简化逻辑</code>：合并条件表达式，避免重复的分支逻辑。</li>
+</ol>
+<p>优化圈复杂度的关键在于：</p>
+<ol>
+<li>减少嵌套，增加代码的扁平化。</li>
+<li>提高代码的模块化和复用性。</li>
+</ol>
+<h1 id="2-dupl-重复代码">2. dupl（重复代码）</h1>
+<p>Golang 的静态分析工具（如 <code>golangci-lint</code>）能够检测代码中的重复部分。这类工具通常使用<strong>重复代码检测算法</strong>，通过对代码块进行特定分析，找到相似或完全相同的代码片段。</p>
+<p>golangci-lint中检查重复代码的配置如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">linters</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">	</span><span style="color:#204a87;font-weight:bold">enabel</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">	  </span>- <span style="color:#000">dupl</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">linters-settings</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">dupl</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># Tokens count to trigger issue.</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># Default: 150</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">threshold</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">100</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h2 id="2-1-计算规则">2.1. 计算规则</h2>
+<p><strong>Tokenization（代码标记化）</strong></p>
+<p>工具会将源代码分解为标记（Token），比如关键字、标识符、操作符等。通过这种方式，它可以忽略注释和格式差异，只关注代码的语义。</p>
+<p><strong>Token</strong> 是代码的最小组成单元，包括：</p>
+<ul>
+<li>关键字：如 <code>if</code>、<code>for</code>、<code>switch</code>。</li>
+<li>标识符：变量名、函数名、类型名等。</li>
+<li>操作符：如 <code>+</code>、<code>-</code>、<code>*</code>、<code>/</code> 等。</li>
+<li>常量值：如 <code>123</code>、<code>&quot;text&quot;</code>。</li>
+<li>界符：如 <code>{</code>、<code>}</code>、<code>(</code>、<code>)</code>。</li>
+</ul>
+<p><strong><code>threshold</code> 参数的作用</strong></p>
+<ul>
+<li><strong>定义：</strong> <code>threshold</code> 是重复代码块的最小 Token 数。</li>
+<li>如果两个代码块中有 <strong>相同 Token 的数量</strong> &gt;= <code>threshold</code>，则会被认为是重复代码，并报告。</li>
+</ul>
+<p><strong>示例：<code>threshold: 50</code></strong></p>
+<ul>
+<li>如果两个代码块中有 50 个或更多的 Token 是相同的，<code>dupl</code> 会报告它们为重复代码。</li>
+<li>小于 50 个 Token 的重复代码不会被报告。</li>
+</ul>
+<h2 id="2-2-配置方式">2.2. 配置方式</h2>
+<p>通过配置threshold的大小可以控制重复代码的粒度。threshold默认值是150，可根据需要调整大小。</p>
+<ul>
+<li>
+<p><code>阈值越小：越容易检测到小的重复代码，但可能导致误报增多。</code></p>
+</li>
+<li>
+<p><code>阈值越大：检测更宽松，只报告较大的重复代码块。</code></p>
+</li>
+</ul>
+<p>当发现重复代码时，<code>golangci-lint</code> 会输出类似的报告：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>main.go:10-20: duplicated code found in main.go:30-40 <span style="color:#ce5c00;font-weight:bold">(</span>dupl<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span></code></pre></div><p>如果要忽略特定代码，在代码中添加注释：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">//nolint:dupl
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">SomeFunction</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 重复代码块
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-3-优化重复代码">2.3. 优化重复代码</h2>
+<ol>
+<li><code>提取函数</code>：将重复逻辑抽象为通用函数。</li>
+<li><code>映射表代替分支</code>： 用键值对简化条件逻辑。</li>
+<li><code>利用泛型</code>： 合并不同类型的重复逻辑。</li>
+</ol>
+<p>示例1：</p>
+<p>如果重复代码包含多个 <code>if-else</code> 或 <code>switch</code>，尝试用映射表或配置文件替代。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Before: 重复代码块
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">GetDiscount</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">category</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">float64</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">switch</span> <span style="color:#000">category</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#4e9a06">&#34;student&#34;</span><span style="color:#000;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#0000cf;font-weight:bold">0.15</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#4e9a06">&#34;veteran&#34;</span><span style="color:#000;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#0000cf;font-weight:bold">0.2</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#4e9a06">&#34;senior&#34;</span><span style="color:#000;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#0000cf;font-weight:bold">0.25</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">default</span><span style="color:#000;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#0000cf;font-weight:bold">0.0</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// After: 使用映射表
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">GetDiscount</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">category</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">float64</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">discounts</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span><span style="color:#204a87;font-weight:bold">float64</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#4e9a06">&#34;student&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#0000cf;font-weight:bold">0.15</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#4e9a06">&#34;veteran&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#0000cf;font-weight:bold">0.2</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#4e9a06">&#34;senior&#34;</span><span style="color:#000;font-weight:bold">:</span>  <span style="color:#0000cf;font-weight:bold">0.25</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">discounts</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">category</span><span style="color:#000;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>示例2：</p>
+<p>使用 <strong>泛型</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Before: 重复代码块
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">FindMaxInt</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">a</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">b</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">int</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">a</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#000">b</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">a</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">b</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">FindMaxFloat</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">a</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">b</span> <span style="color:#204a87;font-weight:bold">float64</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">float64</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">a</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#000">b</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">a</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">b</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// After: 使用泛型
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">FindMax</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">T</span> <span style="color:#000">constraints</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Ordered</span><span style="color:#000;font-weight:bold">](</span><span style="color:#000">a</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">b</span> <span style="color:#000">T</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">T</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">a</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#000">b</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">a</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">b</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="3-总结">3. 总结</h1>
+<p>本文主要分析了<code>gocyclo（圈复杂度）</code>，<code>dupl（重复代码）</code>这2种linter配置的检测、配置和优化方式。因为在多人团队的开发中经常会因为开发者的水平不一，标准不一导致无法开发出统一且较高质量的代码。虽然代码的质量不会严格影响功能的运行，但可以为未来的开发者提供可读性更强，更方便接手开发的代码。同样通过这种方式也能初步看出一个开发者代码质量水平的高低。</p>
+<p>参考：</p>
+<ul>
+<li><a href="https://golangci-lint.run/usage/linters/#gocyclo">https://golangci-lint.run/usage/linters/#gocyclo</a></li>
+<li><a href="https://golangci-lint.run/usage/linters/#dupl">https://golangci-lint.run/usage/linters/#dupl</a></li>
+</ul>
+
 	
 		<style>
   .feedback--answer {
@@ -681,7 +904,10 @@ if (!doNotTrack) {
 		<br />
 	
 	
-	
+	<div class="text-muted mt-5 pt-3 border-top">
+  最后修改 November 23, 2024: <a href="https://github.com/huweihuang/blog.huweihuang.com/commit/26ec09b93e776dfbdb2ee666d5fd4366bdb59bc9">code standard (26ec09b)</a>
+</div>
+
 </div>
 
 
