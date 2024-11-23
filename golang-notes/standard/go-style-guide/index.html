@@ -1,0 +1,1775 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<meta name="robots" content="index, follow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>Golang 代码规范 | 胡伟煌</title>
+<meta name="description" content="1. 前言
+本规范在 Google Golang 代码规范 的基础上，进行了调整和补充。
+每项规范内容，给出了要求等级，其定义为：
+
+必须（Mandatory）：用户必须采用；
+推荐（Preferable）：用户理应采用，但如有特殊情况，可以不采用；
+可选（Optional）：用户可参考，自行决定是 …">
+<meta property="og:title" content="Golang 代码规范" />
+<meta property="og:description" content="1. 前言 本规范在 Google Golang 代码规范 的基础上，进行了调整和补充。
+每项规范内容，给出了要求等级，其定义为：
+必须（Mandatory）：用户必须采用； 推荐（Preferable）：用户理应采用，但如有特殊情况，可以不采用； 可选（Optional）：用户可参考，自行决定是否采用； 2. 代码风格 2.1 【必须】格式化 代码都必须用 gofmt 格式化。 2.2 【推荐】换行 建议一行代码不要超过120列，超过的情况，使用合理的换行方法换行。 例外场景： import 模块语句 工具生成代码 struct tag 2.3 【必须】括号和空格 遵循 gofmt 的逻辑。
+运算符和操作数之间要留空格。
+作为输入参数或者数组下标时，运算符和运算数之间不需要空格，紧凑展示。
+2.4 【必须】import 规范 使用 goimports 自动格式化引入的包名，import 规范原则上以 goimports 规则为准。
+goimports 会自动把依赖包按首字母排序，并对包进行分组管理，通过空行隔开，默认分为本地包（标准库、内部包）、第三方包。
+标准包永远位于最上面的第一组。
+内部包是指不能被外部 import 的包，如 GoPath 模式下的包名或者非域名开头的当前项目的 GoModules 包名。
+goimports 默认最少分成本地包和第三方包两大类，这两类包必须分开不能放在一起。本地包或者第三方包内部可以继续按实际情况细分不同子类。
+不要使用相对路径引入包：
+// 不要采用这种方式 import ( &#34;../net&#34; ) 应该使用完整的路径引入包： import ( &#34;xxxx.com/proj/net&#34; ) 包名和 git 路径名不一致时，或者多个相同包名冲突时，使用别名代替，别名命名规范和包命名规范保持一致： // 合理用法：包名和 git 路径名不一致，使用别名 import ( opentracing &#34;github." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.huweihuang.com/golang-notes/standard/go-style-guide/" /><meta property="article:section" content="golang-notes" />
+<meta property="article:published_time" content="2023-10-27T15:26:24+00:00" />
+<meta property="article:modified_time" content="2023-10-27T15:26:24+00:00" /><meta property="og:site_name" content="胡伟煌" />
+
+<meta itemprop="name" content="Golang 代码规范">
+<meta itemprop="description" content="1. 前言 本规范在 Google Golang 代码规范 的基础上，进行了调整和补充。
+每项规范内容，给出了要求等级，其定义为：
+必须（Mandatory）：用户必须采用； 推荐（Preferable）：用户理应采用，但如有特殊情况，可以不采用； 可选（Optional）：用户可参考，自行决定是否采用； 2. 代码风格 2.1 【必须】格式化 代码都必须用 gofmt 格式化。 2.2 【推荐】换行 建议一行代码不要超过120列，超过的情况，使用合理的换行方法换行。 例外场景： import 模块语句 工具生成代码 struct tag 2.3 【必须】括号和空格 遵循 gofmt 的逻辑。
+运算符和操作数之间要留空格。
+作为输入参数或者数组下标时，运算符和运算数之间不需要空格，紧凑展示。
+2.4 【必须】import 规范 使用 goimports 自动格式化引入的包名，import 规范原则上以 goimports 规则为准。
+goimports 会自动把依赖包按首字母排序，并对包进行分组管理，通过空行隔开，默认分为本地包（标准库、内部包）、第三方包。
+标准包永远位于最上面的第一组。
+内部包是指不能被外部 import 的包，如 GoPath 模式下的包名或者非域名开头的当前项目的 GoModules 包名。
+goimports 默认最少分成本地包和第三方包两大类，这两类包必须分开不能放在一起。本地包或者第三方包内部可以继续按实际情况细分不同子类。
+不要使用相对路径引入包：
+// 不要采用这种方式 import ( &#34;../net&#34; ) 应该使用完整的路径引入包： import ( &#34;xxxx.com/proj/net&#34; ) 包名和 git 路径名不一致时，或者多个相同包名冲突时，使用别名代替，别名命名规范和包命名规范保持一致： // 合理用法：包名和 git 路径名不一致，使用别名 import ( opentracing &#34;github."><meta itemprop="datePublished" content="2023-10-27T15:26:24+00:00" />
+<meta itemprop="dateModified" content="2023-10-27T15:26:24+00:00" />
+<meta itemprop="wordCount" content="1507">
+<meta itemprop="keywords" content="Golang," /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Golang 代码规范"/>
+<meta name="twitter:description" content="1. 前言 本规范在 Google Golang 代码规范 的基础上，进行了调整和补充。
+每项规范内容，给出了要求等级，其定义为：
+必须（Mandatory）：用户必须采用； 推荐（Preferable）：用户理应采用，但如有特殊情况，可以不采用； 可选（Optional）：用户可参考，自行决定是否采用； 2. 代码风格 2.1 【必须】格式化 代码都必须用 gofmt 格式化。 2.2 【推荐】换行 建议一行代码不要超过120列，超过的情况，使用合理的换行方法换行。 例外场景： import 模块语句 工具生成代码 struct tag 2.3 【必须】括号和空格 遵循 gofmt 的逻辑。
+运算符和操作数之间要留空格。
+作为输入参数或者数组下标时，运算符和运算数之间不需要空格，紧凑展示。
+2.4 【必须】import 规范 使用 goimports 自动格式化引入的包名，import 规范原则上以 goimports 规则为准。
+goimports 会自动把依赖包按首字母排序，并对包进行分组管理，通过空行隔开，默认分为本地包（标准库、内部包）、第三方包。
+标准包永远位于最上面的第一组。
+内部包是指不能被外部 import 的包，如 GoPath 模式下的包名或者非域名开头的当前项目的 GoModules 包名。
+goimports 默认最少分成本地包和第三方包两大类，这两类包必须分开不能放在一起。本地包或者第三方包内部可以继续按实际情况细分不同子类。
+不要使用相对路径引入包：
+// 不要采用这种方式 import ( &#34;../net&#34; ) 应该使用完整的路径引入包： import ( &#34;xxxx.com/proj/net&#34; ) 包名和 git 路径名不一致时，或者多个相同包名冲突时，使用别名代替，别名命名规范和包命名规范保持一致： // 合理用法：包名和 git 路径名不一致，使用别名 import ( opentracing &#34;github."/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" as="style">
+<link href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-114718458-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-page">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">胡伟煌</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/kubernetes-notes/" ><span>Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/k8s-source-code-analysis/" ><span>Kubernetes源码分析</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/golang-notes/" ><span class="active">Golang学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/linux-notes/" ><span>Linux学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/about/" ><span>About</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.ada3dacbf96b951599876ff50f00b9ab.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <aside class="col-12 col-md-3 col-xl-2 td-sidebar d-print-none">
+            
+<div id="td-sidebar-menu" class="td-sidebar__inner">
+  <form class="td-sidebar__search d-flex align-items-center">
+    <input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.ada3dacbf96b951599876ff50f00b9ab.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+
+    <button class="btn btn-link td-sidebar__toggle d-md-none p-0 ml-3 fas fa-bars" type="button" data-toggle="collapse" data-target="#td-section-nav" aria-controls="td-docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    </button>
+  </form>
+  <nav class="collapse td-sidebar-nav foldable-nav" id="td-section-nav">
+    <ul class="td-sidebar-nav__section pr-md-3 ul-0">
+      <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-golang-notes-li">
+  <a href="/golang-notes/" class="align-left pl-0 td-sidebar-link td-sidebar-link__section tree-root" id="m-golang-notes"><span class="">Golang学习笔记</span></a>
+  <ul class="ul-1">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-summary-li">
+  <input type="checkbox" id="m-golang-notes-summary-check"/>
+  <label for="m-golang-notes-summary-check"><a href="/golang-notes/summary/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-summary"><span class="">语言概述</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-summary-go-resource-li">
+  <input type="checkbox" id="m-golang-notes-summary-go-resource-check"/>
+  <label for="m-golang-notes-summary-go-resource-check"><a href="/golang-notes/summary/go-resource/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-summary-go-resource"><span class="">Golang资源</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-summary-language-li">
+  <input type="checkbox" id="m-golang-notes-summary-language-check"/>
+  <label for="m-golang-notes-summary-language-check"><a href="/golang-notes/summary/language/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-summary-language"><span class="">计算机语言概述</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-summary-skill-tree-li">
+  <input type="checkbox" id="m-golang-notes-summary-skill-tree-check"/>
+  <label for="m-golang-notes-summary-skill-tree-check"><a href="/golang-notes/summary/skill-tree/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-summary-skill-tree"><span class="">后端开发技能树</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-introduction-li">
+  <input type="checkbox" id="m-golang-notes-introduction-check"/>
+  <label for="m-golang-notes-introduction-check"><a href="/golang-notes/introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-introduction"><span class="">安装与配置</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-introduction-golang-li">
+  <input type="checkbox" id="m-golang-notes-introduction-golang-check"/>
+  <label for="m-golang-notes-introduction-golang-check"><a href="/golang-notes/introduction/golang/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-introduction-golang"><span class="">Golang介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-introduction-install-li">
+  <input type="checkbox" id="m-golang-notes-introduction-install-check"/>
+  <label for="m-golang-notes-introduction-install-check"><a href="/golang-notes/introduction/install/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-introduction-install"><span class="">Golang安装</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-introduction-package-li">
+  <input type="checkbox" id="m-golang-notes-introduction-package-check"/>
+  <label for="m-golang-notes-introduction-package-check"><a href="/golang-notes/introduction/package/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-introduction-package"><span class="">包管理工具</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-introduction-package-go-modules-li">
+  <input type="checkbox" id="m-golang-notes-introduction-package-go-modules-check"/>
+  <label for="m-golang-notes-introduction-package-go-modules-check"><a href="/golang-notes/introduction/package/go-modules/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-introduction-package-go-modules"><span class="">go modules的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-introduction-package-dep-usage-li">
+  <input type="checkbox" id="m-golang-notes-introduction-package-dep-usage-check"/>
+  <label for="m-golang-notes-introduction-package-dep-usage-check"><a href="/golang-notes/introduction/package/dep-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-introduction-package-dep-usage"><span class="">dep的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-introduction-package-glide-usage-li">
+  <input type="checkbox" id="m-golang-notes-introduction-package-glide-usage-check"/>
+  <label for="m-golang-notes-introduction-package-glide-usage-check"><a href="/golang-notes/introduction/package/glide-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-introduction-package-glide-usage"><span class="">glide的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-introduction-package-govendor-usage-li">
+  <input type="checkbox" id="m-golang-notes-introduction-package-govendor-usage-check"/>
+  <label for="m-golang-notes-introduction-package-govendor-usage-check"><a href="/golang-notes/introduction/package/govendor-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-introduction-package-govendor-usage"><span class="">govendor的使用</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-basis-li">
+  <input type="checkbox" id="m-golang-notes-basis-check"/>
+  <label for="m-golang-notes-basis-check"><a href="/golang-notes/basis/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-basis"><span class="">顺序编程</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-basis-var-const-li">
+  <input type="checkbox" id="m-golang-notes-basis-var-const-check"/>
+  <label for="m-golang-notes-basis-var-const-check"><a href="/golang-notes/basis/var-const/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-basis-var-const"><span class="">变量与常量</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-basis-data-types-li">
+  <input type="checkbox" id="m-golang-notes-basis-data-types-check"/>
+  <label for="m-golang-notes-basis-data-types-check"><a href="/golang-notes/basis/data-types/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-basis-data-types"><span class="">数据类型</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-basis-control-structures-li">
+  <input type="checkbox" id="m-golang-notes-basis-control-structures-check"/>
+  <label for="m-golang-notes-basis-control-structures-check"><a href="/golang-notes/basis/control-structures/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-basis-control-structures"><span class="">流程语句</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-basis-functions-li">
+  <input type="checkbox" id="m-golang-notes-basis-functions-check"/>
+  <label for="m-golang-notes-basis-functions-check"><a href="/golang-notes/basis/functions/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-basis-functions"><span class="">函数与闭包</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-basis-errors-li">
+  <input type="checkbox" id="m-golang-notes-basis-errors-check"/>
+  <label for="m-golang-notes-basis-errors-check"><a href="/golang-notes/basis/errors/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-basis-errors"><span class="">错误处理</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-oop-li">
+  <input type="checkbox" id="m-golang-notes-oop-check"/>
+  <label for="m-golang-notes-oop-check"><a href="/golang-notes/oop/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-oop"><span class="">面向对象编程</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-oop-golang-object-oriented-programming-li">
+  <input type="checkbox" id="m-golang-notes-oop-golang-object-oriented-programming-check"/>
+  <label for="m-golang-notes-oop-golang-object-oriented-programming-check"><a href="/golang-notes/oop/golang-object-oriented-programming/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-oop-golang-object-oriented-programming"><span class="">Golang系列（二）之面向对象编程</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-oop-pointer-li">
+  <input type="checkbox" id="m-golang-notes-oop-pointer-check"/>
+  <label for="m-golang-notes-oop-pointer-check"><a href="/golang-notes/oop/pointer/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-oop-pointer"><span class="">Golang 指针</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-concurrency-li">
+  <input type="checkbox" id="m-golang-notes-concurrency-check"/>
+  <label for="m-golang-notes-concurrency-check"><a href="/golang-notes/concurrency/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-concurrency"><span class="">并发编程</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-concurrency-golang-concurrent-programming-li">
+  <input type="checkbox" id="m-golang-notes-concurrency-golang-concurrent-programming-check"/>
+  <label for="m-golang-notes-concurrency-golang-concurrent-programming-check"><a href="/golang-notes/concurrency/golang-concurrent-programming/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-concurrency-golang-concurrent-programming"><span class="">Golang系列（三）之并发编程</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-text-li">
+  <input type="checkbox" id="m-golang-notes-text-check"/>
+  <label for="m-golang-notes-text-check"><a href="/golang-notes/text/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-text"><span class="">文本处理</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-text-json-li">
+  <input type="checkbox" id="m-golang-notes-text-json-check"/>
+  <label for="m-golang-notes-text-json-check"><a href="/golang-notes/text/json/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-text-json"><span class="">Json处理</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-text-file-li">
+  <input type="checkbox" id="m-golang-notes-text-file-check"/>
+  <label for="m-golang-notes-text-file-check"><a href="/golang-notes/text/file/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-text-file"><span class="">文件操作</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-text-string-li">
+  <input type="checkbox" id="m-golang-notes-text-string-check"/>
+  <label for="m-golang-notes-text-string-check"><a href="/golang-notes/text/string/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-text-string"><span class="">字符串处理</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-test-li">
+  <input type="checkbox" id="m-golang-notes-test-check"/>
+  <label for="m-golang-notes-test-check"><a href="/golang-notes/test/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-test"><span class="">单元测试</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-test-test-li">
+  <input type="checkbox" id="m-golang-notes-test-test-check"/>
+  <label for="m-golang-notes-test-test-check"><a href="/golang-notes/test/test/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-test-test"><span class="">单元测试</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-test-gdb-li">
+  <input type="checkbox" id="m-golang-notes-test-gdb-check"/>
+  <label for="m-golang-notes-test-gdb-check"><a href="/golang-notes/test/gdb/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-test-gdb"><span class="">GDB调试</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-principle-li">
+  <input type="checkbox" id="m-golang-notes-principle-check"/>
+  <label for="m-golang-notes-principle-check"><a href="/golang-notes/principle/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-principle"><span class="">原理篇</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-principle-go-scheduler-li">
+  <input type="checkbox" id="m-golang-notes-principle-go-scheduler-check"/>
+  <label for="m-golang-notes-principle-go-scheduler-check"><a href="/golang-notes/principle/go-scheduler/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-principle-go-scheduler"><span class="">Goroutine调度</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-principle-memory-allocation-li">
+  <input type="checkbox" id="m-golang-notes-principle-memory-allocation-check"/>
+  <label for="m-golang-notes-principle-memory-allocation-check"><a href="/golang-notes/principle/memory-allocation/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-principle-memory-allocation"><span class="">内存分配</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-principle-garbage-collection-li">
+  <input type="checkbox" id="m-golang-notes-principle-garbage-collection-check"/>
+  <label for="m-golang-notes-principle-garbage-collection-check"><a href="/golang-notes/principle/garbage-collection/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-principle-garbage-collection"><span class="">垃圾回收</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-principle-understand-channel-li">
+  <input type="checkbox" id="m-golang-notes-principle-understand-channel-check"/>
+  <label for="m-golang-notes-principle-understand-channel-check"><a href="/golang-notes/principle/understand-channel/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-principle-understand-channel"><span class="">深入理解Channel</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-framework-li">
+  <input type="checkbox" id="m-golang-notes-framework-check"/>
+  <label for="m-golang-notes-framework-check"><a href="/golang-notes/framework/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-framework"><span class="">框架与工具</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-framework-cobra-li">
+  <input type="checkbox" id="m-golang-notes-framework-cobra-check"/>
+  <label for="m-golang-notes-framework-cobra-check"><a href="/golang-notes/framework/cobra/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-framework-cobra"><span class="">Cobra命令框架</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-framework-cobra-cobra-usage-li">
+  <input type="checkbox" id="m-golang-notes-framework-cobra-cobra-usage-check"/>
+  <label for="m-golang-notes-framework-cobra-cobra-usage-check"><a href="/golang-notes/framework/cobra/cobra-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-framework-cobra-cobra-usage"><span class="">cobra 介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-framework-cobra-cobra-command-li">
+  <input type="checkbox" id="m-golang-notes-framework-cobra-cobra-command-check"/>
+  <label for="m-golang-notes-framework-cobra-cobra-command-check"><a href="/golang-notes/framework/cobra/cobra-command/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-framework-cobra-cobra-command"><span class="">cobra command</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-framework-cobra-cobra-flags-li">
+  <input type="checkbox" id="m-golang-notes-framework-cobra-cobra-flags-check"/>
+  <label for="m-golang-notes-framework-cobra-cobra-flags-check"><a href="/golang-notes/framework/cobra/cobra-flags/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-framework-cobra-cobra-flags"><span class="">cobra flags</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-framework-go-pprof-usage-li">
+  <input type="checkbox" id="m-golang-notes-framework-go-pprof-usage-check"/>
+  <label for="m-golang-notes-framework-go-pprof-usage-check"><a href="/golang-notes/framework/go-pprof-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-framework-go-pprof-usage"><span class="">性能分析之go pprof工具使用</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-golang-notes-standard-li">
+  <input type="checkbox" id="m-golang-notes-standard-check" checked/>
+  <label for="m-golang-notes-standard-check"><a href="/golang-notes/standard/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-standard"><span class="">代码规范</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-standard-go-style-guide-li">
+  <input type="checkbox" id="m-golang-notes-standard-go-style-guide-check"/>
+  <label for="m-golang-notes-standard-go-style-guide-check"><a href="/golang-notes/standard/go-style-guide/" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-golang-notes-standard-go-style-guide"><span class="td-sidebar-nav-active-item">Golang 代码规范</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-standard-golangci-lint-li">
+  <input type="checkbox" id="m-golang-notes-standard-golangci-lint-check"/>
+  <label for="m-golang-notes-standard-golangci-lint-check"><a href="/golang-notes/standard/golangci-lint/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-standard-golangci-lint"><span class="">golangci-lint的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-standard-fix-golangci-lint-li">
+  <input type="checkbox" id="m-golang-notes-standard-fix-golangci-lint-check"/>
+  <label for="m-golang-notes-standard-fix-golangci-lint-check"><a href="/golang-notes/standard/fix-golangci-lint/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-standard-fix-golangci-lint"><span class="">修复golangci-lint问题</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-web-li">
+  <input type="checkbox" id="m-golang-notes-web-check"/>
+  <label for="m-golang-notes-web-check"><a href="/golang-notes/web/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-web"><span class="">Web编程</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-web-golang-http-execution-flow-li">
+  <input type="checkbox" id="m-golang-notes-web-golang-http-execution-flow-check"/>
+  <label for="m-golang-notes-web-golang-http-execution-flow-check"><a href="/golang-notes/web/golang-http-execution-flow/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-web-golang-http-execution-flow"><span class="">Http包源码分析</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-web-beego-li">
+  <input type="checkbox" id="m-golang-notes-web-beego-check"/>
+  <label for="m-golang-notes-web-beego-check"><a href="/golang-notes/web/beego/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-web-beego"><span class="">Beego Web框架</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-web-beego-beego-introduction-li">
+  <input type="checkbox" id="m-golang-notes-web-beego-beego-introduction-check"/>
+  <label for="m-golang-notes-web-beego-beego-introduction-check"><a href="/golang-notes/web/beego/beego-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-web-beego-beego-introduction"><span class="">Beego 介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-web-beego-bee-li">
+  <input type="checkbox" id="m-golang-notes-web-beego-bee-check"/>
+  <label for="m-golang-notes-web-beego-bee-check"><a href="/golang-notes/web/beego/bee/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-web-beego-bee"><span class="">Bee 工具使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-web-beego-beego-project-li">
+  <input type="checkbox" id="m-golang-notes-web-beego-beego-project-check"/>
+  <label for="m-golang-notes-web-beego-beego-project-check"><a href="/golang-notes/web/beego/beego-project/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-web-beego-beego-project"><span class="">Beego 项目逻辑</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-web-beego-beego-log-li">
+  <input type="checkbox" id="m-golang-notes-web-beego-beego-log-check"/>
+  <label for="m-golang-notes-web-beego-beego-log-check"><a href="/golang-notes/web/beego/beego-log/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-web-beego-beego-log"><span class="">Beego 日志处理</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-golang-notes-code-li">
+  <input type="checkbox" id="m-golang-notes-code-check"/>
+  <label for="m-golang-notes-code-check"><a href="/golang-notes/code/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-golang-notes-code"><span class="">源码分析</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-golang-notes-code-confd-code-analysis-li">
+  <input type="checkbox" id="m-golang-notes-code-confd-code-analysis-check"/>
+  <label for="m-golang-notes-code-confd-code-analysis-check"><a href="/golang-notes/code/confd-code-analysis/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-golang-notes-code-confd-code-analysis"><span class="">confd源码分析</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li>
+    </ul>
+  </nav>
+</div>
+
+          </aside>
+          <aside class="d-none d-xl-block col-xl-2 td-sidebar-toc d-print-none">
+            
+<div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
+<a href="https://github.com/huweihuang/blog.huweihuang.com/tree/master/content/zh-cn/golang-notes/standard/go-style-guide.md" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa fa-file-alt fa-fw"></i> 查看页面源码</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/edit/master/content/zh-cn/golang-notes/standard/go-style-guide.md" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 编辑此页</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/new/master/content/zh-cn/golang-notes/standard/go-style-guide.md?filename=change-me.md&amp;value=---%0Atitle%3A&#43;%22Long&#43;Page&#43;Title%22%0AlinkTitle%3A&#43;%22Short&#43;Nav&#43;Title%22%0Aweight%3A&#43;100%0Adescription%3A&#43;%3E-%0A&#43;&#43;&#43;&#43;&#43;Page&#43;description&#43;for&#43;heading&#43;and&#43;indexes.%0A---%0A%0A%23%23&#43;Heading%0A%0AEdit&#43;this&#43;template&#43;to&#43;create&#43;your&#43;new&#43;page.%0A%0A%2A&#43;Give&#43;it&#43;a&#43;good&#43;name%2C&#43;ending&#43;in&#43;%60.md%60&#43;-&#43;e.g.&#43;%60getting-started.md%60%0A%2A&#43;Edit&#43;the&#43;%22front&#43;matter%22&#43;section&#43;at&#43;the&#43;top&#43;of&#43;the&#43;page&#43;%28weight&#43;controls&#43;how&#43;its&#43;ordered&#43;amongst&#43;other&#43;pages&#43;in&#43;the&#43;same&#43;directory%3B&#43;lowest&#43;number&#43;first%29.%0A%2A&#43;Add&#43;a&#43;good&#43;commit&#43;message&#43;at&#43;the&#43;bottom&#43;of&#43;the&#43;page&#43;%28%3C80&#43;characters%3B&#43;use&#43;the&#43;extended&#43;description&#43;field&#43;for&#43;more&#43;detail%29.%0A%2A&#43;Create&#43;a&#43;new&#43;branch&#43;so&#43;you&#43;can&#43;preview&#43;your&#43;new&#43;file&#43;and&#43;request&#43;a&#43;review&#43;via&#43;Pull&#43;Request.%0A" class="td-page-meta--child" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 添加子页面</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new?title=Golang%20%e4%bb%a3%e7%a0%81%e8%a7%84%e8%8c%83" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new" class="td-page-meta--project-issue" target="_blank" rel="noopener"><i class="fas fa-tasks fa-fw"></i> 提交项目问题</a>
+  <a id="print" href="https://blog.huweihuang.com/golang-notes/standard/_print/"><i class="fa fa-print fa-fw"></i> 整节打印</a>
+
+</div>
+
+            
+
+
+<div class="td-toc"><nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#1-前言">1. 前言</a></li>
+        <li><a href="#2-代码风格">2. 代码风格</a>
+          <ul>
+            <li><a href="#2-1-必须-格式化">2.1 【必须】格式化</a></li>
+            <li><a href="#2-2-推荐-换行">2.2 【推荐】换行</a></li>
+            <li><a href="#2-3-必须-括号和空格">2.3 【必须】括号和空格</a></li>
+            <li><a href="#2-4-必须-import-规范">2.4 【必须】import 规范</a></li>
+            <li><a href="#2-5-必须-错误处理">2.5 【必须】错误处理</a>
+              <ul>
+                <li><a href="#2-5-1-必须-error-处理">2.5.1 【必须】error 处理</a></li>
+                <li><a href="#2-5-2-必须-panic-处理">2.5.2 【必须】panic 处理</a></li>
+                <li><a href="#2-5-3-必须-recover-处理">2.5.3 【必须】recover 处理</a></li>
+              </ul>
+            </li>
+            <li><a href="#2-6-必须-单元测试">2.6 【必须】单元测试</a></li>
+            <li><a href="#2-7-必须-类型断言失败处理">2.7 【必须】类型断言失败处理</a></li>
+          </ul>
+        </li>
+        <li><a href="#3-注释">3. 注释</a>
+          <ul>
+            <li><a href="#3-1-必须-包注释">3.1 【必须】包注释</a></li>
+            <li><a href="#3-2-必须-结构体注释">3.2 【必须】结构体注释</a></li>
+            <li><a href="#3-3-必须-方法注释">3.3 【必须】方法注释</a></li>
+            <li><a href="#3-4-必须-变量和常量注释">3.4 【必须】变量和常量注释</a></li>
+            <li><a href="#3-5-必须-类型注释">3.5 【必须】类型注释</a></li>
+          </ul>
+        </li>
+        <li><a href="#4-命名规范">4. 命名规范</a>
+          <ul>
+            <li><a href="#4-1-推荐-包命名">4.1 【推荐】包命名</a></li>
+            <li><a href="#4-2-必须-文件命名">4.2 【必须】文件命名</a></li>
+            <li><a href="#4-3-必须-结构体命名">4.3 【必须】结构体命名</a></li>
+            <li><a href="#4-4-推荐-接口命名">4.4 【推荐】接口命名</a></li>
+            <li><a href="#4-5-必须-变量命名">4.5 【必须】变量命名</a></li>
+            <li><a href="#4-6-必须-常量命名">4.6 【必须】常量命名</a></li>
+            <li><a href="#4-7-必须-函数命名">4.7 【必须】函数命名</a></li>
+          </ul>
+        </li>
+        <li><a href="#5-控制结构">5. 控制结构</a>
+          <ul>
+            <li><a href="#5-1-推荐-if">5.1  【推荐】if</a></li>
+            <li><a href="#5-2-推荐-for">5.2	【推荐】for</a></li>
+            <li><a href="#5-3-必须-range">5.3	【必须】range</a></li>
+            <li><a href="#5-4-必须-switch">5.4	【必须】switch</a></li>
+            <li><a href="#5-5-推荐-return">5.5 【推荐】return</a></li>
+            <li><a href="#5-6-必须-goto">5.6 【必须】goto</a></li>
+          </ul>
+        </li>
+        <li><a href="#6-函数">6. 函数</a>
+          <ul>
+            <li><a href="#6-1-推荐-函数参数">6.1 【推荐】函数参数</a></li>
+            <li><a href="#6-2-必须-defer">6.2 【必须】defer</a></li>
+            <li><a href="#6-3-推荐-方法的接收器">6.3 【推荐】方法的接收器</a></li>
+            <li><a href="#6-4-推荐-代码行数">6.4 【推荐】代码行数</a></li>
+            <li><a href="#6-5-必须-嵌套">6.5 【必须】嵌套</a></li>
+            <li><a href="#6-6-推荐-变量声明">6.6 【推荐】变量声明</a></li>
+            <li><a href="#6-7-必须-魔法数字">6.7 【必须】魔法数字</a></li>
+          </ul>
+        </li>
+        <li><a href="#7-依赖管理">7. 依赖管理</a>
+          <ul>
+            <li><a href="#7-1-必须-go1-11-以上必须使用-go-modules-模式">7.1 【必须】go1.11 以上必须使用 <code>go modules</code> 模式：</a></li>
+            <li><a href="#7-2-推荐-代码提交">7.2 【推荐】代码提交</a></li>
+          </ul>
+        </li>
+        <li><a href="#8-应用服务">8. 应用服务</a>
+          <ul>
+            <li><a href="#8-1-推荐-应用服务接口建议有-readme-md">8.1 【推荐】应用服务接口建议有 <code>README.md</code></a></li>
+            <li><a href="#8-2-必须-应用服务必须要有接口测试">8.2 【必须】应用服务必须要有接口测试。</a></li>
+          </ul>
+        </li>
+        <li><a href="#附-常用工具">附：常用工具</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></div>
+
+
+
+            
+
+	
+		
+			
+				
+			
+			
+
+
+
+  
+  
+    <div class="taxonomy taxonomy-terms-cloud taxo-tags">
+      
+        <h5 class="taxonomy-title">Tags</h5>
+      
+      <ul class="taxonomy-terms">
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/apisix/" data-taxonomy-term="apisix"><span class="taxonomy-label">ApiSix</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/cni/" data-taxonomy-term="cni"><span class="taxonomy-label">CNI</span><span class="taxonomy-count">6</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/containerd/" data-taxonomy-term="containerd"><span class="taxonomy-label">Containerd</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/csi/" data-taxonomy-term="csi"><span class="taxonomy-label">CSI</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/disk/" data-taxonomy-term="disk"><span class="taxonomy-label">disk</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/docker/" data-taxonomy-term="docker"><span class="taxonomy-label">Docker</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/etcd/" data-taxonomy-term="etcd"><span class="taxonomy-label">Etcd</span><span class="taxonomy-count">8</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/git/" data-taxonomy-term="git"><span class="taxonomy-label">Git</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/golang/" data-taxonomy-term="golang"><span class="taxonomy-label">Golang</span><span class="taxonomy-count">36</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/iptables/" data-taxonomy-term="iptables"><span class="taxonomy-label">iptables</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/karmada/" data-taxonomy-term="karmada"><span class="taxonomy-label">Karmada</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/keepalived/" data-taxonomy-term="keepalived"><span class="taxonomy-label">Keepalived</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubeadm/" data-taxonomy-term="kubeadm"><span class="taxonomy-label">kubeadm</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubeedge/" data-taxonomy-term="kubeedge"><span class="taxonomy-label">Kubeedge</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubernetes/" data-taxonomy-term="kubernetes"><span class="taxonomy-label">Kubernetes</span><span class="taxonomy-count">61</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubevirt/" data-taxonomy-term="kubevirt"><span class="taxonomy-label">KubeVirt</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/linux/" data-taxonomy-term="linux"><span class="taxonomy-label">Linux</span><span class="taxonomy-count">12</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/memcached/" data-taxonomy-term="memcached"><span class="taxonomy-label">Memcached</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/monitor/" data-taxonomy-term="monitor"><span class="taxonomy-label">Monitor</span><span class="taxonomy-count">6</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/mysql/" data-taxonomy-term="mysql"><span class="taxonomy-label">Mysql</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/network/" data-taxonomy-term="network"><span class="taxonomy-label">Network</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/nginx/" data-taxonomy-term="nginx"><span class="taxonomy-label">Nginx</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/openyurt/" data-taxonomy-term="openyurt"><span class="taxonomy-label">OpenYurt</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/operator/" data-taxonomy-term="operator"><span class="taxonomy-label">Operator</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/pod/" data-taxonomy-term="pod"><span class="taxonomy-label">Pod</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/redis/" data-taxonomy-term="redis"><span class="taxonomy-label">Redis</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/runtime/" data-taxonomy-term="runtime"><span class="taxonomy-label">Runtime</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/serverless/" data-taxonomy-term="serverless"><span class="taxonomy-label">Serverless</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/shell/" data-taxonomy-term="shell"><span class="taxonomy-label">Shell</span><span class="taxonomy-count">9</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/tcpip/" data-taxonomy-term="tcpip"><span class="taxonomy-label">TCPIP</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/vim/" data-taxonomy-term="vim"><span class="taxonomy-label">VIM</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/virtualkubelet/" data-taxonomy-term="virtualkubelet"><span class="taxonomy-label">VirtualKubelet</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%A4%9A%E9%9B%86%E7%BE%A4/" data-taxonomy-term="%E5%A4%9A%E9%9B%86%E7%BE%A4"><span class="taxonomy-label">多集群</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%BF%AB%E6%8D%B7%E9%94%AE/" data-taxonomy-term="%E5%BF%AB%E6%8D%B7%E9%94%AE"><span class="taxonomy-label">快捷键</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-taxonomy-term="%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="taxonomy-label">源码分析</span><span class="taxonomy-count">23</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E8%A3%B8%E9%87%91%E5%B1%9E/" data-taxonomy-term="%E8%A3%B8%E9%87%91%E5%B1%9E"><span class="taxonomy-label">裸金属</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/" data-taxonomy-term="%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5"><span class="taxonomy-label">问题排查</span><span class="taxonomy-count">9</span></a></li>
+        
+      </ul>
+    </div>
+  
+
+		
+			
+				
+			
+			
+
+
+
+  
+  
+
+		
+	
+
+          </aside>
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+  
+
+            <nav aria-label="breadcrumb" class="td-breadcrumbs">
+  <ol class="breadcrumb">
+  <li class="breadcrumb-item">
+    <a href="https://blog.huweihuang.com/golang-notes/">Golang学习笔记</a>
+  </li>
+  <li class="breadcrumb-item">
+    <a href="https://blog.huweihuang.com/golang-notes/standard/">代码规范</a>
+  </li>
+  <li class="breadcrumb-item active" aria-current="page">
+    <a href="https://blog.huweihuang.com/golang-notes/standard/go-style-guide/">Golang 代码规范</a>
+  </li>
+  </ol>
+</nav>
+            
+<div class="td-content">
+	<h1>Golang 代码规范</h1>
+	
+	<header class="article-meta">
+		
+
+  
+    
+      
+
+
+<div class="taxonomy taxonomy-terms-article taxo-tags">
+  <h5 class="taxonomy-title">Tags:</h5>
+  <ul class="taxonomy-terms">
+    
+      <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/golang/" data-taxonomy-term="golang"><span class="taxonomy-label">Golang</span></a></li>
+    
+  </ul>
+</div>
+
+    
+      
+
+
+    
+  
+
+		
+	</header>    
+	<h2 id="1-前言">1. 前言</h2>
+<p>本规范在 <a href="https://github.com/golang/go/wiki/CodeReviewComments">Google Golang 代码规范</a> 的基础上，进行了调整和补充。</p>
+<p>每项规范内容，给出了要求等级，其定义为：</p>
+<ul>
+<li><strong>必须（Mandatory）</strong>：用户必须采用；</li>
+<li><strong>推荐（Preferable）</strong>：用户理应采用，但如有特殊情况，可以不采用；</li>
+<li><strong>可选（Optional）</strong>：用户可参考，自行决定是否采用；</li>
+</ul>
+<h2 id="2-代码风格">2. 代码风格</h2>
+<h3 id="2-1-必须-格式化">2.1 【必须】格式化</h3>
+<ul>
+<li>代码都必须用 <code>gofmt</code> 格式化。</li>
+</ul>
+<h3 id="2-2-推荐-换行">2.2 【推荐】换行</h3>
+<ul>
+<li>建议一行代码不要超过<code>120列</code>，超过的情况，使用合理的换行方法换行。</li>
+<li>例外场景：
+<ul>
+<li>import 模块语句</li>
+<li>工具生成代码</li>
+<li>struct tag</li>
+</ul>
+</li>
+</ul>
+<h3 id="2-3-必须-括号和空格">2.3 【必须】括号和空格</h3>
+<ul>
+<li>
+<p>遵循 <code>gofmt</code> 的逻辑。</p>
+</li>
+<li>
+<p>运算符和操作数之间要留空格。</p>
+</li>
+<li>
+<p>作为输入参数或者数组下标时，运算符和运算数之间不需要空格，紧凑展示。</p>
+</li>
+</ul>
+<h3 id="2-4-必须-import-规范">2.4 【必须】import 规范</h3>
+<ul>
+<li>
+<p>使用 <code>goimports</code> 自动格式化引入的包名，import 规范原则上以 <code>goimports</code> 规则为准。</p>
+</li>
+<li>
+<p><code>goimports</code> 会自动把依赖包按首字母排序，并对包进行分组管理，通过空行隔开，默认分为本地包（标准库、内部包）、第三方包。</p>
+</li>
+<li>
+<p>标准包永远位于最上面的第一组。</p>
+</li>
+<li>
+<p>内部包是指不能被外部 import 的包，如 GoPath 模式下的包名或者非域名开头的当前项目的 GoModules 包名。</p>
+</li>
+<li>
+<p><code>goimports</code> 默认最少分成本地包和第三方包两大类，这两类包必须分开不能放在一起。本地包或者第三方包内部可以继续按实际情况细分不同子类。</p>
+</li>
+<li>
+<p>不要使用相对路径引入包：</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 不要采用这种方式
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;../net&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><ul>
+<li>应该使用完整的路径引入包：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;xxxx.com/proj/net&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><ul>
+<li>包名和 git 路径名不一致时，或者多个相同包名冲突时，使用别名代替，别名命名规范和包命名规范保持一致：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 合理用法：包名和 git 路径名不一致，使用别名
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">opentracing</span> <span style="color:#4e9a06">&#34;github.com/opentracing/opentracing-go&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 合理用法：多个相同包名冲突，使用别名
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;fmt&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;os&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;runtime/trace&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">nettrace</span> <span style="color:#4e9a06">&#34;golang.net/x/trace&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 不合理用法：包名和路径名一致，也不存在多包名冲突，不应该使用别名
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;fmt&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;os&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">nettrace</span> <span style="color:#4e9a06">&#34;golang.net/x/trace&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><ul>
+<li>【可选】匿名包的引用建议使用一个新的分组引入，并在匿名包上写上注释说明。</li>
+</ul>
+<p>完整示例如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// standard package &amp; inner package
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#4e9a06">&#34;encoding/json&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;myproject/models&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;myproject/controller&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;strings&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// third-party package
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#4e9a06">&#34;git.obc.im/obc/utils&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;git.obc.im/dep/beego&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;git.obc.im/dep/mysql&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">opentracing</span> <span style="color:#4e9a06">&#34;github.com/opentracing/opentracing-go&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// anonymous import package
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#8f5902;font-style:italic">// import filesystem storage driver
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">_</span> <span style="color:#a40000">&#34;</span><span style="color:#000">github</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">com</span><span style="color:#ce5c00;font-weight:bold">/</span><span style="color:#000">org</span><span style="color:#ce5c00;font-weight:bold">/</span><span style="color:#000">repo</span><span style="color:#ce5c00;font-weight:bold">/</span><span style="color:#000">pkg</span><span style="color:#ce5c00;font-weight:bold">/</span><span style="color:#000">storage</span><span style="color:#ce5c00;font-weight:bold">/</span><span style="color:#000">filesystem</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><h3 id="2-5-必须-错误处理">2.5 【必须】错误处理</h3>
+<h4 id="2-5-1-必须-error-处理">2.5.1 【必须】error 处理</h4>
+<ul>
+<li>
+<p><code>error</code> 作为函数的值返回，必须对 <code>error</code> 进行处理, 或将返回值赋值给明确忽略。对于 <code>defer xx.Close()</code>可以不用显式处理。</p>
+</li>
+<li>
+<p><code>error</code> 作为函数的值返回且有多个返回值的时候，<code>error</code> 必须是最后一个参数。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 不要采用这种方式
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">do</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 要采用下面的方式
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">do</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><ul>
+<li>
+<p>错误描述不需要标点结尾。</p>
+</li>
+<li>
+<p>采用独立的错误流进行处理。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 不要采用这种方式
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// error handling
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span> <span style="color:#204a87;font-weight:bold">else</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// normal code
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 而要采用下面的方式
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// error handling
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#8f5902;font-style:italic">// or continue, etc.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// normal code
+</span></span></span></code></pre></div><ul>
+<li>如果返回值需要初始化，则采用下面的方式：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">x</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">f</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// error handling
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#8f5902;font-style:italic">// or continue, etc.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// use x
+</span></span></span></code></pre></div><ul>
+<li>错误返回的判断独立处理，不与其他变量组合逻辑判断。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 不要采用这种方式：
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">x</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">y</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">f</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#ce5c00;font-weight:bold">||</span> <span style="color:#000">y</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">err</span>   <span style="color:#8f5902;font-style:italic">// 当y与err都为空时，函数的调用者会出现错误的调用逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 应当使用如下方式：
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">x</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">y</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">f</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">y</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">errors</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">New</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;some error&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><ul>
+<li>【推荐】对于不需要格式化的错误，生成方式为：<code>errors.New(&quot;xxxx&quot;)</code>。</li>
+<li>【推荐】建议go1.13 以上，error 生成方式为：<code>fmt.Errorf(&quot;module xxx: %w&quot;, err)</code>。</li>
+</ul>
+<h4 id="2-5-2-必须-panic-处理">2.5.2 【必须】panic 处理</h4>
+<ul>
+<li>
+<p>在业务逻辑处理中禁止使用 <code>panic</code>。</p>
+</li>
+<li>
+<p>在 <code>main</code> 包中只有当完全不可运行的情况可使用 <code>panic</code>，例如：文件无法打开，数据库无法连接导致程序无法正常运行。</p>
+</li>
+<li>
+<p>对于其它的包，可导出的接口一定不能有 <code>panic</code>；在包内传递错误时，不推荐使用 <code>panic</code> 来传递 <code>error</code>。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 不推荐为传递error而在包内使用panic,以下为示例
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// PError 包内定义的错误类型
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">PError</span> <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Error error接口方法
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">e</span> <span style="color:#000">PError</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Error</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#204a87;font-weight:bold">string</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87">string</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">e</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">do</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">str</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#8f5902;font-style:italic">// 此处的panic用于传递error
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#204a87">panic</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">PError</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;错误信息&#34;</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// ...
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Do 包级访问入口
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">Do</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">str</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">err</span> <span style="color:#204a87;font-weight:bold">error</span> 
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">e</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">recover</span><span style="color:#000;font-weight:bold">();</span> <span style="color:#000">e</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">err</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">e</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#000">PError</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}()</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">do</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">str</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><ul>
+<li>
+<p>建议在 <code>main</code> 包中使用 <code>log.Fatal</code> 来记录错误，这样就可以由 <code>log</code> 来结束程序，或者将 <code>panic</code> 抛出的异常记录到日志文件中，方便排查问题。</p>
+</li>
+<li>
+<p><code>panic</code> 捕获只能到 <code>goroutine</code> 最顶层，每个自行启动的 <code>goroutine</code>，必须在入口处捕获 <code>panic</code>，并打印详细堆栈信息或进行其它处理。</p>
+</li>
+</ul>
+<h4 id="2-5-3-必须-recover-处理">2.5.3 【必须】recover 处理</h4>
+<ul>
+<li>
+<p><code>recover</code> 用于捕获 <code>runtime</code> 的异常，禁止滥用 <code>recover</code>。</p>
+</li>
+<li>
+<p>必须在 <code>defer</code> 中使用，一般用来捕获程序运行期间发生异常抛出的 <code>panic</code> 或程序主动抛出的 <code>panic</code>。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">package</span> <span style="color:#000">main</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;log&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">main</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">recover</span><span style="color:#000;font-weight:bold">();</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#8f5902;font-style:italic">// do something or record log
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>            <span style="color:#000">log</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;exec panic error: &#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#8f5902;font-style:italic">// log.Println(debug.Stack())
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">getOne</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87">panic</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">11</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#8f5902;font-style:italic">// 手动抛出panic
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// getOne 模拟slice越界 runtime运行时抛出的panic
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">getOne</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87">recover</span><span style="color:#000;font-weight:bold">();</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#8f5902;font-style:italic">// do something or record log
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>            <span style="color:#000">log</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;exec panic error: &#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#8f5902;font-style:italic">// log.Println(debug.Stack())
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">arr</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span><span style="color:#4e9a06">&#34;a&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;b&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;c&#34;</span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">log</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;hello,&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">arr</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">])</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 执行结果：
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 2020/01/02 17:18:53 exec panic error:  runtime error: index out of range
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 2020/01/02 17:18:53 exec panic error:  11
+</span></span></span></code></pre></div><h3 id="2-6-必须-单元测试">2.6 【必须】单元测试</h3>
+<ul>
+<li>
+<p>单元测试文件名命名规范为 <code>example_test.go</code>。</p>
+</li>
+<li>
+<p>测试用例的函数名称必须以 <code>Test</code> 开头，例如 <code>TestExample</code>。</p>
+</li>
+<li>
+<p>如果存在 <code>func Foo</code>，单测函数可以带下划线，为 <code>func Test_Foo</code>。如果存在 <code>func (b *Bar) Foo</code>，单测函数可以为 <code>func TestBar_Foo</code>。下划线不能出现在前面描述情况以外的位置。</p>
+</li>
+<li>
+<p>单测文件行数限制是普通文件的2倍，即<code>1600行</code>。单测函数行数限制也是普通函数的2倍，即为<code>160行</code>。圈复杂度、列数限制、 import 分组等其他规范细节和普通文件保持一致。</p>
+</li>
+<li>
+<p>由于单测文件内的函数都是不对外的，所有可导出函数可以没有注释，但是结构体定义时尽量不要导出。</p>
+</li>
+<li>
+<p>每个重要的可导出函数都要首先编写测试用例，测试用例和正规代码一起提交方便进行回归测试。</p>
+</li>
+</ul>
+<h3 id="2-7-必须-类型断言失败处理">2.7 【必须】类型断言失败处理</h3>
+<ul>
+<li><code>type assertion</code> 的单个返回值形式针对不正确的类型将产生 <code>panic</code>。因此，请始终使用 <code>“comma ok”</code> 的惯用法。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 不要采用这种方式
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">t</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">i</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 而要采用下面的方式
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">t</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">ok</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">i</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">!</span><span style="color:#000">ok</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 优雅地处理错误
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="3-注释">3. 注释</h2>
+<ol>
+<li>在编码阶段同步写好变量、函数、包注释，注释可以通过 <code>godoc</code> 导出生成文档。</li>
+<li>程序中每一个被导出的(大写的)名字，都应该有一个文档注释。</li>
+<li>所有注释掉的代码在提交 code review 前都应该被删除，除非添加注释讲解为什么不删除， 并且标明后续处理建议（比如删除计划）。</li>
+</ol>
+<h3 id="3-1-必须-包注释">3.1 【必须】包注释</h3>
+<ul>
+<li>
+<p>每个包都应该有一个包注释。</p>
+</li>
+<li>
+<p>包如果有多个 go 文件，只需要出现在一个 go 文件中（一般是和包同名的文件）即可，格式为：“// Package 包名 包信息描述”。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Package math provides basic constants and mathematical functions.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">package</span> <span style="color:#000">math</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 或者
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">/*
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">Package template implements data-driven templates for generating textual
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">output such as HTML.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">....
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">*/</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">package</span> <span style="color:#000">template</span>
+</span></span></code></pre></div><h3 id="3-2-必须-结构体注释">3.2 【必须】结构体注释</h3>
+<ul>
+<li>
+<p>每个需要导出的自定义结构体或者接口都必须有注释说明。</p>
+</li>
+<li>
+<p>注释对结构进行简要介绍，放在结构体定义的前一行。</p>
+</li>
+<li>
+<p>格式为：&quot;// 结构体名 结构体信息描述&quot;。</p>
+</li>
+<li>
+<p>结构体内的可导出成员变量名，如果是个生僻词，或者意义不明确的词，就必须要给出注释，放在成员变量的前一行或同一行的末尾。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// User 用户结构定义了用户基础信息
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">User</span> <span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">Name</span>  <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">Email</span> <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// Demographic 族群
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">Demographic</span> <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="3-3-必须-方法注释">3.3 【必须】方法注释</h3>
+<ul>
+<li>
+<p>每个需要导出的函数或者方法（结构体或者接口下的函数称为方法）都必须有注释。注意，如果方法的接收器为不可导出类型，可以不注释，但需要质疑该方法可导出的必要性。</p>
+</li>
+<li>
+<p>注释描述函数或方法功能、调用方等信息。</p>
+</li>
+<li>
+<p>格式为：&quot;// 函数名 函数信息描述&quot;。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// NewtAttrModel 是属性数据层操作类的工厂方法
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">NewAttrModel</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctx</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">common</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Context</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">AttrModel</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// TODO
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="3-4-必须-变量和常量注释">3.4 【必须】变量和常量注释</h3>
+<ul>
+<li>
+<p>每个需要导出的常量和变量都必须有注释说明。</p>
+</li>
+<li>
+<p>该注释对常量或变量进行简要介绍，放在常量或者变量定义的前一行。</p>
+</li>
+<li>
+<p>大块常量或变量定义时，可在前面注释一个总的说明，然后每一行常量的末尾详细注释该常量的定义。</p>
+</li>
+<li>
+<p>格式为：&quot;// 变量名 变量信息描述&quot;，斜线后面紧跟一个空格。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// FlagConfigFile 配置文件的命令行参数名
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">const</span> <span style="color:#000">FlagConfigFile</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;--config&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 命令行参数
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">const</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">FlagConfigFile1</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;--config&#34;</span> <span style="color:#8f5902;font-style:italic">// 配置文件的命令行参数名1
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">FlagConfigFile2</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;--config&#34;</span> <span style="color:#8f5902;font-style:italic">// 配置文件的命令行参数名2
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">FlagConfigFile3</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;--config&#34;</span> <span style="color:#8f5902;font-style:italic">// 配置文件的命令行参数名3
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">FlagConfigFile4</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;--config&#34;</span> <span style="color:#8f5902;font-style:italic">// 配置文件的命令行参数名4
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// FullName 返回指定用户名的完整名称
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">FullName</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">username</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">string</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Sprintf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;fake-%s&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">username</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="3-5-必须-类型注释">3.5 【必须】类型注释</h3>
+<ul>
+<li>
+<p>每个需要导出的类型定义（type definition）和类型别名（type aliases）都必须有注释说明。</p>
+</li>
+<li>
+<p>该注释对类型进行简要介绍，放在定义的前一行。</p>
+</li>
+<li>
+<p>格式为：&quot;// 类型名 类型信息描述&quot;。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// StorageClass 存储类型
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">StorageClass</span> <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// FakeTime 标准库时间的类型别名
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">FakeTime</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Time</span>
+</span></span></code></pre></div><h2 id="4-命名规范">4. 命名规范</h2>
+<p>命名是代码规范中很重要的一部分，统一的命名规范有利于提高代码的可读性，好的命名仅仅通过命名就可以获取到足够多的信息。</p>
+<h3 id="4-1-推荐-包命名">4.1 【推荐】包命名</h3>
+<ul>
+<li>
+<p>保持 <code>package</code> 的名字和目录一致。</p>
+</li>
+<li>
+<p>尽量采取有意义、简短的包名，尽量不要和标准库冲突。</p>
+</li>
+<li>
+<p>包名应该为小写单词，不要使用下划线或者混合大小写，使用多级目录来划分层级。</p>
+</li>
+<li>
+<p>包名可谨慎地使用缩写。当缩写是程序员广泛熟知的词时，可以使用缩写。例如：</p>
+<ul>
+<li>strconv (string conversion)</li>
+<li>syscall (system call)</li>
+<li>fmt (formatted I/O)</li>
+</ul>
+<p>如果缩写有歧义或不清晰，不用缩写。</p>
+</li>
+<li>
+<p>项目名可以通过中划线来连接多个单词。</p>
+</li>
+<li>
+<p>简单明了的包命名，如：<code>time</code>、<code>list</code>、<code>http</code>。</p>
+</li>
+<li>
+<p>不要使用无意义的包名，如：<code>util</code>、<code>common</code>、<code>misc</code>、<code>global</code>。<code>package</code>名字应该追求清晰且越来越收敛，符合‘单一职责’原则。而不是像<code>common</code>一样，什么都能往里面放，越来越膨胀，让依赖关系变得复杂，不利于阅读、复用、重构。注意，<code>xx/util/encryption</code>这样的包名是允许的。</p>
+</li>
+</ul>
+<h3 id="4-2-必须-文件命名">4.2 【必须】文件命名</h3>
+<ul>
+<li>
+<p>采用有意义，简短的文件名。</p>
+</li>
+<li>
+<p>文件名应该采用小写，并且使用下划线分割各个单词。</p>
+</li>
+</ul>
+<h3 id="4-3-必须-结构体命名">4.3 【必须】结构体命名</h3>
+<ul>
+<li>
+<p>采用驼峰命名方式，首字母根据访问控制采用大写或者小写。</p>
+</li>
+<li>
+<p>结构体名应该是名词或名词短语，如 <code>Customer</code>、<code>WikiPage</code>、<code>Account</code>、<code>AddressParser</code>，它不应是动词。</p>
+</li>
+<li>
+<p>避免使用 <code>Data</code>、<code>Info</code> 这类意义太宽泛的结构体名。</p>
+</li>
+<li>
+<p>结构体的声明和初始化格式采用多行，例如：</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// User 多行声明
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">User</span> <span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">Name</span>  <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">Email</span> <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 多行初始化
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">u</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">User</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">Name</span><span style="color:#000;font-weight:bold">:</span>  <span style="color:#4e9a06">&#34;john&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">Email</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#4e9a06">&#34;john@example.com&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="4-4-推荐-接口命名">4.4 【推荐】接口命名</h3>
+<ul>
+<li>
+<p>命名规则基本保持和结构体命名规则一致。</p>
+</li>
+<li>
+<p>单个函数的接口名以 <code>er</code> 作为后缀，例如 <code>Reader</code>，<code>Writer</code>。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Reader 字节数组读取接口
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">Reader</span> <span style="color:#204a87;font-weight:bold">interface</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// Read 读取整个给定的字节数据并返回读取的长度
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">Read</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">p</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">byte</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">n</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><ul>
+<li>
+<p>两个函数的接口名综合两个函数名。</p>
+</li>
+<li>
+<p>三个以上函数的接口名，类似于结构体名。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Car 小汽车结构申明
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">Car</span> <span style="color:#204a87;font-weight:bold">interface</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// Start ...
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">Start</span><span style="color:#000;font-weight:bold">([]</span><span style="color:#204a87;font-weight:bold">byte</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// Stop ...
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">Stop</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#204a87;font-weight:bold">error</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// Recover ...
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">Recover</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="4-5-必须-变量命名">4.5 【必须】变量命名</h3>
+<ul>
+<li>
+<p>变量名必须遵循驼峰式，首字母根据访问控制决定使用大写或小写。</p>
+</li>
+<li>
+<p>特有名词时，需要遵循以下规则：</p>
+<ul>
+<li>如果变量为私有，且特有名词为首个单词，则使用小写，如 <code>apiClient</code>；</li>
+<li>其他情况都应该使用该名词原有的写法，如 <code>APIClient</code>、<code>repoID</code>、<code>UserID</code>；</li>
+<li>错误示例：<code>UrlArray</code>，应该写成 <code>urlArray</code> 或者 <code>URLArray</code>；</li>
+<li>详细的专有名词列表可参考<a href="https://github.com/golang/lint/blob/738671d3881b9731cc63024d5d88cf28db875626/lint.go#L770">这里</a>。</li>
+</ul>
+</li>
+<li>
+<p>私有全局变量和局部变量规范一致，均以小写字母开头。</p>
+</li>
+<li>
+<p>代码生成工具自动生成的代码可排除此规则（如 xxx.pb.go 里面的 Id）。</p>
+</li>
+<li>
+<p>变量名更倾向于选择短命名。特别是对于局部变量。 <code>c</code>比<code>lineCount</code>要好，<code>i</code>比<code>sliceIndex</code>要好。基本原则是：变量的使用和声明的位置越远，变量名就需要具备越强的描述性。</p>
+</li>
+</ul>
+<h3 id="4-6-必须-常量命名">4.6 【必须】常量命名</h3>
+<ul>
+<li>常量均需遵循驼峰式。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// AppVersion 应用程序版本号定义
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">const</span> <span style="color:#000">AppVersion</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;1.0.0&#34;</span>
+</span></span></code></pre></div><ul>
+<li>如果是枚举类型的常量，需要先创建相应类型：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Scheme 传输协议
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">Scheme</span> <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">const</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// HTTP 表示HTTP明文传输协议
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">HTTP</span> <span style="color:#000">Scheme</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;http&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// HTTPS 表示HTTPS加密传输协议
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">HTTPS</span> <span style="color:#000">Scheme</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;https&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><ul>
+<li>私有全局常量和局部变量规范一致，均以小写字母开头。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">const</span> <span style="color:#000">appVersion</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;1.0.0&#34;</span>
+</span></span></code></pre></div><h3 id="4-7-必须-函数命名">4.7 【必须】函数命名</h3>
+<ul>
+<li>函数名必须遵循驼峰式，首字母根据访问控制决定使用大写或小写。</li>
+<li>代码生成工具自动生成的代码可排除此规则（如协议生成文件 xxx.pb.go , gotests 自动生成文件 xxx_test.go 里面的下划线）。</li>
+</ul>
+<h2 id="5-控制结构">5. 控制结构</h2>
+<h3 id="5-1-推荐-if">5.1  【推荐】if</h3>
+<ul>
+<li><code>if</code> 接受初始化语句，约定如下方式建立局部变量：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">file</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Chmod</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">0664</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><ul>
+<li><code>if</code> 对两个值进行判断时，约定如下顺序：变量在左，常量在右：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 不要采用这种方式
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#000">err</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// error handling
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 不要采用这种方式
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#000">errorCode</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// do something
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 而要采用下面的方式
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// error handling
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 而要采用下面的方式
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">errorCode</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// do something
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><ul>
+<li><code>if</code> 对于bool类型的变量，应直接进行真假判断：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">allowUserLogin</span> <span style="color:#204a87;font-weight:bold">bool</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 不要采用这种方式
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">allowUserLogin</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#204a87;font-weight:bold">true</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// do something
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 不要采用这种方式
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">allowUserLogin</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#204a87;font-weight:bold">false</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// do something
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 而要采用下面的方式
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">allowUserLogin</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// do something
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 而要采用下面的方式
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">!</span><span style="color:#000">allowUserLogin</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// do something
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="5-2-推荐-for">5.2	【推荐】for</h3>
+<ul>
+<li>采用短声明建立局部变量：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">sum</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">;</span> <span style="color:#000">i</span> <span style="color:#000;font-weight:bold">&lt;</span> <span style="color:#0000cf;font-weight:bold">10</span><span style="color:#000;font-weight:bold">;</span> <span style="color:#000">i</span><span style="color:#ce5c00;font-weight:bold">++</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">sum</span> <span style="color:#ce5c00;font-weight:bold">+=</span> <span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="5-3-必须-range">5.3	【必须】range</h3>
+<ul>
+<li>如果只需要第一项（key），就丢弃第二个：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">key</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">m</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">key</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">expired</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87">delete</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">m</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><ul>
+<li>如果只需要第二项，则把第一项置为下划线：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">sum</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">value</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">array</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">sum</span> <span style="color:#ce5c00;font-weight:bold">+=</span> <span style="color:#000">value</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="5-4-必须-switch">5.4	【必须】switch</h3>
+<ul>
+<li>要求必须有 <code>default</code>：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">switch</span> <span style="color:#000">os</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">runtime</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GOOS</span><span style="color:#000;font-weight:bold">;</span> <span style="color:#000">os</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#4e9a06">&#34;darwin&#34;</span><span style="color:#000;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;OS X.&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#4e9a06">&#34;linux&#34;</span><span style="color:#000;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Linux.&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">default</span><span style="color:#000;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#8f5902;font-style:italic">// freebsd, openbsd,
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>        <span style="color:#8f5902;font-style:italic">// plan9, windows...
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>        <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Printf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;%s.\n&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">os</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="5-5-推荐-return">5.5 【推荐】return</h3>
+<ul>
+<li>尽早 <code>return</code>，一旦有错误发生，马上返回：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">f</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Open</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">name</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">f</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Close</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#000">d</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">f</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Stat</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#000">codeUsing</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">f</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">d</span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><h3 id="5-6-必须-goto">5.6 【必须】goto</h3>
+<ul>
+<li>业务代码禁止使用 <code>goto</code>，其他框架或底层源码推荐尽量不用。</li>
+</ul>
+<h2 id="6-函数">6. 函数</h2>
+<h3 id="6-1-推荐-函数参数">6.1 【推荐】函数参数</h3>
+<ul>
+<li>函数返回相同类型的两个或三个参数，或者如果从上下文中不清楚结果的含义，使用命名返回，其它情况不建议使用命名返回。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Parent1 ...
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">n</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">Node</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Parent1</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">Node</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Parent2 ...
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">n</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">Node</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Parent2</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">Node</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Location ...
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">f</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">Foo</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Location</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">lat</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">long</span> <span style="color:#204a87;font-weight:bold">float64</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><ul>
+<li>
+<p>传入变量和返回变量以小写字母开头。</p>
+</li>
+<li>
+<p>参数数量均不能超过<code>5个</code>。</p>
+</li>
+<li>
+<p>尽量用值传递，非指针传递。</p>
+</li>
+<li>
+<p>传入参数是 <code>map</code>，<code>slice</code>，<code>chan</code>，<code>interface</code> 不要传递指针。</p>
+</li>
+</ul>
+<h3 id="6-2-必须-defer">6.2 【必须】defer</h3>
+<ul>
+<li>
+<p>当存在资源管理时，应紧跟 <code>defer</code> 函数进行资源的释放。</p>
+</li>
+<li>
+<p>判断是否有错误发生之后，再 <code>defer</code> 释放资源。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">resp</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">http</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Get</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">url</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 如果操作成功，再defer Close()
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">resp</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Body</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Close</span><span style="color:#000;font-weight:bold">()</span>
+</span></span></code></pre></div><ul>
+<li>禁止在循环中使用 <code>defer</code>，举例如下：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 不要这样使用
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">filterSomething</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">values</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">v</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">values</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">fields</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">db</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Query</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">v</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#8f5902;font-style:italic">// 示例，实际不要这么查询，防止sql注入
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#8f5902;font-style:italic">// xxx
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">fields</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Close</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#8f5902;font-style:italic">// 继续使用fields
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 应当使用如下的方式：
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">filterSomething</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">values</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">v</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">values</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">fields</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">db</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Query</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">v</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#8f5902;font-style:italic">// 示例，实际不要这么查询，防止sql注入
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>            <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#ce5c00;font-weight:bold">...</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">fields</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Close</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#8f5902;font-style:italic">// 继续使用fields
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>        <span style="color:#000;font-weight:bold">}()</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="6-3-推荐-方法的接收器">6.3 【推荐】方法的接收器</h3>
+<ul>
+<li>
+<p>【推荐】推荐以类名第一个英文首字母的小写作为接收器的命名。</p>
+</li>
+<li>
+<p>【推荐】接收器的命名在函数超过<code>20行</code>的时候不要用单字符。</p>
+</li>
+<li>
+<p>【必须】命名不能采用 <code>me</code>，<code>this</code>，<code>self</code> 这类易混淆名称。</p>
+</li>
+</ul>
+<h3 id="6-4-推荐-代码行数">6.4 【推荐】代码行数</h3>
+<ul>
+<li>
+<p>【必须】文件长度不能超过<code>800行</code>。</p>
+</li>
+<li>
+<p>【推荐】函数长度不能超过<code>80行</code>（函数长度为函数签名左括号下一行开始到右括号上一行结束部分的行数，包括代码行，注释行，空行）。</p>
+</li>
+</ul>
+<h3 id="6-5-必须-嵌套">6.5 【必须】嵌套</h3>
+<ul>
+<li>嵌套深度不能超过<code>4层</code>：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// AddArea 添加成功或出错
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">s</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">BookingService</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">AddArea</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">areas</span> <span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Lock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Unlock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">area</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">areas</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">has</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">areas</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">area</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#000">has</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">srverr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ErrAreaConflict</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">areas</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87">append</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">areas</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">area</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">areaOrders</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">area</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87">new</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">order</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">AreaOrder</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 建议调整为这样：
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// AddArea 添加成功或出错
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">s</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">BookingService</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">AddArea</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">areas</span> <span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Lock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Unlock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">area</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">areas</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HasArea</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">area</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">srverr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ErrAreaConflict</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">areas</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87">append</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">areas</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">area</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">areaOrders</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">area</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87">new</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">order</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">AreaOrder</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// HasArea ...
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">s</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">BookingService</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">HasArea</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">area</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">bool</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">has</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">s</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">areas</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">area</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#000">has</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">true</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">false</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="6-6-推荐-变量声明">6.6 【推荐】变量声明</h3>
+<ul>
+<li>变量声明尽量放在变量第一次使用前面，就近原则。</li>
+</ul>
+<h3 id="6-7-必须-魔法数字">6.7 【必须】魔法数字</h3>
+<ul>
+<li>如果魔法数字出现超过<code>2次</code>，则禁止使用。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">getArea</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">r</span> <span style="color:#204a87;font-weight:bold">float64</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">float64</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#0000cf;font-weight:bold">3.14</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">r</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">r</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">getLength</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">r</span> <span style="color:#204a87;font-weight:bold">float64</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">float64</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#0000cf;font-weight:bold">3.14</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#0000cf;font-weight:bold">2</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">r</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><ul>
+<li>用一个常量代替：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// PI ...
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">const</span> <span style="color:#000">PI</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#0000cf;font-weight:bold">3.14</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">getArea</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">r</span> <span style="color:#204a87;font-weight:bold">float64</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">float64</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">PI</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">r</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">r</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">getLength</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">r</span> <span style="color:#204a87;font-weight:bold">float64</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">float64</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">PI</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#0000cf;font-weight:bold">2</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">r</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="7-依赖管理">7. 依赖管理</h2>
+<h3 id="7-1-必须-go1-11-以上必须使用-go-modules-模式">7.1 【必须】go1.11 以上必须使用 <code>go modules</code> 模式：</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">go</span> <span style="color:#000">mod</span> <span style="color:#000">init</span> <span style="color:#000">git</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">xxx</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">com</span><span style="color:#ce5c00;font-weight:bold">/</span><span style="color:#000">group</span><span style="color:#ce5c00;font-weight:bold">/</span><span style="color:#000">myrepo</span>
+</span></span></code></pre></div><h3 id="7-2-推荐-代码提交">7.2 【推荐】代码提交</h3>
+<ul>
+<li>
+<p>建议所有不对外开源的工程的 <code>module name</code> 使用 <code>git.xxx.com/group/repo</code> ，方便他人直接引用。</p>
+</li>
+<li>
+<p>建议使用 <code>go modules</code> 作为依赖管理的项目不提交 <code>vendor</code> 目录。</p>
+</li>
+<li>
+<p>建议使用 <code>go modules</code> 管理依赖的项目， <code>go.sum</code> 文件必须提交，不要添加到 .gitignore 规则中。</p>
+</li>
+</ul>
+<h2 id="8-应用服务">8. 应用服务</h2>
+<h3 id="8-1-推荐-应用服务接口建议有-readme-md">8.1 【推荐】应用服务接口建议有 <code>README.md</code></h3>
+<ul>
+<li>其中建议包括服务基本描述、使用方法、部署时的限制与要求、基础环境依赖（例如最低 go 版本、最低外部通用包版本）等。</li>
+</ul>
+<h3 id="8-2-必须-应用服务必须要有接口测试">8.2 【必须】应用服务必须要有接口测试。</h3>
+<h2 id="附-常用工具">附：常用工具</h2>
+<p>go 语言本身在代码规范性这方面也做了很多努力，很多限制都是强制语法要求，例如左大括号不换行，引用的包或者定义的变量不使用会报错，此外 go 还是提供了很多好用的工具帮助我们进行代码的规范。</p>
+<ul>
+<li><code>gofmt</code> ，大部分的格式问题可以通过 <code>gofmt</code> 解决， <code>gofmt</code> 自动格式化代码，保证所有的 go 代码与官方推荐的格式保持一致，于是所有格式有关问题，都以 <code>gofmt</code> 的结果为准。</li>
+<li><code>goimports</code> ，此工具在 <code>gofmt</code> 的基础上增加了自动删除和引入包。</li>
+<li><code>go vet</code> ，<code>vet</code> 工具可以帮我们静态分析我们的源码存在的各种问题，例如多余的代码，提前 <code>return</code> 的逻辑， <code>struct</code> 的 <code>tag</code> 是否符合标准等。编译前先执行代码静态分析。</li>
+<li><code>golint</code> ，类似 <code>javascript</code> 中的 <code>jslint</code> 的工具，主要功能就是检测代码中不规范的地方。</li>
+</ul>
+
+	
+		<style>
+  .feedback--answer {
+    display: inline-block;
+  }
+  .feedback--answer-no {
+    margin-left: 1em;
+  }
+  .feedback--response {
+    display: none;
+    margin-top: 1em;
+  }
+  .feedback--response__visible {
+    display: block;
+  }
+</style>
+<div class="d-print-none">
+<h2 class="feedback--title">Feedback</h2>
+<p class="feedback--question">Was this page helpful?</p>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-yes">Yes</button>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-no">No</button>
+<p class="feedback--response feedback--response-yes">
+  Glad to hear it! Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+<p class="feedback--response feedback--response-no">
+  Sorry to hear that. Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+</div>
+<script>
+  const yesButton = document.querySelector('.feedback--answer-yes');
+  const noButton = document.querySelector('.feedback--answer-no');
+  const yesResponse = document.querySelector('.feedback--response-yes');
+  const noResponse = document.querySelector('.feedback--response-no');
+  const disableButtons = () => {
+    yesButton.disabled = true;
+    noButton.disabled = true;
+  };
+  const sendFeedback = (value) => {
+    if (typeof ga !== 'function') return;
+    const args = {
+      command: 'send',
+      hitType: 'event',
+      category: 'Helpful',
+      action: 'click',
+      label: window.location.pathname,
+      value: value
+    };
+    ga(args.command, args.hitType, args.category, args.action, args.label, args.value);
+  };
+  yesButton.addEventListener('click', () => {
+    yesResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(1);
+  });
+  noButton.addEventListener('click', () => {
+    noResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(0);
+  });
+</script>
+
+		<br />
+	
+	
+	
+</div>
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/blog.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2024 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		<p class="mt-2"><a href="/about/">About</a></p>
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+  </body>
+</html>
