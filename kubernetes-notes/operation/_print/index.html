@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.288ab8c9d8633998f479a61cd67eab0a.json"
+  data-offline-search-index-json-src="/offline-search-index.d0be67a9df3046509ce5ed9955231ece.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -348,7 +348,15 @@ if (!doNotTrack) {
     
     
 	
-<li>5.2: <a href="#pg-41c516f97d3e1fa8b834aa015c334c1e">HPA[自动扩缩容]配置</a></li>
+<li>5.2: <a href="#pg-ddbe76ac51f4a462cea597dd4e0c1726">Kruise Rollout发布</a></li>
+
+
+    
+  
+    
+    
+	
+<li>5.3: <a href="#pg-41c516f97d3e1fa8b834aa015c334c1e">HPA[自动扩缩容]配置</a></li>
 
 
     
@@ -2175,7 +2183,282 @@ if (!doNotTrack) {
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-41c516f97d3e1fa8b834aa015c334c1e">5.2 - HPA[自动扩缩容]配置</h1>
+	<h1 id="pg-ddbe76ac51f4a462cea597dd4e0c1726">5.2 - Kruise Rollout发布</h1>
+    
+	<h1 id="1-kruise-rollout简介">1. kruise-rollout简介</h1>
+<p>Kruise Rollouts 是一个 <strong>Bypass(旁路)</strong> 组件，提供 <strong>高级渐进式交付功能</strong> 。</p>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th><strong>Kruise Rollouts</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>核心概念</td>
+<td>增强现有的工作负载</td>
+</tr>
+<tr>
+<td>架构</td>
+<td>Bypass</td>
+</tr>
+<tr>
+<td>插拔和热切换</td>
+<td>是</td>
+</tr>
+<tr>
+<td>发布类型</td>
+<td>多批次、金丝雀、A/B测试、全链路灰度</td>
+</tr>
+<tr>
+<td>工作负载类型</td>
+<td>Deployment、StatefulSet、CloneSet、Advanced StatefulSet、Advanced DaemonSet</td>
+</tr>
+<tr>
+<td>流量类型</td>
+<td>Ingress、GatewayAPI、CRD（需要 Lua 脚本）</td>
+</tr>
+<tr>
+<td>迁移成本</td>
+<td>无需迁移工作负载和Pods</td>
+</tr>
+<tr>
+<td>HPA 兼容性</td>
+<td>是</td>
+</tr>
+</tbody>
+</table>
+<h1 id="2-安装kruise-rollout">2. 安装kruise-rollout</h1>
+<h2 id="2-1-helm安装kruise-rollout">2.1. helm安装kruise-rollout</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>helm repo add openkruise https://openkruise.github.io/charts/
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>helm repo update
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>kubectl create ns openkruise
+</span></span><span style="display:flex;"><span>helm install kruise-rollout openkruise/kruise-rollout -n openkruise
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 升级到指定版本</span>
+</span></span><span style="display:flex;"><span>helm upgrade kruise-rollout openkruise/kruise-rollout --version 0.5.0
+</span></span></code></pre></div><p>查看部署结果</p>
+<p>通过<code>helm</code>和<code>kubectl</code>的命令可以看到创建了几个<code>crd</code>和<code>kruise-rollout-controller-manager</code>的pod来提供rollout的功能。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># helm list -A</span>
+</span></span><span style="display:flex;"><span>NAME          	NAMESPACE 	REVISION	UPDATED                                	STATUS  	CHART               	APP VERSION
+</span></span><span style="display:flex;"><span>kruise-rollout	openkruise	<span style="color:#0000cf;font-weight:bold">1</span>       	2024-11-24 16:52:36.067327844 +0800 +08	deployed	kruise-rollout-0.5.0	0.5.0
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kubectl get po -n kruise-rollout</span>
+</span></span><span style="display:flex;"><span>NAME                                                READY   STATUS    RESTARTS   AGE
+</span></span><span style="display:flex;"><span>kruise-rollout-controller-manager-875654888-rpxds   1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          87s
+</span></span><span style="display:flex;"><span>kruise-rollout-controller-manager-875654888-w75xj   1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          87s
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kubectl get crd |grep kruise</span>
+</span></span><span style="display:flex;"><span>batchreleases.rollouts.kruise.io                      2024-11-24T08:52:36Z
+</span></span><span style="display:flex;"><span>rollouthistories.rollouts.kruise.io                   2024-11-24T08:52:36Z
+</span></span><span style="display:flex;"><span>rollouts.rollouts.kruise.io                           2024-11-24T08:52:36Z
+</span></span><span style="display:flex;"><span>trafficroutings.rollouts.kruise.io                    2024-11-24T08:52:36Z
+</span></span></code></pre></div><h2 id="2-2-安装kubectl-kruise">2.2. 安装kubectl-kruise</h2>
+<p>kubectl-kruise用于执行rollout发版和回退等操作的二进制命令。</p>
+<ul>
+<li><code>kubectl-kruise rollout approve</code>：执行下一批版本发布</li>
+<li><code>kubectl-kruise rollout undo</code>：回退全部发版批次</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>wget https://github.com/openkruise/kruise-tools/releases/download/v1.1.7/kubectl-kruise-linux-amd64-v1.1.7.tar.gz
+</span></span><span style="display:flex;"><span>tar -zvxf kubectl-kruise-linux-amd64-v1.1.7.tar.gz
+</span></span><span style="display:flex;"><span>mv linux-amd64/kubectl-kruise /usr/local/bin/
+</span></span></code></pre></div><h1 id="3-使用指南">3. 使用指南</h1>
+<p>先部署一个k8s deployment对象，例如部署10个nginx:1.26的容器。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">apps/v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Deployment</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">labels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">app</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">namespace</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">default</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">replicas</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">10</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">selector</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">matchLabels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">app</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">strategy</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">rollingUpdate</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">maxSurge</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">25</span><span style="color:#000">%</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">maxUnavailable</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">25</span><span style="color:#000">%</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">type</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">RollingUpdate</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">template</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">labels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">app</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx:1.26</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">imagePullPolicy</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">IfNotPresent</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">ports</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span>- <span style="color:#204a87;font-weight:bold">containerPort</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">80</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">protocol</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">TCP</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h2 id="3-1-创建发布策略-rollout对象">3.1. 创建发布策略(rollout对象)</h2>
+<p>我们以使用多批次灰度发布为例。</p>
+<ol>
+<li><code>workloadRef</code>定义作用于哪个deployment对象。</li>
+<li><code>strategy</code>定义发布策略。</li>
+</ol>
+<p>以下是发布策略示例描述：</p>
+<ul>
+<li>在第一批次：只升级 <strong>1个Pod</strong>；</li>
+<li>在第二批次：升级 <strong>50%</strong> 的 Pods，即 <strong>5个已更新的Pod</strong>；</li>
+<li>在第三批次：升级 <strong>100%</strong> 的 Pods，即 <strong>10个已更新的Pod</strong>。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl apply -f - <span style="color:#4e9a06">&lt;&lt;EOF
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">apiVersion: rollouts.kruise.io/v1beta1
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">kind: Rollout
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">metadata:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  name: rollouts-nginx
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  namespace: default
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">spec:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  workloadRef:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    apiVersion: apps/v1
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    kind: Deployment
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    name: nginx
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  strategy:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    canary:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">      enableExtraWorkloadForCanary: false
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">      steps:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">      - replicas: 1
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">      - replicas: 50%
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">      - replicas: 100%
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">EOF</span>
+</span></span></code></pre></div><h2 id="3-2-升级发布版本-发布第一批次">3.2. 升级发布版本(发布第一批次)</h2>
+<p>升级nginx:1.26到nginx:1.27</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl <span style="color:#204a87">set</span> image deployment nginx <span style="color:#000">nginx</span><span style="color:#ce5c00;font-weight:bold">=</span>nginx:1.27
+</span></span></code></pre></div><p>查看灰度结果：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kubectl get rs -L pod-template-hash -w</span>
+</span></span><span style="display:flex;"><span>NAME               DESIRED   CURRENT   READY   AGE   POD-TEMPLATE-HASH
+</span></span><span style="display:flex;"><span>nginx-68556bc579   <span style="color:#0000cf;font-weight:bold">1</span>         <span style="color:#0000cf;font-weight:bold">1</span>         <span style="color:#0000cf;font-weight:bold">1</span>       8s    68556bc579   <span style="color:#8f5902;font-style:italic"># nginx:1.27</span>
+</span></span><span style="display:flex;"><span>nginx-d7f5d89c9    <span style="color:#0000cf;font-weight:bold">9</span>         <span style="color:#0000cf;font-weight:bold">9</span>         <span style="color:#0000cf;font-weight:bold">9</span>       24m   d7f5d89c9    <span style="color:#8f5902;font-style:italic"># nginx:1.26</span>
+</span></span></code></pre></div><p>查看rollout状态：</p>
+<p>rollout对象的状态主要描述了当前处于哪个rollout阶段及总状态和子阶段状态的信息。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kubectl get rollout rollouts-nginx -oyaml</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">rollouts.kruise.io/v1beta1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Rollout</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">rollouts-nginx</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">namespace</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">default</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">disabled</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#204a87;font-weight:bold">false</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">strategy</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">canary</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">steps</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">pause</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span>{}<span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">replicas</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">pause</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span>{}<span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">replicas</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">50</span><span style="color:#000">%</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">pause</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span>{}<span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">replicas</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">100</span><span style="color:#000">%</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">workloadRef</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">apps/v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Deployment</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">status</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">canaryStatus</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">canaryReadyReplicas</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">canaryReplicas</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">canaryRevision</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">5c9556986d</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">currentStepIndex</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">currentStepState</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">StepPaused </span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># 当前步骤状态</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">lastUpdateTime</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;2024-11-24T11:52:56Z&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">message</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">BatchRelease is at state Ready, rollout-id , step 1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">observedWorkloadGeneration</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">36</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">podTemplateHash</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">d7f5d89c9</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">rolloutHash</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">77cxd69w47b7bwddwv2w7vxvb4xxdbwcx9x289vw69w788w4w6z4x8dd4vbz2zbw</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">stableRevision</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">68556bc579</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">conditions</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">lastTransitionTime</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;2024-11-24T11:52:47Z&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">lastUpdateTime</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;2024-11-24T11:52:47Z&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">message</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Rollout is in Progressing</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">reason</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">InRolling</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">status</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;True&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">type</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Progressing</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">message</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Rollout is in step(1/3), and you need manually confirm to enter the next</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#000">step </span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># rollout信息</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">observedGeneration</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">phase</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Progressing  </span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># 整体状态</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h2 id="3-3-发布第二批次">3.3. 发布第二批次</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl-kruise rollout approve rollout/rollouts-nginx -n default
+</span></span></code></pre></div><p>查看灰度结果：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kubectl get rs -L pod-template-hash -w</span>
+</span></span><span style="display:flex;"><span>NAME               DESIRED   CURRENT   READY   AGE     POD-TEMPLATE-HASH
+</span></span><span style="display:flex;"><span>nginx-68556bc579   <span style="color:#0000cf;font-weight:bold">5</span>         <span style="color:#0000cf;font-weight:bold">5</span>         <span style="color:#0000cf;font-weight:bold">5</span>       7m24s   68556bc579  <span style="color:#8f5902;font-style:italic"># nginx:1.27</span>
+</span></span><span style="display:flex;"><span>nginx-d7f5d89c9    <span style="color:#0000cf;font-weight:bold">5</span>         <span style="color:#0000cf;font-weight:bold">5</span>         <span style="color:#0000cf;font-weight:bold">5</span>       32m     d7f5d89c9   <span style="color:#8f5902;font-style:italic"># nginx:1.26</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kubectl get po</span>
+</span></span><span style="display:flex;"><span>NAME                     READY   STATUS    RESTARTS   AGE
+</span></span><span style="display:flex;"><span>nginx-68556bc579-24lpl   1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          7m34s  <span style="color:#8f5902;font-style:italic"># nginx:1.27 第一批次</span>
+</span></span><span style="display:flex;"><span>nginx-68556bc579-2dph8   1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          14s    <span style="color:#8f5902;font-style:italic"># nginx:1.27 第二批次</span>
+</span></span><span style="display:flex;"><span>nginx-68556bc579-57pqt   1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          14s    <span style="color:#8f5902;font-style:italic"># nginx:1.27 第二批次</span>
+</span></span><span style="display:flex;"><span>nginx-68556bc579-879s9   1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          14s    <span style="color:#8f5902;font-style:italic"># nginx:1.27 第二批次</span>
+</span></span><span style="display:flex;"><span>nginx-68556bc579-fwt52   1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          14s    <span style="color:#8f5902;font-style:italic"># nginx:1.27 第二批次</span>
+</span></span><span style="display:flex;"><span>nginx-d7f5d89c9-5fbfp    1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          30m    <span style="color:#8f5902;font-style:italic"># 其余为第三批次</span>
+</span></span><span style="display:flex;"><span>nginx-d7f5d89c9-gkz9p    1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          30m
+</span></span><span style="display:flex;"><span>nginx-d7f5d89c9-jhxwl    1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          30m
+</span></span><span style="display:flex;"><span>nginx-d7f5d89c9-vrqfz    1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          30m
+</span></span><span style="display:flex;"><span>nginx-d7f5d89c9-zk2sj    1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          30m
+</span></span></code></pre></div><h2 id="3-4-发布第三批次">3.4. 发布第三批次</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl-kruise rollout approve rollout/rollouts-nginx -n default
+</span></span></code></pre></div><p>查看结果：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kubectl get rs -L pod-template-hash -w</span>
+</span></span><span style="display:flex;"><span>NAME               DESIRED   CURRENT   READY   AGE   POD-TEMPLATE-HASH
+</span></span><span style="display:flex;"><span>nginx-68556bc579   <span style="color:#0000cf;font-weight:bold">10</span>        <span style="color:#0000cf;font-weight:bold">10</span>        <span style="color:#0000cf;font-weight:bold">10</span>      12m   68556bc579   <span style="color:#8f5902;font-style:italic">#  nginx:1.27</span>
+</span></span><span style="display:flex;"><span>nginx-d7f5d89c9    <span style="color:#0000cf;font-weight:bold">0</span>         <span style="color:#0000cf;font-weight:bold">0</span>         <span style="color:#0000cf;font-weight:bold">0</span>       37m   d7f5d89c9
+</span></span></code></pre></div><h2 id="3-5-发布回滚">3.5. 发布回滚</h2>
+<p>该回滚会把全部批次的pod都回滚到第一批发版前的版本。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl-kruise rollout undo rollout/rollouts-nginx -n default
+</span></span></code></pre></div><h1 id="4-k8s对象变更">4. k8s对象变更</h1>
+<p>kruise-rollout的原理主要还是劫持<code>Deployment</code>和<code>ReplicaSet</code>的操作，例如在升级deployment的时候会把deployment原先的<code>strategy</code>策略放在annotations中暂存，再增加<code>paused=true</code>的参数暂停deployment的发布。在rollout全部结束后再恢复原先的deployment参数，主要包括<code>paused</code>和<code>strategy</code>。</p>
+<p>以下是rollout中间阶段的deployment信息：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">apps/v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Deployment</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">annotations</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">batchrelease.rollouts.kruise.io/control-info</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#39;{&#34;apiVersion&#34;:&#34;rollouts.kruise.io/v1beta1&#34;,&#34;kind&#34;:&#34;BatchRelease&#34;,&#34;name&#34;:&#34;rollouts-nginx&#34;,&#34;uid&#34;:&#34;8f29624b-ab77-49d1-abbe-aa92bb3998e2&#34;,&#34;controller&#34;:true,&#34;blockOwnerDeletion&#34;:true}&#39;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">deployment.kubernetes.io/revision</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;5&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">rollouts.kruise.io/deployment-extra-status</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#39;{&#34;updatedReadyReplicas&#34;:1,&#34;expectedUpdatedReplicas&#34;:1}&#39;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">rollouts.kruise.io/deployment-strategy</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#39;{&#34;rollingStyle&#34;:&#34;Partition&#34;,&#34;rollingUpdate&#34;:{&#34;maxUnavailable&#34;:&#34;25%&#34;,&#34;maxSurge&#34;:&#34;25%&#34;},&#34;partition&#34;:1}&#39;</span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#8f5902;font-style:italic"># deployment原本的strategy策略</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">rollouts.kruise.io/in-progressing</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#39;{&#34;rolloutName&#34;:&#34;rollouts-nginx&#34;}&#39;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">generation</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">36</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">labels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">app</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">rollouts.kruise.io/controlled-by-advanced-deployment-controller</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;true&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">rollouts.kruise.io/stable-revision</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">68556bc579</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">rollouts.kruise.io/workload-type</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">deployment</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nginx</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">namespace</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">default</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">paused</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#204a87;font-weight:bold">true</span><span style="color:#f8f8f8;text-decoration:underline">   </span><span style="color:#8f5902;font-style:italic"># 增加了paused参数</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">progressDeadlineSeconds</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">600</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">replicas</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">10</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">revisionHistoryLimit</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">10</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="https://openkruise.io/zh/rollouts/introduction">https://openkruise.io/zh/rollouts/introduction</a></li>
+<li><a href="https://openkruise.io/zh/rollouts/installation">https://openkruise.io/zh/rollouts/installation</a></li>
+<li><a href="https://openkruise.io/zh/rollouts/user-manuals/basic-usage">https://openkruise.io/zh/rollouts/user-manuals/basic-usage</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-41c516f97d3e1fa8b834aa015c334c1e">5.3 - HPA[自动扩缩容]配置</h1>
     
 	<h1 id="1-hpa简介">1. HPA简介</h1>
 <p>HPA全称<strong>HorizontalPodAutoscaler</strong>，即pod水平扩容，增加或减少pod的数量。相对于VPA而言，VPA是增加或减少单个pod的CPU或内存。HPA主要作用于Deployment或Statefulset的工作负载，无法作用于Daemonset的工作负载。</p>
