@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.d0be67a9df3046509ce5ed9955231ece.json"
+  data-offline-search-index-json-src="/offline-search-index.aac0b3a18a96c212a749e688a1a30373.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -734,7 +734,7 @@ if (!doNotTrack) {
     
     
 	
-<li>5.5.1: <a href="#pg-2823d1f38cf03cb8645be41837a3231f">Flannel介绍</a></li>
+<li>5.5.1: <a href="#pg-eb3c09512e1faea3fd031b7ff83f4b4c">Flannel介绍</a></li>
 
 
     
@@ -9228,73 +9228,323 @@ CGroup（control group）是将任意进程进行分组化管理的Linux内核�
 
 <div class="td-content" style="">
     
-	<h1 id="pg-2823d1f38cf03cb8645be41837a3231f">5.5.1 - Flannel介绍</h1>
+	<h1 id="pg-eb3c09512e1faea3fd031b7ff83f4b4c">5.5.1 - Flannel介绍</h1>
     
-	<h1 id="1-flannel是什么-what">1. flannel是什么（what）</h1>
-<h2 id="1-1-概述">1.1. 概述</h2>
-<p>Flannel是CoreOS团队针对Kubernetes设计的一个网络规划服务，简单来说，它的功能是让集群中的不同节点主机创建的Docker容器都具有全集群唯一的虚拟IP地址。
-Flannel官网：https://github.com/coreos/flannel</p>
-<h2 id="1-2-补充知识点">1.2. 补充知识点</h2>
-<h2 id="1-覆盖网络-overlay-network"><strong>1、覆盖网络[overlay network]</strong></h2>
-<p>运行在一个网上的网（应用层网络），并不依靠ip地址来传递消息，而是采用一种映射机制，把ip地址和identifiers做映射来资源定位。</p>
-<h2 id="2-路由"><strong>2、路由</strong></h2>
-<p>互联网是由路由器连接的网络组合而成，路由器按照路由表、路由协议等机制实现对数据包正确地转发，从而到达目标主机。路由器根据数据包中目标主机的IP地址和路由控制表比较得出下一个接收数据的路由器。</p>
-<p><strong>1）静态路由：事先设置好路由器和主机中的路由表信息。</strong></p>
-<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578569/article/flannel/static-route.png" alt="静态路由"></p>
-<p><strong>2）动态路由：让路由协议在运行中自动修改并设置路由表信息。</strong></p>
-<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578568/article/flannel/dynamic-route.png" alt="动态路由"></p>
-<h1 id="2-为什么使用flannel-why">2. 为什么使用flannel（why）</h1>
-<p>在默认的Docker配置中，每个节点上的Docker服务会分别负责所在节点容器的IP分配。这样导致的一个问题是，不同节点上容器可能获得相同的内外IP地址。</p>
-<p>Flannel的设计目的就是为集群中的所有节点重新规划IP地址的使用规则，从而使得不同节点上的容器能够获得“同属一个内网”且”不重复的”IP地址，并让属于不同节点上的容器能够直接通过内网IP通信。</p>
-<h1 id="3-如何实现flannel-how">3. 如何实现flannel（how）</h1>
-<p>Flannel实质上是一种“覆盖网络(overlay network)”，也就是将TCP数据包装在另一种网络包里面进行路由转发和通信，目前已经支持UDP、VxLAN、AWS VPC和GCE路由等数据转发方式，默认的节点间数据通信方式是UDP转发。</p>
-<h2 id="3-1-flannel原理图">3.1. flannel原理图</h2>
-<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578568/article/flannel/flannel.png" alt="flannel"></p>
+	<h1 id="1-flannel简介">1. Flannel简介</h1>
+<p>Flannel 是一个简单的、易于使用的 Kubernetes 网络插件，用于为容器集群提供网络功能。它主要解决的是 Kubernetes 集群中跨节点容器间通信的问题，通过为每个节点分配一个独立的子网，确保容器之间可以使用虚拟网络进行无障碍通信。</p>
+<h2 id="1-1-flannel-的特点与优势">1.1. Flannel 的特点与优势</h2>
 <ol>
-<li>数据从源容器中发出后，经由所在主机的docker0虚拟网卡转发到flannel0虚拟网卡，这是个P2P的虚拟网卡，flanneld服务监听在网卡的另外一端。</li>
-<li>Flannel通过Etcd服务维护了一张节点间的路由表。</li>
-<li>源主机的flanneld服务将原本的数据内容UDP封装后根据自己的路由表投递给目的节点的flanneld服务，数据到达以后被解包，然后直 接进入目的节点的flannel0虚拟网卡，然后被转发到目的主机的docker0虚拟网卡，最后就像本机容器通信一下的有docker0路由到达目标容 器。</li>
+<li><strong><code>易于配置和使用</code></strong>
+<ul>
+<li>提供简单的配置文件，易于集成到 Kubernetes 集群中。</li>
+<li>支持多种后端（如 VXLAN、host-gw、AWS VPC 等），灵活满足不同环境需求。</li>
+</ul>
+</li>
+<li><strong><code>跨节点网络通信</code></strong>
+<ul>
+<li>为每个节点分配独立的子网，容器之间使用虚拟网络 IP 直接通信，而无需 NAT。</li>
+</ul>
+</li>
+<li><strong><code>轻量级设计</code></strong>
+<ul>
+<li>运行时资源占用少，适合资源有限的环境。</li>
+</ul>
+</li>
+<li><strong><code>稳定兼容性强</code></strong>
+<ul>
+<li>支持多种 Linux 发行版，兼容 Kubernetes 和 Docker，适应广泛的容器化场景。</li>
+</ul>
+</li>
+<li><strong><code>多后端支持</code></strong>
+<ul>
+<li>提供 VXLAN、host-gw、AWS VPC、UDP 等多种网络后端，以适应不同场景和需求。</li>
+</ul>
+</li>
 </ol>
-<h2 id="3-2-实现说明">3.2. 实现说明</h2>
-<h2 id="1-udp封装"><strong>1、UDP封装</strong></h2>
-<p>原始数据是在起始节点的Flannel服务上进行UDP封装的，投递到目的节点后就被另一端的Flannel服务还原成了原始的数据包，两边的Docker服务都感觉不到这个过程的存在。 UDP的数据内容部分其实是另一个ICMP（也就是ping命令）的数据包。</p>
-<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578569/article/flannel/udp.png" alt="UDP封装"></p>
-<h2 id="2-为docker分配不同的ip段"><strong>2、为docker分配不同的IP段</strong></h2>
-<p>Flannel通过Etcd分配了每个节点可用的IP地址段后，偷偷的修改了Docker的启动参数。</p>
-<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578568/article/flannel/docker-init-args.png" alt="docker启动参数"></p>
-<p>注意其中的“--bip=172.17.18.1/24”这个参数，它限制了所在节点容器获得的IP范围。</p>
-<p>这个IP范围是由Flannel自动分配的，由Flannel通过保存在Etcd服务中的记录确保它们不会重复。</p>
-<h2 id="3-路由规则"><strong>3、路由规则</strong></h2>
-<p>1）数据发送节点的路由表</p>
-<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578568/article/flannel/DataSendRouteTable.png" alt="数据发送节点路由表"></p>
-<p>2）数据接收节点的路由表</p>
-<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578568/article/flannel/DataReceiveRouteTable.png" alt="数据接收节点路由表"></p>
-<p>例如现在有一个数据包要从IP为172.17.18.2的容器发到IP为172.17.46.2的容器。根据数据发送节点的路由表，它只与 172.17.0.0/16匹配这条记录匹配，因此数据从docker0出来以后就被投递到了flannel0。同理在目标节点，由于投递的地址是一个容 器，因此目的地址一定会落在docker0对于的172.17.46.0/24这个记录上，自然的被投递到了docker0网卡。</p>
-<h2 id="3-3-flannel的安装与配置">3.3. flannel的安装与配置</h2>
-<h2 id="1-安装"><strong>1、安装</strong></h2>
-<pre tabindex="0"><code>wget http://&lt;官网&gt;/flannel/flannel-0.2.0-10.el7.x86_64.rpm
-yum localinstall -y flannel-0.2.0-10.el7.x86_64.rpm
-</code></pre><h2 id="2-配置"><strong>2、配置</strong></h2>
-<p>vi /etc/sysconfig/flanneld</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Flanneld configuration options</span>
-</span></span><span style="display:flex;"><span> 
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># etcd url location. Point this to the server where etcd runs</span>
-</span></span><span style="display:flex;"><span><span style="color:#000">FLANNEL_ETCD</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;http://127.0.0.1:4001&#34;</span>
-</span></span><span style="display:flex;"><span>  
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># etcd config key. This is the configuration key that flannel queries</span>
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># For address range assignment</span>
-</span></span><span style="display:flex;"><span><span style="color:#000">FLANNEL_ETCD_KEY</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;/xxx/flannel/product/network&#34;</span>
-</span></span><span style="display:flex;"><span>  
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Any additional options that you want to pass</span>
-</span></span><span style="display:flex;"><span><span style="color:#000">FLANNEL_OPTIONS</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34; -iface=eth0&#34;</span>
-</span></span></code></pre></div><h2 id="3-初始化flannel的etcd配置"><strong>3、初始化flannel的etcd配置</strong></h2>
-<pre tabindex="0"><code>etcdctl set /xxx/flannel/network/config &#39;{
-   &#34;Network&#34;: &#34;10.0.0.0/16&#34;,
-   &#34;Backend&#34;: {
-       &#34;Type&#34;: &#34;vxlan&#34;
-   }
-}&#39;
-</code></pre>
+<h2 id="1-2-使用场景">1.2. 使用场景</h2>
+<ol>
+<li><strong>中小规模 Kubernetes 集群</strong>
+<ul>
+<li>Flannel 易于部署和管理，非常适合中小规模集群使用。</li>
+</ul>
+</li>
+<li><strong>跨节点容器通信</strong>
+<ul>
+<li>在需要容器间无障碍通信的场景中，Flannel 提供可靠的虚拟网络支持。</li>
+</ul>
+</li>
+<li><strong>非高性能敏感的场景</strong>
+<ul>
+<li>由于 Flannel 使用封包封装技术（如 VXLAN），在性能要求不是特别高的场景中非常适用。</li>
+</ul>
+</li>
+<li><strong>混合云/多云部署</strong>
+<ul>
+<li>Flannel 的多后端支持和灵活配置，使其在多种基础设施中易于部署。</li>
+</ul>
+</li>
+</ol>
+<h2 id="1-3-flannel-的局限性">1.3. Flannel 的局限性</h2>
+<p>尽管 Flannel 易用且轻量，但它也存在一些不足之处：</p>
+<ol>
+<li><strong>性能限制</strong>
+<ul>
+<li>使用 VXLAN 或 UDP 后端时，由于封包和解封包操作会消耗额外资源，网络性能可能不如直接路由的方案（如 Calico 的 BGP）。</li>
+<li>在高流量或低延迟场景下，Flannel 可能不是最佳选择。</li>
+</ul>
+</li>
+<li><strong>缺乏高级网络功能</strong>
+<ul>
+<li>不支持网络策略（Network Policy）功能，无法实现细粒度的访问控制。</li>
+<li>对于需要复杂网络功能（如流量加密、多租户隔离）的场景，Calico 或 Cilium 是更好的选择。</li>
+</ul>
+</li>
+<li><strong>依赖 etcd</strong>
+<ul>
+<li>Flannel 强依赖于 etcd。如果 etcd 出现故障，可能影响网络管理和子网分配。</li>
+<li>需要额外注意 etcd 的高可用性和性能。</li>
+</ul>
+</li>
+<li><strong>运维复杂度随着规模增长</strong>
+<ul>
+<li><code>随着集群规模扩大（如 1000+ 节点），Flannel 的资源消耗和配置复杂度可能增加，不如更高性能的网络方案</code>。</li>
+</ul>
+</li>
+</ol>
+<h1 id="2-flannel-的架构与配置">2. Flannel 的架构与配置</h1>
+<p>flannel的架构比较简单，只有每个节点一个的<code>flanneld</code>组件，通过<code>daemonset</code>部署，并没有跟calico或cilium的架构中有中控组件。其他组件则使用k8s的etcd。</p>
+<ol>
+<li><strong>flanneld 组件</strong>
+<ul>
+<li>每个节点运行一个 flanneld 服务，负责管理该节点的网络配置和数据封包解封包。</li>
+</ul>
+</li>
+<li><strong>etcd 集成</strong>
+<ul>
+<li>Flannel 使用 etcd 存储网络配置和子网分配信息。</li>
+<li>所有节点通过 etcd 协调分配网络资源。</li>
+</ul>
+</li>
+<li><strong>网络后端</strong>
+<ul>
+<li>Flannel 支持多种后端技术，如 VXLAN、UDP、host-gw 等，可根据需求选择。</li>
+</ul>
+</li>
+<li><strong>Kubernetes 集成</strong>
+<ul>
+<li>Flannel 通过 Kubernetes 的 CNI 插件接口无缝集成，确保与 Kubernetes 网络需求的兼容性。</li>
+</ul>
+</li>
+</ol>
+<h2 id="2-1-部署flannel">2.1. 部署flannel</h2>
+<p>通过以下的yaml文件可以快速的部署flannel组件</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+</span></span></code></pre></div><p>部署完成后会生成默认配置：<code>kube-flannel-cfg</code>， 其中默认使用<code>vxlan</code>的后端模式。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">ConfigMap</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">data</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">cni-conf.json</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000;font-weight:bold">|</span><span style="color:#8f5902;font-style:italic">
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    {
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      &#34;name&#34;: &#34;cbr0&#34;,
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      &#34;cniVersion&#34;: &#34;0.3.1&#34;,
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      &#34;plugins&#34;: [
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">        {
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">          &#34;type&#34;: &#34;flannel&#34;,
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">          &#34;delegate&#34;: {
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">            &#34;hairpinMode&#34;: true,
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">            &#34;isDefaultGateway&#34;: true
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">          }
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">        },
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">        {
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">          &#34;type&#34;: &#34;portmap&#34;,
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">          &#34;capabilities&#34;: {
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">            &#34;portMappings&#34;: true
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">          }
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">        }
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      ]
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    }</span><span style="color:#f8f8f8;text-decoration:underline">    
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">net-conf.json</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000;font-weight:bold">|</span><span style="color:#8f5902;font-style:italic">
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    {
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      &#34;Network&#34;: &#34;10.244.0.0/16&#34;,
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      &#34;Backend&#34;: {
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">        &#34;Type&#34;: &#34;vxlan&#34;  // 默认为vxlan的模式
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      }
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    }</span><span style="color:#f8f8f8;text-decoration:underline">    
+</span></span></span></code></pre></div><h2 id="2-2-节点配置">2.2. 节点配置</h2>
+<p>在<code>/etc/cni/net.d</code>路径下会生成flannel的cni配置。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span>{<span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">&#34;name&#34;: </span><span style="color:#4e9a06">&#34;cbr0&#34;</span><span style="color:#000;font-weight:bold">,</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">&#34;cniVersion&#34;: </span><span style="color:#4e9a06">&#34;0.3.1&#34;</span><span style="color:#000;font-weight:bold">,</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">&#34;plugins&#34;: </span><span style="color:#000;font-weight:bold">[</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>{<span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">&#34;type&#34;: </span><span style="color:#4e9a06">&#34;flannel&#34;</span><span style="color:#000;font-weight:bold">,</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">&#34;delegate&#34;: </span>{<span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">&#34;hairpinMode&#34;: </span><span style="color:#204a87;font-weight:bold">true</span><span style="color:#000;font-weight:bold">,</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">&#34;isDefaultGateway&#34;: </span><span style="color:#204a87;font-weight:bold">true</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>}<span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>}<span style="color:#000;font-weight:bold">,</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>{<span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">&#34;type&#34;: </span><span style="color:#4e9a06">&#34;portmap&#34;</span><span style="color:#000;font-weight:bold">,</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">&#34;capabilities&#34;: </span>{<span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">&#34;portMappings&#34;: </span><span style="color:#204a87;font-weight:bold">true</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>}<span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>}<span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#000;font-weight:bold">]</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span>}<span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>同时在节点会生成一个子网配置<code>/var/run/flannel/subnet.env</code></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#000">FLANNEL_NETWORK</span><span style="color:#ce5c00;font-weight:bold">=</span>10.244.0.0/16  <span style="color:#8f5902;font-style:italic"># 整个集群的Pod网段</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">FLANNEL_SUBNET</span><span style="color:#ce5c00;font-weight:bold">=</span>10.244.3.1/24   <span style="color:#8f5902;font-style:italic"># 该节点的子网Pod网段</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">FLANNEL_MTU</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1450</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">FLANNEL_IPMASQ</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87">true</span>
+</span></span></code></pre></div><p>节点会生成<code>cni0</code>和<code>flannel.1</code>的网卡，其中<code>网卡的网段跟该节点的FLANNEL_SUBNET网段一致，如果不一致则需要重建网卡</code>。</p>
+<ul>
+<li><code>flannel.1</code>：节点网关，10.244.3.0</li>
+<li><code>cni0</code>: 10.244.3.1</li>
+<li><code>FLANNEL_SUBNET</code>=10.244.3.1/24</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>cni0: <span style="color:#000">flags</span><span style="color:#ce5c00;font-weight:bold">=</span>4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu <span style="color:#0000cf;font-weight:bold">1450</span>
+</span></span><span style="display:flex;"><span>        inet 10.244.3.1  netmask 255.255.255.0  broadcast 10.244.3.255
+</span></span><span style="display:flex;"><span>        inet6 fe80::828:abff:fe83:34ac  prefixlen <span style="color:#0000cf;font-weight:bold">64</span>  scopeid 0x20&lt;link&gt;
+</span></span><span style="display:flex;"><span>        ether 0a:28:ab:83:34:ac  txqueuelen <span style="color:#0000cf;font-weight:bold">1000</span>  <span style="color:#ce5c00;font-weight:bold">(</span>Ethernet<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        RX packets <span style="color:#0000cf;font-weight:bold">16220840959</span>  bytes <span style="color:#0000cf;font-weight:bold">2329280828193</span> <span style="color:#ce5c00;font-weight:bold">(</span>2.3 TB<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        RX errors <span style="color:#0000cf;font-weight:bold">0</span>  dropped <span style="color:#0000cf;font-weight:bold">0</span>  overruns <span style="color:#0000cf;font-weight:bold">0</span>  frame <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>        TX packets <span style="color:#0000cf;font-weight:bold">16382181068</span>  bytes <span style="color:#0000cf;font-weight:bold">43297103465563</span> <span style="color:#ce5c00;font-weight:bold">(</span>43.2 TB<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        TX errors <span style="color:#0000cf;font-weight:bold">0</span>  dropped <span style="color:#0000cf;font-weight:bold">0</span> overruns <span style="color:#0000cf;font-weight:bold">0</span>  carrier <span style="color:#0000cf;font-weight:bold">0</span>  collisions <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>flannel.1: <span style="color:#000">flags</span><span style="color:#ce5c00;font-weight:bold">=</span>4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu <span style="color:#0000cf;font-weight:bold">1450</span>
+</span></span><span style="display:flex;"><span>        inet 10.244.3.0  netmask 255.255.255.255  broadcast 0.0.0.0
+</span></span><span style="display:flex;"><span>        inet6 fe80::d875:a3ff:fe8b:1e64  prefixlen <span style="color:#0000cf;font-weight:bold">64</span>  scopeid 0x20&lt;link&gt;
+</span></span><span style="display:flex;"><span>        ether da:75:a3:8b:1e:64  txqueuelen <span style="color:#0000cf;font-weight:bold">0</span>  <span style="color:#ce5c00;font-weight:bold">(</span>Ethernet<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        RX packets <span style="color:#0000cf;font-weight:bold">225837271</span>  bytes <span style="color:#0000cf;font-weight:bold">33216374045</span> <span style="color:#ce5c00;font-weight:bold">(</span>33.2 GB<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        RX errors <span style="color:#0000cf;font-weight:bold">0</span>  dropped <span style="color:#0000cf;font-weight:bold">0</span>  overruns <span style="color:#0000cf;font-weight:bold">0</span>  frame <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>        TX packets <span style="color:#0000cf;font-weight:bold">204036495</span>  bytes <span style="color:#0000cf;font-weight:bold">396891087255</span> <span style="color:#ce5c00;font-weight:bold">(</span>396.8 GB<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        TX errors <span style="color:#0000cf;font-weight:bold">0</span>  dropped <span style="color:#0000cf;font-weight:bold">0</span> overruns <span style="color:#0000cf;font-weight:bold">0</span>  carrier <span style="color:#0000cf;font-weight:bold">0</span>  collisions <span style="color:#0000cf;font-weight:bold">0</span>        
+</span></span></code></pre></div><h1 id="3-flannel网络原理">3. Flannel网络原理</h1>
+<h2 id="3-1-原理图">3.1. 原理图</h2>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578568/article/flannel/flannel.png" alt="flannel"></p>
+<blockquote>
+<p>图中docker0等价于cni0, flannel0等价于flannel.1网卡</p>
+</blockquote>
+<p><strong>关键网卡和路由表的角色</strong></p>
+<ol>
+<li><strong><code>cni0</code> 网桥</strong>
+<ul>
+<li>是一个 Linux 网桥，连接同一节点上的所有 Pod 网络接口（<code>veth</code> 对）。</li>
+<li><code>将数据包从 Pod 转发到本地的其他 Pod</code> 或上交给 <code>flannel.1</code>。</li>
+</ul>
+</li>
+<li><strong><code>flannel.1</code> 网卡</strong>
+<ul>
+<li>是一个虚拟网卡（VXLAN 接口），<code>用于封装和解封装跨节点的 Pod 数据包</code>。</li>
+<li>连接到物理网络，通过封装的方式将数据包发送到目标节点。</li>
+</ul>
+</li>
+<li><strong><code>路由表</code></strong>
+<ul>
+<li>定义了如何转发数据包，包括 Pod 子网的路由规则和默认路由。</li>
+<li>Flannel 会在每个节点配置路由表，使得本地 Pod 的子网可以通过 <code>cni0</code> 访问，远程 Pod 的子网通过 <code>flannel.1</code> 访问。</li>
+</ul>
+</li>
+</ol>
+<h2 id="3-2-数据包路径">3.2. 数据包路径</h2>
+<h3 id="3-2-1-数据包环境">3.2.1. 数据包环境</h3>
+<p>假设有以下环境：</p>
+<ul>
+<li><strong>Node A</strong>：子网 <code>10.244.1.0/24</code>，Pod1 的 IP 是 <code>10.244.1.2</code>。</li>
+<li><strong>Node B</strong>：子网 <code>10.244.2.0/24</code>，Pod2 的 IP 是 <code>10.244.2.3</code>。</li>
+<li>两个节点通过物理网络互联。</li>
+</ul>
+<p>其中节点路由表信息如下：</p>
+<p>A 节点（Pod IP：10.244.1.2）：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 物理机路由</span>
+</span></span><span style="display:flex;"><span>default via &lt;物理机网关&gt; dev bond0 proto static
+</span></span><span style="display:flex;"><span>&lt;物理机目标网段&gt; dev bond0 proto kernel scope link src &lt;本机节点IP&gt;
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># flannel路由</span>
+</span></span><span style="display:flex;"><span>10.244.0.0/24 via 10.244.0.0 dev flannel.1 onlink
+</span></span><span style="display:flex;"><span>10.244.1.0/24 dev cni0 proto kernel scope link src 10.244.1.1  <span style="color:#8f5902;font-style:italic">#本地子网，直接通过 cni0 处理。</span>
+</span></span><span style="display:flex;"><span>10.244.2.0/24 via 10.244.2.0 dev flannel.1 onlink <span style="color:#8f5902;font-style:italic"># 远程子网，数据包通过 flannel.1 封装</span>
+</span></span></code></pre></div><p>B节点（Pod IP：10.244.2.3）：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 物理机路由</span>
+</span></span><span style="display:flex;"><span>default via &lt;物理机网关&gt; dev bond0 proto static
+</span></span><span style="display:flex;"><span>&lt;物理机目标网段&gt; dev bond0 proto kernel scope link src &lt;本机节点IP&gt;
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># flannel路由</span>
+</span></span><span style="display:flex;"><span>10.244.0.0/24 via 10.244.0.0 dev flannel.1 onlink
+</span></span><span style="display:flex;"><span>10.244.1.0/24 via 10.244.1.0 dev flannel.1 onlink    <span style="color:#8f5902;font-style:italic"># 远程子网，数据包通过 flannel.1 封装</span>
+</span></span><span style="display:flex;"><span>10.244.2.0/24 dev cni0 proto kernel scope link src 10.244.2.1  <span style="color:#8f5902;font-style:italic">#本地子网，直接通过 cni0 处理。</span>
+</span></span></code></pre></div><h3 id="3-2-1-数据路径">3.2.1. 数据路径</h3>
+<p><strong>1. 从 Pod 发出的数据包</strong></p>
+<p><strong>(1) Pod1 发送数据包</strong></p>
+<ul>
+<li>Pod1 发往 Pod2 的数据包：
+<ul>
+<li><strong>源 IP</strong>：<code>10.244.1.2</code></li>
+<li><strong>目标 IP</strong>：<code>10.244.2.3</code></li>
+</ul>
+</li>
+<li>数据包通过 Pod1 的 <code>veth</code> 设备发送到本地的 <code>cni0</code> 网桥。</li>
+</ul>
+<p><strong>2. cni0 网桥处理</strong></p>
+<ul>
+<li><strong>判断目标 IP 属于哪个子网</strong>：
+<ul>
+<li>本节点子网（<code>10.244.1.0/24</code>）：直接转发到对应的 <code>veth</code>。</li>
+<li>其他子网（<code>10.244.2.0/24</code>）：路由表指向 <code>flannel.1</code>。</li>
+</ul>
+</li>
+<li>在本例中，目标 IP 属于 <code>10.244.2.0/24</code>，因此数据包通过路由规则转发到 <code>flannel.1</code>。</li>
+</ul>
+<p><strong>3. flannel.1 网卡封装</strong></p>
+<p><strong>(1) 数据封装</strong></p>
+<ul>
+<li>Flannel 代理（<code>flanneld</code>）会检测目标子网属于远程节点，触发封装流程。</li>
+<li>数据包封装为 VXLAN 包，外层 IP 标头：
+<ul>
+<li><strong>源 IP</strong>：Node A 的物理 IP（例如 <code>192.168.1.1</code>）。</li>
+<li><strong>目标 IP</strong>：Node B 的物理 IP（例如 <code>192.168.1.2</code>）。</li>
+<li><strong>VXLAN Header</strong>：标记虚拟网络 ID 和其他信息。</li>
+</ul>
+</li>
+</ul>
+<p><strong>(2) 路由转发</strong></p>
+<ul>
+<li>封装后的数据包通过主机的物理网卡（如 <code>eth0</code>）发送到目标节点。</li>
+</ul>
+<p><strong>4. 到达目标节点 (Node B)</strong></p>
+<p><strong>(1) flannel.1 接收数据包</strong></p>
+<ul>
+<li>Node B 的物理网卡接收封装的 VXLAN 数据包，交由 <code>flannel.1</code>。</li>
+<li>flannel.1 解封数据包，还原出原始的 Pod 数据包：
+<ul>
+<li><strong>源 IP</strong>：<code>10.244.1.2</code></li>
+<li><strong>目标 IP</strong>：<code>10.244.2.3</code></li>
+</ul>
+</li>
+</ul>
+<p><strong>(2) 路由到 cni0</strong></p>
+<ul>
+<li>根据路由表，目标子网 <code>10.244.2.0/24</code> 属于本节点，通过 <code>cni0</code> 转发数据包。</li>
+<li><code>cni0</code> 根据目标 IP，找到 Pod2 的 <code>veth</code> 设备。</li>
+</ul>
+<p><strong>5. 数据包到达目标 Pod</strong></p>
+<ul>
+<li>数据包最终通过 <code>cni0</code> 网桥送到 Pod2 的 <code>veth</code> 接口，Pod2 接收到来自 Pod1 的通信。</li>
+</ul>
+<h3 id="3-2-3-数据流总结">3.2.3. 数据流总结</h3>
+<ol>
+<li>Pod1 数据包先进入本地的 <code>cni0</code> 网桥。</li>
+<li><code>cni0</code> 网桥通过路由表，发现目标 IP 属于其他子网，交由 <code>flannel.1</code>。</li>
+<li><code>flannel.1</code> 封装数据包，并通过物理网卡发往目标节点。</li>
+<li>目标节点的 <code>flannel.1</code> 解封数据包，交给 <code>cni0</code>。</li>
+<li><code>cni0</code> 网桥将数据包转发到目标 Pod 的 <code>veth</code>。</li>
+</ol>
+<p>通过这种方式，不同节点的 Pod 实现了透明的互通。</p>
+<h1 id="4-总结">4. 总结</h1>
+<p>Flannel是一个非常简单，稳定的CNI插件，其中部署和配置方式都非常简单，网络原理也简单，出现问题排查比较方便。特别适合k8s集群规模不大（1000个节点以内），网络性能要求不是非常严格，且团队中网络相关人员较少且无法支持维护复杂网络插件的团队使用。因为选择方案有一个基本的考虑点是该方案稳定且团队中有人可维护，而Flannel是一个维护成本相对比较低的网络方案。</p>
+<p>参考：</p>
+<ul>
+<li><a href="https://github.com/flannel-io/flannel">https://github.com/flannel-io/flannel</a></li>
+</ul>
+
 </div>
 
 
@@ -15767,7 +16017,7 @@ yum localinstall -y flannel-0.2.0-10.el7.x86_64.rpm
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span>- <span style="color:#204a87;font-weight:bold">containerPort</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">80</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">protocol</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">TCP</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span></code></pre></div><h2 id="3-1-创建发布策略-rollout对象">3.1. 创建发布策略(rollout对象)</h2>
-<p>我们以使用多批次灰度发布为例。</p>
+<p>我们以使用<code>多批次灰度发布</code>为例。</p>
 <ol>
 <li><code>workloadRef</code>定义作用于哪个deployment对象。</li>
 <li><code>strategy</code>定义发布策略。</li>

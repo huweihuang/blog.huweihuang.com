@@ -4,7 +4,7 @@
     <link>https://blog.huweihuang.com/tags/kubernetes/</link>
     <description>Recent content in Kubernetes on 胡伟煌</description>
     <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Sat, 23 Nov 2024 10:50:57 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 24 Nov 2024 10:50:57 +0000</lastBuildDate>
     
 	  <atom:link href="https://blog.huweihuang.com/tags/kubernetes/index.xml" rel="self" type="application/rss+xml" />
     
@@ -13,6 +13,333 @@
         
       
     
+    
+    <item>
+      <title>Kubernetes-Notes: Flannel介绍</title>
+      <link>https://blog.huweihuang.com/kubernetes-notes/network/flannel/flannel/</link>
+      <pubDate>Sun, 24 Nov 2024 10:50:57 +0000</pubDate>
+      
+      <guid>https://blog.huweihuang.com/kubernetes-notes/network/flannel/flannel/</guid>
+      <description>
+        
+        
+        &lt;h1 id=&#34;1-flannel简介&#34;&gt;1. Flannel简介&lt;/h1&gt;
+&lt;p&gt;Flannel 是一个简单的、易于使用的 Kubernetes 网络插件，用于为容器集群提供网络功能。它主要解决的是 Kubernetes 集群中跨节点容器间通信的问题，通过为每个节点分配一个独立的子网，确保容器之间可以使用虚拟网络进行无障碍通信。&lt;/p&gt;
+&lt;h2 id=&#34;1-1-flannel-的特点与优势&#34;&gt;1.1. Flannel 的特点与优势&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;易于配置和使用&lt;/code&gt;&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;提供简单的配置文件，易于集成到 Kubernetes 集群中。&lt;/li&gt;
+&lt;li&gt;支持多种后端（如 VXLAN、host-gw、AWS VPC 等），灵活满足不同环境需求。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;跨节点网络通信&lt;/code&gt;&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;为每个节点分配独立的子网，容器之间使用虚拟网络 IP 直接通信，而无需 NAT。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;轻量级设计&lt;/code&gt;&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;运行时资源占用少，适合资源有限的环境。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;稳定兼容性强&lt;/code&gt;&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;支持多种 Linux 发行版，兼容 Kubernetes 和 Docker，适应广泛的容器化场景。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;多后端支持&lt;/code&gt;&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;提供 VXLAN、host-gw、AWS VPC、UDP 等多种网络后端，以适应不同场景和需求。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;1-2-使用场景&#34;&gt;1.2. 使用场景&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;中小规模 Kubernetes 集群&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;Flannel 易于部署和管理，非常适合中小规模集群使用。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;跨节点容器通信&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;在需要容器间无障碍通信的场景中，Flannel 提供可靠的虚拟网络支持。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;非高性能敏感的场景&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;由于 Flannel 使用封包封装技术（如 VXLAN），在性能要求不是特别高的场景中非常适用。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;混合云/多云部署&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;Flannel 的多后端支持和灵活配置，使其在多种基础设施中易于部署。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;1-3-flannel-的局限性&#34;&gt;1.3. Flannel 的局限性&lt;/h2&gt;
+&lt;p&gt;尽管 Flannel 易用且轻量，但它也存在一些不足之处：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;性能限制&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;使用 VXLAN 或 UDP 后端时，由于封包和解封包操作会消耗额外资源，网络性能可能不如直接路由的方案（如 Calico 的 BGP）。&lt;/li&gt;
+&lt;li&gt;在高流量或低延迟场景下，Flannel 可能不是最佳选择。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;缺乏高级网络功能&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;不支持网络策略（Network Policy）功能，无法实现细粒度的访问控制。&lt;/li&gt;
+&lt;li&gt;对于需要复杂网络功能（如流量加密、多租户隔离）的场景，Calico 或 Cilium 是更好的选择。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;依赖 etcd&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;Flannel 强依赖于 etcd。如果 etcd 出现故障，可能影响网络管理和子网分配。&lt;/li&gt;
+&lt;li&gt;需要额外注意 etcd 的高可用性和性能。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;运维复杂度随着规模增长&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;随着集群规模扩大（如 1000+ 节点），Flannel 的资源消耗和配置复杂度可能增加，不如更高性能的网络方案&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h1 id=&#34;2-flannel-的架构与配置&#34;&gt;2. Flannel 的架构与配置&lt;/h1&gt;
+&lt;p&gt;flannel的架构比较简单，只有每个节点一个的&lt;code&gt;flanneld&lt;/code&gt;组件，通过&lt;code&gt;daemonset&lt;/code&gt;部署，并没有跟calico或cilium的架构中有中控组件。其他组件则使用k8s的etcd。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;flanneld 组件&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;每个节点运行一个 flanneld 服务，负责管理该节点的网络配置和数据封包解封包。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;etcd 集成&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;Flannel 使用 etcd 存储网络配置和子网分配信息。&lt;/li&gt;
+&lt;li&gt;所有节点通过 etcd 协调分配网络资源。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;网络后端&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;Flannel 支持多种后端技术，如 VXLAN、UDP、host-gw 等，可根据需求选择。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Kubernetes 集成&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;Flannel 通过 Kubernetes 的 CNI 插件接口无缝集成，确保与 Kubernetes 网络需求的兼容性。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;2-1-部署flannel&#34;&gt;2.1. 部署flannel&lt;/h2&gt;
+&lt;p&gt;通过以下的yaml文件可以快速的部署flannel组件&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;部署完成后会生成默认配置：&lt;code&gt;kube-flannel-cfg&lt;/code&gt;， 其中默认使用&lt;code&gt;vxlan&lt;/code&gt;的后端模式。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;apiVersion&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;v1&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;kind&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;ConfigMap&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;data&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;cni-conf.json&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;    {
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;      &amp;#34;name&amp;#34;: &amp;#34;cbr0&amp;#34;,
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;      &amp;#34;cniVersion&amp;#34;: &amp;#34;0.3.1&amp;#34;,
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;      &amp;#34;plugins&amp;#34;: [
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;        {
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;          &amp;#34;type&amp;#34;: &amp;#34;flannel&amp;#34;,
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;          &amp;#34;delegate&amp;#34;: {
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;            &amp;#34;hairpinMode&amp;#34;: true,
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;            &amp;#34;isDefaultGateway&amp;#34;: true
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;          }
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;        },
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;        {
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;          &amp;#34;type&amp;#34;: &amp;#34;portmap&amp;#34;,
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;          &amp;#34;capabilities&amp;#34;: {
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;            &amp;#34;portMappings&amp;#34;: true
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;          }
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;        }
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;      ]
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;    }&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;net-conf.json&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;    {
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;      &amp;#34;Network&amp;#34;: &amp;#34;10.244.0.0/16&amp;#34;,
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;      &amp;#34;Backend&amp;#34;: {
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;        &amp;#34;Type&amp;#34;: &amp;#34;vxlan&amp;#34;  // 默认为vxlan的模式
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;      }
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;    }&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;2-2-节点配置&#34;&gt;2.2. 节点配置&lt;/h2&gt;
+&lt;p&gt;在&lt;code&gt;/etc/cni/net.d&lt;/code&gt;路径下会生成flannel的cni配置。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;{&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;name&amp;#34;: &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;cbr0&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;cniVersion&amp;#34;: &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;0.3.1&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;plugins&amp;#34;: &lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;[&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;{&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;type&amp;#34;: &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;flannel&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;delegate&amp;#34;: &lt;/span&gt;{&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;hairpinMode&amp;#34;: &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;true&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;isDefaultGateway&amp;#34;: &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;true&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;}&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;}&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;{&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;type&amp;#34;: &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;portmap&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;capabilities&amp;#34;: &lt;/span&gt;{&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;portMappings&amp;#34;: &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;true&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;}&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;}&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;]&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;}&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;同时在节点会生成一个子网配置&lt;code&gt;/var/run/flannel/subnet.env&lt;/code&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000&#34;&gt;FLANNEL_NETWORK&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;10.244.0.0/16  &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 整个集群的Pod网段&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000&#34;&gt;FLANNEL_SUBNET&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;10.244.3.1/24   &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 该节点的子网Pod网段&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000&#34;&gt;FLANNEL_MTU&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1450&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000&#34;&gt;FLANNEL_IPMASQ&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#204a87&#34;&gt;true&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;节点会生成&lt;code&gt;cni0&lt;/code&gt;和&lt;code&gt;flannel.1&lt;/code&gt;的网卡，其中&lt;code&gt;网卡的网段跟该节点的FLANNEL_SUBNET网段一致，如果不一致则需要重建网卡&lt;/code&gt;。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;flannel.1&lt;/code&gt;：节点网关，10.244.3.0&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;cni0&lt;/code&gt;: 10.244.3.1&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;FLANNEL_SUBNET&lt;/code&gt;=10.244.3.1/24&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;cni0: &lt;span style=&#34;color:#000&#34;&gt;flags&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;4163&amp;lt;UP,BROADCAST,RUNNING,MULTICAST&amp;gt;  mtu &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1450&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        inet 10.244.3.1  netmask 255.255.255.0  broadcast 10.244.3.255
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        inet6 fe80::828:abff:fe83:34ac  prefixlen &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;64&lt;/span&gt;  scopeid 0x20&amp;lt;link&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        ether 0a:28:ab:83:34:ac  txqueuelen &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1000&lt;/span&gt;  &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;Ethernet&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        RX packets &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;16220840959&lt;/span&gt;  bytes &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;2329280828193&lt;/span&gt; &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;2.3 TB&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        RX errors &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;  dropped &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;  overruns &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;  frame &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        TX packets &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;16382181068&lt;/span&gt;  bytes &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;43297103465563&lt;/span&gt; &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;43.2 TB&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        TX errors &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;  dropped &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; overruns &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;  carrier &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;  collisions &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;flannel.1: &lt;span style=&#34;color:#000&#34;&gt;flags&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;4163&amp;lt;UP,BROADCAST,RUNNING,MULTICAST&amp;gt;  mtu &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1450&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        inet 10.244.3.0  netmask 255.255.255.255  broadcast 0.0.0.0
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        inet6 fe80::d875:a3ff:fe8b:1e64  prefixlen &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;64&lt;/span&gt;  scopeid 0x20&amp;lt;link&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        ether da:75:a3:8b:1e:64  txqueuelen &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;  &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;Ethernet&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        RX packets &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;225837271&lt;/span&gt;  bytes &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;33216374045&lt;/span&gt; &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;33.2 GB&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        RX errors &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;  dropped &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;  overruns &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;  frame &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        TX packets &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;204036495&lt;/span&gt;  bytes &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;396891087255&lt;/span&gt; &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;396.8 GB&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        TX errors &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;  dropped &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; overruns &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;  carrier &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;  collisions &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;        
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;3-flannel网络原理&#34;&gt;3. Flannel网络原理&lt;/h1&gt;
+&lt;h2 id=&#34;3-1-原理图&#34;&gt;3.1. 原理图&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578568/article/flannel/flannel.png&#34; alt=&#34;flannel&#34;&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;图中docker0等价于cni0, flannel0等价于flannel.1网卡&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;strong&gt;关键网卡和路由表的角色&lt;/strong&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;cni0&lt;/code&gt; 网桥&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;是一个 Linux 网桥，连接同一节点上的所有 Pod 网络接口（&lt;code&gt;veth&lt;/code&gt; 对）。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;将数据包从 Pod 转发到本地的其他 Pod&lt;/code&gt; 或上交给 &lt;code&gt;flannel.1&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;flannel.1&lt;/code&gt; 网卡&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;是一个虚拟网卡（VXLAN 接口），&lt;code&gt;用于封装和解封装跨节点的 Pod 数据包&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;连接到物理网络，通过封装的方式将数据包发送到目标节点。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;路由表&lt;/code&gt;&lt;/strong&gt;
+&lt;ul&gt;
+&lt;li&gt;定义了如何转发数据包，包括 Pod 子网的路由规则和默认路由。&lt;/li&gt;
+&lt;li&gt;Flannel 会在每个节点配置路由表，使得本地 Pod 的子网可以通过 &lt;code&gt;cni0&lt;/code&gt; 访问，远程 Pod 的子网通过 &lt;code&gt;flannel.1&lt;/code&gt; 访问。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;3-2-数据包路径&#34;&gt;3.2. 数据包路径&lt;/h2&gt;
+&lt;h3 id=&#34;3-2-1-数据包环境&#34;&gt;3.2.1. 数据包环境&lt;/h3&gt;
+&lt;p&gt;假设有以下环境：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Node A&lt;/strong&gt;：子网 &lt;code&gt;10.244.1.0/24&lt;/code&gt;，Pod1 的 IP 是 &lt;code&gt;10.244.1.2&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Node B&lt;/strong&gt;：子网 &lt;code&gt;10.244.2.0/24&lt;/code&gt;，Pod2 的 IP 是 &lt;code&gt;10.244.2.3&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;两个节点通过物理网络互联。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;其中节点路由表信息如下：&lt;/p&gt;
+&lt;p&gt;A 节点（Pod IP：10.244.1.2）：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 物理机路由&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;default via &amp;lt;物理机网关&amp;gt; dev bond0 proto static
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&amp;lt;物理机目标网段&amp;gt; dev bond0 proto kernel scope link src &amp;lt;本机节点IP&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# flannel路由&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;10.244.0.0/24 via 10.244.0.0 dev flannel.1 onlink
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;10.244.1.0/24 dev cni0 proto kernel scope link src 10.244.1.1  &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#本地子网，直接通过 cni0 处理。&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;10.244.2.0/24 via 10.244.2.0 dev flannel.1 onlink &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 远程子网，数据包通过 flannel.1 封装&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;B节点（Pod IP：10.244.2.3）：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 物理机路由&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;default via &amp;lt;物理机网关&amp;gt; dev bond0 proto static
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&amp;lt;物理机目标网段&amp;gt; dev bond0 proto kernel scope link src &amp;lt;本机节点IP&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# flannel路由&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;10.244.0.0/24 via 10.244.0.0 dev flannel.1 onlink
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;10.244.1.0/24 via 10.244.1.0 dev flannel.1 onlink    &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 远程子网，数据包通过 flannel.1 封装&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;10.244.2.0/24 dev cni0 proto kernel scope link src 10.244.2.1  &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#本地子网，直接通过 cni0 处理。&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;3-2-1-数据路径&#34;&gt;3.2.1. 数据路径&lt;/h3&gt;
+&lt;p&gt;&lt;strong&gt;1. 从 Pod 发出的数据包&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;(1) Pod1 发送数据包&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Pod1 发往 Pod2 的数据包：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;源 IP&lt;/strong&gt;：&lt;code&gt;10.244.1.2&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;目标 IP&lt;/strong&gt;：&lt;code&gt;10.244.2.3&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;数据包通过 Pod1 的 &lt;code&gt;veth&lt;/code&gt; 设备发送到本地的 &lt;code&gt;cni0&lt;/code&gt; 网桥。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;2. cni0 网桥处理&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;判断目标 IP 属于哪个子网&lt;/strong&gt;：
+&lt;ul&gt;
+&lt;li&gt;本节点子网（&lt;code&gt;10.244.1.0/24&lt;/code&gt;）：直接转发到对应的 &lt;code&gt;veth&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;其他子网（&lt;code&gt;10.244.2.0/24&lt;/code&gt;）：路由表指向 &lt;code&gt;flannel.1&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;在本例中，目标 IP 属于 &lt;code&gt;10.244.2.0/24&lt;/code&gt;，因此数据包通过路由规则转发到 &lt;code&gt;flannel.1&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;3. flannel.1 网卡封装&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;(1) 数据封装&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Flannel 代理（&lt;code&gt;flanneld&lt;/code&gt;）会检测目标子网属于远程节点，触发封装流程。&lt;/li&gt;
+&lt;li&gt;数据包封装为 VXLAN 包，外层 IP 标头：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;源 IP&lt;/strong&gt;：Node A 的物理 IP（例如 &lt;code&gt;192.168.1.1&lt;/code&gt;）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;目标 IP&lt;/strong&gt;：Node B 的物理 IP（例如 &lt;code&gt;192.168.1.2&lt;/code&gt;）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;VXLAN Header&lt;/strong&gt;：标记虚拟网络 ID 和其他信息。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;(2) 路由转发&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;封装后的数据包通过主机的物理网卡（如 &lt;code&gt;eth0&lt;/code&gt;）发送到目标节点。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;4. 到达目标节点 (Node B)&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;(1) flannel.1 接收数据包&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Node B 的物理网卡接收封装的 VXLAN 数据包，交由 &lt;code&gt;flannel.1&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;flannel.1 解封数据包，还原出原始的 Pod 数据包：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;源 IP&lt;/strong&gt;：&lt;code&gt;10.244.1.2&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;目标 IP&lt;/strong&gt;：&lt;code&gt;10.244.2.3&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;(2) 路由到 cni0&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;根据路由表，目标子网 &lt;code&gt;10.244.2.0/24&lt;/code&gt; 属于本节点，通过 &lt;code&gt;cni0&lt;/code&gt; 转发数据包。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;cni0&lt;/code&gt; 根据目标 IP，找到 Pod2 的 &lt;code&gt;veth&lt;/code&gt; 设备。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;5. 数据包到达目标 Pod&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;数据包最终通过 &lt;code&gt;cni0&lt;/code&gt; 网桥送到 Pod2 的 &lt;code&gt;veth&lt;/code&gt; 接口，Pod2 接收到来自 Pod1 的通信。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;3-2-3-数据流总结&#34;&gt;3.2.3. 数据流总结&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;Pod1 数据包先进入本地的 &lt;code&gt;cni0&lt;/code&gt; 网桥。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;cni0&lt;/code&gt; 网桥通过路由表，发现目标 IP 属于其他子网，交由 &lt;code&gt;flannel.1&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;flannel.1&lt;/code&gt; 封装数据包，并通过物理网卡发往目标节点。&lt;/li&gt;
+&lt;li&gt;目标节点的 &lt;code&gt;flannel.1&lt;/code&gt; 解封数据包，交给 &lt;code&gt;cni0&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;cni0&lt;/code&gt; 网桥将数据包转发到目标 Pod 的 &lt;code&gt;veth&lt;/code&gt;。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;通过这种方式，不同节点的 Pod 实现了透明的互通。&lt;/p&gt;
+&lt;h1 id=&#34;4-总结&#34;&gt;4. 总结&lt;/h1&gt;
+&lt;p&gt;Flannel是一个非常简单，稳定的CNI插件，其中部署和配置方式都非常简单，网络原理也简单，出现问题排查比较方便。特别适合k8s集群规模不大（1000个节点以内），网络性能要求不是非常严格，且团队中网络相关人员较少且无法支持维护复杂网络插件的团队使用。因为选择方案有一个基本的考虑点是该方案稳定且团队中有人可维护，而Flannel是一个维护成本相对比较低的网络方案。&lt;/p&gt;
+&lt;p&gt;参考：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/flannel-io/flannel&#34;&gt;https://github.com/flannel-io/flannel&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+      </description>
+    </item>
     
     <item>
       <title>Kubernetes-Notes: Cilium介绍</title>
@@ -2980,83 +3307,6 @@
     </item>
     
     <item>
-      <title>Kubernetes-Notes: Flannel介绍</title>
-      <link>https://blog.huweihuang.com/kubernetes-notes/network/flannel/flannel-introduction/</link>
-      <pubDate>Sat, 08 Jul 2017 10:50:57 +0000</pubDate>
-      
-      <guid>https://blog.huweihuang.com/kubernetes-notes/network/flannel/flannel-introduction/</guid>
-      <description>
-        
-        
-        &lt;h1 id=&#34;1-flannel是什么-what&#34;&gt;1. flannel是什么（what）&lt;/h1&gt;
-&lt;h2 id=&#34;1-1-概述&#34;&gt;1.1. 概述&lt;/h2&gt;
-&lt;p&gt;Flannel是CoreOS团队针对Kubernetes设计的一个网络规划服务，简单来说，它的功能是让集群中的不同节点主机创建的Docker容器都具有全集群唯一的虚拟IP地址。
-Flannel官网：https://github.com/coreos/flannel&lt;/p&gt;
-&lt;h2 id=&#34;1-2-补充知识点&#34;&gt;1.2. 补充知识点&lt;/h2&gt;
-&lt;h2 id=&#34;1-覆盖网络-overlay-network&#34;&gt;&lt;strong&gt;1、覆盖网络[overlay network]&lt;/strong&gt;&lt;/h2&gt;
-&lt;p&gt;运行在一个网上的网（应用层网络），并不依靠ip地址来传递消息，而是采用一种映射机制，把ip地址和identifiers做映射来资源定位。&lt;/p&gt;
-&lt;h2 id=&#34;2-路由&#34;&gt;&lt;strong&gt;2、路由&lt;/strong&gt;&lt;/h2&gt;
-&lt;p&gt;互联网是由路由器连接的网络组合而成，路由器按照路由表、路由协议等机制实现对数据包正确地转发，从而到达目标主机。路由器根据数据包中目标主机的IP地址和路由控制表比较得出下一个接收数据的路由器。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;1）静态路由：事先设置好路由器和主机中的路由表信息。&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578569/article/flannel/static-route.png&#34; alt=&#34;静态路由&#34;&gt;&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;2）动态路由：让路由协议在运行中自动修改并设置路由表信息。&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578568/article/flannel/dynamic-route.png&#34; alt=&#34;动态路由&#34;&gt;&lt;/p&gt;
-&lt;h1 id=&#34;2-为什么使用flannel-why&#34;&gt;2. 为什么使用flannel（why）&lt;/h1&gt;
-&lt;p&gt;在默认的Docker配置中，每个节点上的Docker服务会分别负责所在节点容器的IP分配。这样导致的一个问题是，不同节点上容器可能获得相同的内外IP地址。&lt;/p&gt;
-&lt;p&gt;Flannel的设计目的就是为集群中的所有节点重新规划IP地址的使用规则，从而使得不同节点上的容器能够获得“同属一个内网”且”不重复的”IP地址，并让属于不同节点上的容器能够直接通过内网IP通信。&lt;/p&gt;
-&lt;h1 id=&#34;3-如何实现flannel-how&#34;&gt;3. 如何实现flannel（how）&lt;/h1&gt;
-&lt;p&gt;Flannel实质上是一种“覆盖网络(overlay network)”，也就是将TCP数据包装在另一种网络包里面进行路由转发和通信，目前已经支持UDP、VxLAN、AWS VPC和GCE路由等数据转发方式，默认的节点间数据通信方式是UDP转发。&lt;/p&gt;
-&lt;h2 id=&#34;3-1-flannel原理图&#34;&gt;3.1. flannel原理图&lt;/h2&gt;
-&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578568/article/flannel/flannel.png&#34; alt=&#34;flannel&#34;&gt;&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;数据从源容器中发出后，经由所在主机的docker0虚拟网卡转发到flannel0虚拟网卡，这是个P2P的虚拟网卡，flanneld服务监听在网卡的另外一端。&lt;/li&gt;
-&lt;li&gt;Flannel通过Etcd服务维护了一张节点间的路由表。&lt;/li&gt;
-&lt;li&gt;源主机的flanneld服务将原本的数据内容UDP封装后根据自己的路由表投递给目的节点的flanneld服务，数据到达以后被解包，然后直 接进入目的节点的flannel0虚拟网卡，然后被转发到目的主机的docker0虚拟网卡，最后就像本机容器通信一下的有docker0路由到达目标容 器。&lt;/li&gt;
-&lt;/ol&gt;
-&lt;h2 id=&#34;3-2-实现说明&#34;&gt;3.2. 实现说明&lt;/h2&gt;
-&lt;h2 id=&#34;1-udp封装&#34;&gt;&lt;strong&gt;1、UDP封装&lt;/strong&gt;&lt;/h2&gt;
-&lt;p&gt;原始数据是在起始节点的Flannel服务上进行UDP封装的，投递到目的节点后就被另一端的Flannel服务还原成了原始的数据包，两边的Docker服务都感觉不到这个过程的存在。 UDP的数据内容部分其实是另一个ICMP（也就是ping命令）的数据包。&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578569/article/flannel/udp.png&#34; alt=&#34;UDP封装&#34;&gt;&lt;/p&gt;
-&lt;h2 id=&#34;2-为docker分配不同的ip段&#34;&gt;&lt;strong&gt;2、为docker分配不同的IP段&lt;/strong&gt;&lt;/h2&gt;
-&lt;p&gt;Flannel通过Etcd分配了每个节点可用的IP地址段后，偷偷的修改了Docker的启动参数。&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578568/article/flannel/docker-init-args.png&#34; alt=&#34;docker启动参数&#34;&gt;&lt;/p&gt;
-&lt;p&gt;注意其中的“--bip=172.17.18.1/24”这个参数，它限制了所在节点容器获得的IP范围。&lt;/p&gt;
-&lt;p&gt;这个IP范围是由Flannel自动分配的，由Flannel通过保存在Etcd服务中的记录确保它们不会重复。&lt;/p&gt;
-&lt;h2 id=&#34;3-路由规则&#34;&gt;&lt;strong&gt;3、路由规则&lt;/strong&gt;&lt;/h2&gt;
-&lt;p&gt;1）数据发送节点的路由表&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578568/article/flannel/DataSendRouteTable.png&#34; alt=&#34;数据发送节点路由表&#34;&gt;&lt;/p&gt;
-&lt;p&gt;2）数据接收节点的路由表&lt;/p&gt;
-&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1510578568/article/flannel/DataReceiveRouteTable.png&#34; alt=&#34;数据接收节点路由表&#34;&gt;&lt;/p&gt;
-&lt;p&gt;例如现在有一个数据包要从IP为172.17.18.2的容器发到IP为172.17.46.2的容器。根据数据发送节点的路由表，它只与 172.17.0.0/16匹配这条记录匹配，因此数据从docker0出来以后就被投递到了flannel0。同理在目标节点，由于投递的地址是一个容 器，因此目的地址一定会落在docker0对于的172.17.46.0/24这个记录上，自然的被投递到了docker0网卡。&lt;/p&gt;
-&lt;h2 id=&#34;3-3-flannel的安装与配置&#34;&gt;3.3. flannel的安装与配置&lt;/h2&gt;
-&lt;h2 id=&#34;1-安装&#34;&gt;&lt;strong&gt;1、安装&lt;/strong&gt;&lt;/h2&gt;
-&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;wget http://&amp;lt;官网&amp;gt;/flannel/flannel-0.2.0-10.el7.x86_64.rpm
-yum localinstall -y flannel-0.2.0-10.el7.x86_64.rpm
-&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;2-配置&#34;&gt;&lt;strong&gt;2、配置&lt;/strong&gt;&lt;/h2&gt;
-&lt;p&gt;vi /etc/sysconfig/flanneld&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# Flanneld configuration options&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt; 
-&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# etcd url location. Point this to the server where etcd runs&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000&#34;&gt;FLANNEL_ETCD&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;http://127.0.0.1:4001&amp;#34;&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  
-&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# etcd config key. This is the configuration key that flannel queries&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# For address range assignment&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000&#34;&gt;FLANNEL_ETCD_KEY&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;/xxx/flannel/product/network&amp;#34;&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  
-&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# Any additional options that you want to pass&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000&#34;&gt;FLANNEL_OPTIONS&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34; -iface=eth0&amp;#34;&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;3-初始化flannel的etcd配置&#34;&gt;&lt;strong&gt;3、初始化flannel的etcd配置&lt;/strong&gt;&lt;/h2&gt;
-&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;etcdctl set /xxx/flannel/network/config &amp;#39;{
-   &amp;#34;Network&amp;#34;: &amp;#34;10.0.0.0/16&amp;#34;,
-   &amp;#34;Backend&amp;#34;: {
-       &amp;#34;Type&amp;#34;: &amp;#34;vxlan&amp;#34;
-   }
-}&amp;#39;
-&lt;/code&gt;&lt;/pre&gt;
-      </description>
-    </item>
-    
-    <item>
       <title>Kubernetes-Notes: k8s知识体系</title>
       <link>https://blog.huweihuang.com/kubernetes-notes/paas/k8s/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
@@ -4723,7 +4973,7 @@ yum localinstall -y flannel-0.2.0-10.el7.x86_64.rpm
 &lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;containerPort&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;80&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;          &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;protocol&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;TCP&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;3-1-创建发布策略-rollout对象&#34;&gt;3.1. 创建发布策略(rollout对象)&lt;/h2&gt;
-&lt;p&gt;我们以使用多批次灰度发布为例。&lt;/p&gt;
+&lt;p&gt;我们以使用&lt;code&gt;多批次灰度发布&lt;/code&gt;为例。&lt;/p&gt;
 &lt;ol&gt;
 &lt;li&gt;&lt;code&gt;workloadRef&lt;/code&gt;定义作用于哪个deployment对象。&lt;/li&gt;
 &lt;li&gt;&lt;code&gt;strategy&lt;/code&gt;定义发布策略。&lt;/li&gt;
