@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.aac0b3a18a96c212a749e688a1a30373.json"
+  data-offline-search-index-json-src="/offline-search-index.80f7be66b8edc629c786d20dc8ccd095.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -761,7 +761,7 @@ if (!doNotTrack) {
     
     
 	
-<li>5.6.1: <a href="#pg-5a04a45408807305b1e33642577a3719">Calico介绍</a></li>
+<li>5.6.1: <a href="#pg-b7d5f8098709f945fc638e3c2853de6b">Calico介绍</a></li>
 
 
     
@@ -9588,7 +9588,7 @@ CGroup（control group）是将任意进程进行分组化管理的Linux内核�
 
 <div class="td-content" style="">
     
-	<h1 id="pg-5a04a45408807305b1e33642577a3719">5.6.1 - Calico介绍</h1>
+	<h1 id="pg-b7d5f8098709f945fc638e3c2853de6b">5.6.1 - Calico介绍</h1>
     
 	<h1 id="1-calico简介">1. Calico简介</h1>
 <p><strong>Calico</strong> 是一个开源的网络和网络安全解决方案，主要用于 Kubernetes 等容器编排系统。它通过提供高效的网络连接和强大的安全控制来满足容器化和微服务架构的需求。Calico 以其灵活性、可扩展性和性能著称，是许多企业和云原生应用的首选网络插件。</p>
@@ -9630,6 +9630,23 @@ CGroup（control group）是将任意进程进行分组化管理的Linux内核�
 <li><strong>容器化应用的网络管理</strong>：适用于 Kubernetes 等容器编排平台，为容器提供高效、安全的网络连接。</li>
 <li><strong>混合云和多集群部署</strong>：Calico 支持跨数据中心和云环境的多集群部署，非常适合混合云和多租户环境。</li>
 <li><strong>网络安全</strong>：对于需要细粒度的网络安全策略控制和多租户隔离的场景，Calico 提供多层次的安全控制和隔离。</li>
+</ul>
+<h2 id="1-3-calico的局限性">1.3. Calico的局限性</h2>
+<p>calico也存在一些不足和局限性。</p>
+<p><strong><code>1. 对网络拓扑的依赖</code></strong></p>
+<ul>
+<li><strong>BGP 配置复杂性</strong>：
+Calico 默认使用 BGP 协议进行路由，如果网络环境中没有现成的 BGP 支持（如非生产环境或网络管理员经验不足），配置可能较复杂。此外，BGP 的管理对部分运维人员有一定门槛。</li>
+<li><strong>对底层网络要求较高</strong>：
+Calico 的无隧道设计依赖底层网络的正常运行。如果底层网络不支持高效的路由或不能很好地管理多播流量，可能会影响整体网络性能。</li>
+</ul>
+<hr>
+<p><strong><code>2. 大规模集群性能问题</code></strong></p>
+<ul>
+<li><strong>etcd 负载</strong>：
+在大规模 Kubernetes 集群中（如几千个节点），Calico 对 etcd 的访问频率较高，这可能会给 etcd 带来较大压力。尽管 Typha 可以缓解部分问题，但依然可能成为瓶颈。</li>
+<li><strong>路由表膨胀</strong>：
+在大规模集群中，BGP 模式下每个节点需要维护大量路由信息（与集群中 Pod 的数量相关），可能导致路由表膨胀并对内存和 CPU 资源产生较大压力。</li>
 </ul>
 <h1 id="2-calico架构图">2. Calico架构图</h1>
 <blockquote>
@@ -9912,6 +9929,27 @@ CGroup（control group）是将任意进程进行分组化管理的Linux内核�
 </ul>
 </li>
 </ol>
+<h2 id="1-3-cilium的局限性">1.3. Cilium的局限性</h2>
+<p>虽然 Cilium 在现代 Kubernetes 网络中表现出色，但它也存在一些缺点或需要注意的限制。</p>
+<p><strong><code>1. 高性能消耗</code></strong></p>
+<ul>
+<li><strong>内存和 CPU 占用</strong>：由于需要在每个节点运行 Cilium Agent 和依赖 eBPF 加载程序，可能对节点资源消耗较高，尤其是在高流量场景下。</li>
+<li><strong>资源密集功能</strong>：如 Hubble（Cilium 的可观测性工具）可能进一步增加资源使用。</li>
+</ul>
+<p><strong><code>2. 依赖 Linux 内核版本</code></strong></p>
+<ul>
+<li><strong>eBPF 限制</strong>：Cilium 依赖 eBPF 技术，对 Linux 内核版本有要求，最低需要 <strong>4.19+</strong>，部分功能（如高级负载均衡）需要 <strong>5.x</strong> 或更高版本。</li>
+<li><strong>内核升级成本</strong>：在某些环境（如老旧系统或企业级环境）中，升级内核可能具有挑战性。</li>
+</ul>
+<p><strong><code>3. 学习曲线陡峭</code></strong></p>
+<ul>
+<li><strong>复杂性</strong>：Cilium 引入了 eBPF 技术，与传统 CNI（如 Calico、Flannel）相比技术更复杂，需要深入理解 eBPF、Linux 内核网络栈和 Cilium 的配置方式。</li>
+</ul>
+<p><strong><code>4. 部署和管理复杂</code></strong></p>
+<ul>
+<li><strong>高级功能配置繁琐</strong>：如替代 <code>kube-proxy</code> 或配置高性能负载均衡，需要了解底层网络和 Kubernetes 的细节。</li>
+<li><strong>监控和故障排查难度</strong>：eBPF 程序运行在内核中，排查问题时无法直接查看传统用户态日志，需使用专用工具如 <code>bpftool</code> 或 Hubble。</li>
+</ul>
 <h1 id="2-cilium部署">2. Cilium部署</h1>
 <h2 id="2-1-部署">2.1. 部署</h2>
 <p>部署文档可参考：</p>

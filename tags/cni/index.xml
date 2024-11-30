@@ -442,6 +442,27 @@
 &lt;/ul&gt;
 &lt;/li&gt;
 &lt;/ol&gt;
+&lt;h2 id=&#34;1-3-cilium的局限性&#34;&gt;1.3. Cilium的局限性&lt;/h2&gt;
+&lt;p&gt;虽然 Cilium 在现代 Kubernetes 网络中表现出色，但它也存在一些缺点或需要注意的限制。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;1. 高性能消耗&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;内存和 CPU 占用&lt;/strong&gt;：由于需要在每个节点运行 Cilium Agent 和依赖 eBPF 加载程序，可能对节点资源消耗较高，尤其是在高流量场景下。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;资源密集功能&lt;/strong&gt;：如 Hubble（Cilium 的可观测性工具）可能进一步增加资源使用。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;2. 依赖 Linux 内核版本&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;eBPF 限制&lt;/strong&gt;：Cilium 依赖 eBPF 技术，对 Linux 内核版本有要求，最低需要 &lt;strong&gt;4.19+&lt;/strong&gt;，部分功能（如高级负载均衡）需要 &lt;strong&gt;5.x&lt;/strong&gt; 或更高版本。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;内核升级成本&lt;/strong&gt;：在某些环境（如老旧系统或企业级环境）中，升级内核可能具有挑战性。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;3. 学习曲线陡峭&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;复杂性&lt;/strong&gt;：Cilium 引入了 eBPF 技术，与传统 CNI（如 Calico、Flannel）相比技术更复杂，需要深入理解 eBPF、Linux 内核网络栈和 Cilium 的配置方式。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;4. 部署和管理复杂&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;高级功能配置繁琐&lt;/strong&gt;：如替代 &lt;code&gt;kube-proxy&lt;/code&gt; 或配置高性能负载均衡，需要了解底层网络和 Kubernetes 的细节。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;监控和故障排查难度&lt;/strong&gt;：eBPF 程序运行在内核中，排查问题时无法直接查看传统用户态日志，需使用专用工具如 &lt;code&gt;bpftool&lt;/code&gt; 或 Hubble。&lt;/li&gt;
+&lt;/ul&gt;
 &lt;h1 id=&#34;2-cilium部署&#34;&gt;2. Cilium部署&lt;/h1&gt;
 &lt;h2 id=&#34;2-1-部署&#34;&gt;2.1. 部署&lt;/h2&gt;
 &lt;p&gt;部署文档可参考：&lt;/p&gt;
@@ -630,10 +651,10 @@
     
     <item>
       <title>Kubernetes-Notes: Calico介绍</title>
-      <link>https://blog.huweihuang.com/kubernetes-notes/network/calico/calico-arch/</link>
+      <link>https://blog.huweihuang.com/kubernetes-notes/network/calico/calico/</link>
       <pubDate>Sat, 26 Oct 2024 10:50:57 +0000</pubDate>
       
-      <guid>https://blog.huweihuang.com/kubernetes-notes/network/calico/calico-arch/</guid>
+      <guid>https://blog.huweihuang.com/kubernetes-notes/network/calico/calico/</guid>
       <description>
         
         
@@ -677,6 +698,23 @@
 &lt;li&gt;&lt;strong&gt;容器化应用的网络管理&lt;/strong&gt;：适用于 Kubernetes 等容器编排平台，为容器提供高效、安全的网络连接。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;混合云和多集群部署&lt;/strong&gt;：Calico 支持跨数据中心和云环境的多集群部署，非常适合混合云和多租户环境。&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;网络安全&lt;/strong&gt;：对于需要细粒度的网络安全策略控制和多租户隔离的场景，Calico 提供多层次的安全控制和隔离。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;1-3-calico的局限性&#34;&gt;1.3. Calico的局限性&lt;/h2&gt;
+&lt;p&gt;calico也存在一些不足和局限性。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;1. 对网络拓扑的依赖&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;BGP 配置复杂性&lt;/strong&gt;：
+Calico 默认使用 BGP 协议进行路由，如果网络环境中没有现成的 BGP 支持（如非生产环境或网络管理员经验不足），配置可能较复杂。此外，BGP 的管理对部分运维人员有一定门槛。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;对底层网络要求较高&lt;/strong&gt;：
+Calico 的无隧道设计依赖底层网络的正常运行。如果底层网络不支持高效的路由或不能很好地管理多播流量，可能会影响整体网络性能。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;2. 大规模集群性能问题&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;etcd 负载&lt;/strong&gt;：
+在大规模 Kubernetes 集群中（如几千个节点），Calico 对 etcd 的访问频率较高，这可能会给 etcd 带来较大压力。尽管 Typha 可以缓解部分问题，但依然可能成为瓶颈。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;路由表膨胀&lt;/strong&gt;：
+在大规模集群中，BGP 模式下每个节点需要维护大量路由信息（与集群中 Pod 的数量相关），可能导致路由表膨胀并对内存和 CPU 资源产生较大压力。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h1 id=&#34;2-calico架构图&#34;&gt;2. Calico架构图&lt;/h1&gt;
 &lt;blockquote&gt;
