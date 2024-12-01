@@ -471,6 +471,11 @@
 &lt;li&gt;&lt;a href=&#34;https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#k8s-install-quick&#34;&gt;https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#k8s-install-quick&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;可以使用helm来部署&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;默认值：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;默认的&lt;code&gt;clusterPoolIPv4PodCIDRList&lt;/code&gt;是&lt;code&gt;10.0.0.0/8&lt;/code&gt;，需要保证pod CIDR跟node的CIDR不冲突。&lt;/li&gt;
+&lt;li&gt;默认&lt;code&gt;ipam.mode&lt;/code&gt;是&lt;code&gt;cluster-pool&lt;/code&gt;，可不修改设置。&lt;/li&gt;
+&lt;/ul&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;helm repo add cilium https://helm.cilium.io/
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;helm repo update
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
@@ -518,7 +523,7 @@
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;✅ 69/69 tests successful &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;(&lt;/span&gt;&lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; warnings&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;2-3-cilium-ipam-模式&#34;&gt;2.3. Cilium IPAM 模式&lt;/h2&gt;
 &lt;p&gt;Cilium 支持以下两种常见的 IPAM 模式：&lt;/p&gt;
-&lt;h3 id=&#34;2-3-1-cluster-pool-模式&#34;&gt;2.3.1. Cluster-Pool 模式：&lt;/h3&gt;
+&lt;h3 id=&#34;2-3-1-cluster-pool-模式-默认模式&#34;&gt;2.3.1. Cluster-Pool 模式（默认模式）：&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;由 Cilium 自己管理 Pod IP 地址范围。&lt;/li&gt;
 &lt;li&gt;可以在部署时指定 CIDR 范围。&lt;/li&gt;
@@ -535,7 +540,7 @@
 &lt;li&gt;需要动态扩展 Pod IP 地址范围的集群。&lt;/li&gt;
 &lt;li&gt;集群运行 Cilium 并需要充分利用其高级功能（如 eBPF 加速、服务网格等）。&lt;/li&gt;
 &lt;/ul&gt;
-&lt;h3 id=&#34;2-3-2-kubernetes-模式-默认模式&#34;&gt;2.3.2. Kubernetes 模式（默认模式）：&lt;/h3&gt;
+&lt;h3 id=&#34;2-3-2-kubernetes-模式&#34;&gt;2.3.2. Kubernetes 模式：&lt;/h3&gt;
 &lt;ul&gt;
 &lt;li&gt;使用 Kubernetes 自身的 IP 地址分配方式，例如由 &lt;code&gt;kube-controller-manager&lt;/code&gt; 通过 &lt;code&gt;--cluster-cidr&lt;/code&gt; 进行管理。&lt;/li&gt;
 &lt;li&gt;Cilium 从 Kubernetes 中获取分配给 Pod 的 IP 地址。&lt;/li&gt;
@@ -644,6 +649,7 @@
 &lt;ul&gt;
 &lt;li&gt;&lt;a href=&#34;https://docs.cilium.io/en/stable/&#34;&gt;https://docs.cilium.io/en/stable/&lt;/a&gt;&lt;/li&gt;
 &lt;li&gt;&lt;a href=&#34;https://docs.cilium.io/en/stable/overview/component-overview/&#34;&gt;https://docs.cilium.io/en/stable/overview/component-overview/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://docs.cilium.io/en/stable/network/concepts/ipam/&#34;&gt;https://docs.cilium.io/en/stable/network/concepts/ipam/&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
       </description>
@@ -1167,6 +1173,18 @@ Calico 的无隧道设计依赖底层网络的正常运行。如果底层网络�
 &lt;li&gt;&lt;code&gt;CNI_PATH&lt;/code&gt;&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h2 id=&#34;4-3-check接口-检查容器网络&#34;&gt;4.3. CHECK接口：检查容器网络&lt;/h2&gt;
+&lt;p&gt;必选参数：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;CNI_COMMAND&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CNI_CONTAINERID&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CNI_NETNS&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CNI_IFNAME&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;可选参数：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;CNI_ARGS&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;CNI_PATH&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
 &lt;h2 id=&#34;4-4-version接口-输出cni的版本&#34;&gt;4.4. VERSION接口：输出CNI的版本&lt;/h2&gt;
 &lt;p&gt;参考：&lt;/p&gt;
 &lt;ul&gt;
