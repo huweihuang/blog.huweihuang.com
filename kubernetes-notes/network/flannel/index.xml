@@ -340,5 +340,468 @@
       </description>
     </item>
     
+    <item>
+      <title>Kubernetes-Notes: VXLAN原理介绍</title>
+      <link>https://blog.huweihuang.com/kubernetes-notes/network/flannel/vxlan/</link>
+      <pubDate>Sun, 01 Dec 2024 10:50:57 +0000</pubDate>
+      
+      <guid>https://blog.huweihuang.com/kubernetes-notes/network/flannel/vxlan/</guid>
+      <description>
+        
+        
+        &lt;h1 id=&#34;1-vxlan简介&#34;&gt;1. VXLAN简介&lt;/h1&gt;
+&lt;p&gt;VXLAN（Virtual Extensible LAN）是一种网络虚拟化技术，旨在解决传统二层网络扩展的局限性，尤其是在数据中心大规模部署中。它通过隧道技术将二层以太网帧封装在三层UDP包中，实现了跨三层网络的二层网络延展。&lt;/p&gt;
+&lt;h2 id=&#34;1-1-vxlan的基本概念&#34;&gt;1.1. VXLAN的基本概念&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;目的&lt;/strong&gt;：解决二层网络扩展的问题，例如VLAN的数量限制（传统VLAN ID 只能支持4096（2的12次方）个）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;封装协议&lt;/strong&gt;：VXLAN将二层以太网帧封装为UDP数据包（即VXLAN隧道）。&lt;/li&gt;
+&lt;li&gt;VXLAN网络标识：
+&lt;ul&gt;
+&lt;li&gt;VXLAN使用24位的&lt;strong&gt;VXLAN网络标识（VNI，Virtual Network Identifier）&lt;/strong&gt;，支持多达&lt;strong&gt;16,777,216&lt;/strong&gt;（2的24次方）个虚拟网络。&lt;/li&gt;
+&lt;li&gt;每个VNI对应一个虚拟的二层广播域（类似于传统的VLAN）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;1-2-vxlan应用场景&#34;&gt;1.2.VXLAN应用场景&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;多租户数据中心&lt;/strong&gt;：为不同租户提供逻辑隔离的虚拟网络。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;混合云和跨数据中心连接&lt;/strong&gt;：扩展二层网络到不同位置的数据中心。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;容器网络：在Kubernetes等平台上，用VXLAN构建跨节点的Pod网络&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;1-3-vxlan的优点&#34;&gt;1.3. VXLAN的优点&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;可扩展性：
+&lt;ul&gt;
+&lt;li&gt;支持大量虚拟网络（16M）。&lt;/li&gt;
+&lt;li&gt;跨三层网络扩展二层网络，适用于大规模数据中心。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;网络隔离&lt;/strong&gt;：通过VNI实现网络隔离，适合多租户场景。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;灵活性&lt;/strong&gt;：VXLAN在IP网络中运行，不依赖底层的物理拓扑。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;1-4-vxlan的局限性&#34;&gt;1.4. VXLAN的局限性&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;性能开销&lt;/strong&gt;：封装和解封装增加了CPU负载，尤其是在软件实现中。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;复杂性&lt;/strong&gt;：需要额外配置VTEP和三层网络，维护成本较高。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;MTU问题&lt;/strong&gt;：VXLAN封装增加了数据包长度，可能需要调整网络的MTU（通常为1600字节或更大）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;2-vxlan的原理&#34;&gt;2. VXLAN的原理&lt;/h1&gt;
+&lt;h2 id=&#34;2-1-vxlan的关键组成&#34;&gt;2.1. VXLAN的关键组成&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;VTEP（VXLAN Tunnel Endpoint）&lt;/code&gt;&lt;/strong&gt; ：
+&lt;ul&gt;
+&lt;li&gt;VTEP是VXLAN隧道的起点和终点，用于封装和解封装VXLAN数据包。&lt;/li&gt;
+&lt;li&gt;通常运行在物理交换机或虚拟机主机的网卡上。&lt;/li&gt;
+&lt;li&gt;包括两个接口：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;本地接口&lt;/strong&gt;：连接到二层网络。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;隧道接口&lt;/strong&gt;：连接到三层网络。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;VXLAN头&lt;/code&gt;&lt;/strong&gt; ：
+&lt;ul&gt;
+&lt;li&gt;VXLAN头插入到原始以太网帧和UDP头之间。&lt;/li&gt;
+&lt;li&gt;VXLAN头包含VNI等信息，用于区分不同的虚拟网络。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;UDP头&lt;/code&gt;&lt;/strong&gt; ：
+&lt;ul&gt;
+&lt;li&gt;VXLAN数据包封装在UDP中，以便通过三层网络传输。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;默认使用UDP端口号4789&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;确保iptables规则中该UDP端口是放开的&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;2-2-vxlan的工作原理&#34;&gt;2.2. VXLAN的工作原理&lt;/h2&gt;
+&lt;p&gt;VXLAN通过以下步骤实现跨三层网络的二层通信：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;1. 数据包封装&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;VTEP捕获本地虚拟机（VM）的以太网帧。&lt;/li&gt;
+&lt;li&gt;VTEP在帧上封装：
+&lt;ul&gt;
+&lt;li&gt;添加VXLAN头，用于标识VNI。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;添加UDP头，便于三层网络传输&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;添加外层IP头和MAC头，用于在三层网络中寻址。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;2. 数据包传输&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;code&gt;封装后的数据包通过三层网络传输到目标VTEP&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;传输过程中使用三层网络的路由功能，可以跨越不同的子网&lt;/code&gt;。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;3. 数据包解封装&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;目标VTEP接收到VXLAN数据包后，解析外层IP头。&lt;/li&gt;
+&lt;li&gt;检查VNI，将数据包解封装回原始二层以太网帧。&lt;/li&gt;
+&lt;li&gt;将解封装后的帧转发到目标虚拟机。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h1 id=&#34;3-vlan-和-vxlan-的区别&#34;&gt;3.  VLAN 和 VXLAN 的区别&lt;/h1&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;&lt;strong&gt;特性&lt;/strong&gt;&lt;/th&gt;
+&lt;th&gt;&lt;strong&gt;VLAN&lt;/strong&gt;&lt;/th&gt;
+&lt;th&gt;&lt;strong&gt;VXLAN&lt;/strong&gt;&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;定义&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;二层网络分段技术，通过 802.1Q 标准实现。&lt;/td&gt;
+&lt;td&gt;二层覆盖网络技术，通过三层网络扩展二层网络。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;标准&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;IEEE 802.1Q&lt;/td&gt;
+&lt;td&gt;IETF RFC 7348&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;隔离方式&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;通过 12 位 VLAN ID 标记帧，实现二层广播域隔离。&lt;/td&gt;
+&lt;td&gt;通过 24 位 VXLAN ID（VNI）实现隔离。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;支持网络数量&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;最多 4096 个 VLAN&lt;/td&gt;
+&lt;td&gt;超过 1600 万个虚拟网络&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;封装方式&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;在以太网帧中添加 4 字节 VLAN Tag。&lt;/td&gt;
+&lt;td&gt;在以太网帧外封装 UDP，增加 IP 和 VXLAN 标头。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;网络边界&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;限于局域网，依赖物理拓扑。&lt;/td&gt;
+&lt;td&gt;基于三层网络，支持跨地域、跨数据中心连接。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;性能&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;性能高，硬件交换机对 VLAN 支持成熟。&lt;/td&gt;
+&lt;td&gt;封装和解封装增加开销，但灵活性更强。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;适用场景&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;中小型网络，局域网内的简单隔离需求。&lt;/td&gt;
+&lt;td&gt;大规模云环境，多租户数据中心，跨地域网络。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;复杂性&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;配置简单，维护容易。&lt;/td&gt;
+&lt;td&gt;配置复杂，需要支持 VXLAN 的设备。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;硬件依赖&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;广泛支持，几乎所有交换机都支持。&lt;/td&gt;
+&lt;td&gt;需要支持 VXLAN 的设备或软件实现。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;广播域扩展&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;广播域较大，不适合大规模网络。&lt;/td&gt;
+&lt;td&gt;通过三层网络扩展二层广播域。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h1 id=&#34;4-flannel-vxlan-的基本原理&#34;&gt;4. Flannel VXLAN 的基本原理&lt;/h1&gt;
+&lt;p&gt;Flannel 是 Kubernetes 中常用的网络插件之一，用于实现容器跨节点的网络通信。它支持多种网络后端，其中 &lt;strong&gt;VXLAN 后端&lt;/strong&gt; 是一种常用的选择，利用 VXLAN 隧道实现不同节点的容器网络互通。&lt;/p&gt;
+&lt;p&gt;Flannel 使用 VXLAN 创建一个虚拟的二层网络，把位于不同节点上的容器子网连接起来。这些子网统一组成一个逻辑上的扁平网络，使得容器可以使用 Pod IP 直接互通。&lt;/p&gt;
+&lt;p&gt;在 VXLAN 模式下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;每个节点&lt;/strong&gt;分配一个独立的子网（例如 &lt;code&gt;/24&lt;/code&gt;），该子网中的 IP 地址分配给该节点上的 Pod。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;VXLAN 隧道&lt;/strong&gt;用于在不同节点之间封装和传输数据包。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;4-1-flannel-vxlan-的关键组件&#34;&gt;4.1. Flannel VXLAN 的关键组件&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;etcd / Kubernetes API&lt;/strong&gt;：
+&lt;ul&gt;
+&lt;li&gt;Flannel 使用 etcd 或 Kubernetes API 作为存储，保存每个节点的子网分配信息。&lt;/li&gt;
+&lt;li&gt;例如，节点 A 的子网是 &lt;code&gt;10.1.1.0/24&lt;/code&gt;，节点 B 的子网是 &lt;code&gt;10.1.2.0/24&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;flanneld 进程&lt;/strong&gt;：
+&lt;ul&gt;
+&lt;li&gt;每个节点运行 flanneld，负责：
+&lt;ul&gt;
+&lt;li&gt;从 etcd 获取子网信息。&lt;/li&gt;
+&lt;li&gt;配置 VXLAN 设备。&lt;/li&gt;
+&lt;li&gt;管理路由规则。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;VXLAN 设备&lt;/strong&gt;：
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;Flannel 在每个节点上创建一个 VXLAN 虚拟网络接口&lt;/code&gt;（如 &lt;code&gt;flannel.1&lt;/code&gt;）。&lt;/li&gt;
+&lt;li&gt;通过这个接口，将数据包封装到 VXLAN 隧道中。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;4-2-flannel-vxlan-的通信流程&#34;&gt;4.2. Flannel VXLAN 的通信流程&lt;/h2&gt;
+&lt;h3 id=&#34;4-2-1-pod-到-pod-通信示例&#34;&gt;4.2.1. Pod 到 Pod 通信示例&lt;/h3&gt;
+&lt;p&gt;假设 Pod1 在节点 A，Pod2 在节点 B，Pod1 的 IP 为 &lt;code&gt;10.1.1.2&lt;/code&gt;，Pod2 的 IP 为 &lt;code&gt;10.1.2.3&lt;/code&gt;：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;数据包生成&lt;/strong&gt;：
+&lt;ul&gt;
+&lt;li&gt;Pod1 想要与 Pod2 通信，发送一个 IP 数据包，目标地址是 &lt;code&gt;10.1.2.3&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;节点路由查找&lt;/strong&gt;：
+&lt;ul&gt;
+&lt;li&gt;节点 A 的路由表根据目标 IP (&lt;code&gt;10.1.2.3&lt;/code&gt;)，发现其子网 &lt;code&gt;10.1.2.0/24&lt;/code&gt;属于节点 B。&lt;/li&gt;
+&lt;li&gt;数据包被转发到 VXLAN 设备 &lt;code&gt;flannel.1&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;VXLAN 封装&lt;/strong&gt;：
+&lt;ul&gt;
+&lt;li&gt;在 flannel.1上，数据包被封装：
+&lt;ul&gt;
+&lt;li&gt;原始 IP 数据包被作为 VXLAN 的有效载荷。&lt;/li&gt;
+&lt;li&gt;VXLAN 头部和外层 UDP/IP 头部被添加。&lt;/li&gt;
+&lt;li&gt;外层 IP 头的目标地址是节点 B 的物理 IP 地址。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;跨网络传输&lt;/strong&gt;：
+&lt;ul&gt;
+&lt;li&gt;封装后的数据包通过底层三层网络（通常是宿主机的物理网卡）发送到节点 B。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;解封装和转发&lt;/strong&gt;：
+&lt;ul&gt;
+&lt;li&gt;节点 B 的 VXLAN 设备接收到数据包后，解封装外层头部，还原出原始 IP 数据包。&lt;/li&gt;
+&lt;li&gt;节点 B 根据路由规则将数据包转发给 Pod2。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id=&#34;4-2-2-路由和-arp-的处理&#34;&gt;4.2.2. 路由和 ARP 的处理&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;路由表&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Flannel 会在每个节点配置路由规则，将目标子网与相应的 VXLAN 隧道设备关联。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;例如：&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;10.1.2.0/24 via 192.168.1.2 dev flannel.1
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;ARP 处理&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;VXLAN 需要知道远程节点的物理 IP 地址。&lt;/li&gt;
+&lt;li&gt;Flannel 在 VXLAN 模式下通过 etcd 或 Kubernetes API 维护节点的 IP 映射关系，而不是依赖传统的 ARP。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1 id=&#34;5-flannel-vxlan报文解析&#34;&gt;5. Flannel VXLAN报文解析&lt;/h1&gt;
+&lt;p&gt;通过vxlan隧道传输需要封vxlan包和解vxlan包，以下描述vxlan报文内容。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1733194201/article/kubernetes/network/flannel/vxlan.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;h2 id=&#34;5-1-vxlan-报文结构&#34;&gt;5.1. VXLAN 报文结构&lt;/h2&gt;
+&lt;p&gt;Flannel 的 VXLAN 报文可以分为以下几个主要部分：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;&lt;strong&gt;字段&lt;/strong&gt;&lt;/th&gt;
+&lt;th&gt;&lt;strong&gt;描述&lt;/strong&gt;&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;外层以太网头&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;用于传输 VXLAN 报文的物理网络的 MAC 地址。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;外层 IP 头&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;用于三层传输，包含源 IP（本地物理机）和目的 IP（目标物理机）。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;UDP 头&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;用于封装 VXLAN 流量，通常使用 VXLAN 的默认端口 4789。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;VXLAN 标头&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;包含 VXLAN 的关键信息，例如 VNI（虚拟网络标识）。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;内层以太网头&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;原始的以太网帧头，用于容器或 Pod 之间通信。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;内层数据（Payload）&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;实际的应用层数据，例如 HTTP、TCP 或 ICMP 数据。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;示例：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;+-----------------------------+
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 外层以太网头                 &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; MAC 源地址 &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; MAC 目的地址 &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 类型 &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;+-----------------------------+
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 外层 IP 头                   &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 源 IP 地址 &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 目的 IP 地址 &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 协议&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;+-----------------------------+
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; UDP 头                       &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 源端口 &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 目的端口  &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 长度 &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;+-----------------------------+
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; VXLAN 标头                   &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; Flag &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; Reserved &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; VNI      &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;+-----------------------------+
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 内层以太网头                 &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 源 MAC 地址 &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 目的 MAC 地址 &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;+-----------------------------+
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 内层数据（Payload）           &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 实际的数据内容            &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;+-----------------------------+
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;5-2-报文详细解析&#34;&gt;5.2. 报文详细解析&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;1. 外层以太网头&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;作用&lt;/strong&gt;：用于承载 VXLAN 报文的实际网络传输。&lt;/li&gt;
+&lt;li&gt;内容：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;源 MAC 地址&lt;/strong&gt;：发送报文的物理网卡的 MAC 地址。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;目的 MAC 地址&lt;/strong&gt;：目标主机的物理网卡的 MAC 地址。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;2. 外层 IP 头&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;作用&lt;/strong&gt;：在三层网络中将 VXLAN 报文路由到目标主机。&lt;/li&gt;
+&lt;li&gt;内容：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;源 IP 地址&lt;/strong&gt;：发送报文的物理主机的 IP 地址。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;目的 IP 地址&lt;/strong&gt;：目标主机的 IP 地址。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;协议类型&lt;/strong&gt;：UDP。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;3. UDP 头&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;作用&lt;/strong&gt;：封装 VXLAN 数据。&lt;/li&gt;
+&lt;li&gt;内容：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;源端口&lt;/strong&gt;：动态分配的随机端口。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;目的端口&lt;/strong&gt;：VXLAN 的端口，例如 &lt;code&gt;8472&lt;/code&gt;（可以在 Flannel 配置中自定义）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;长度和校验和&lt;/strong&gt;：用于确保 UDP 报文的完整性。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;4. VXLAN 标头&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;作用&lt;/strong&gt;：标识虚拟网络以及对 VXLAN 流量进行必要的控制。&lt;/li&gt;
+&lt;li&gt;格式：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Flag&lt;/strong&gt;：8 位，标识是否启用 VXLAN 功能，通常为 &lt;code&gt;0x08&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;VNI（Virtual Network Identifier）&lt;/strong&gt;：24 位，标识 VXLAN 所属的虚拟网络。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Reserved&lt;/strong&gt;：用于对齐和扩展，通常为 0。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;5. 内层以太网头&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;作用&lt;/strong&gt;：封装原始的以太网帧，用于容器或 Pod 之间的二层通信。&lt;/li&gt;
+&lt;li&gt;内容：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;源 MAC 地址&lt;/strong&gt;：发送容器或 Pod 的 MAC 地址。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;目的 MAC 地址&lt;/strong&gt;：目标容器或 Pod 的 MAC 地址。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;6. 内层数据（Payload）&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;作用&lt;/strong&gt;：实际的用户数据。&lt;/li&gt;
+&lt;li&gt;内容：
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;数据类型&lt;/strong&gt;：可以是 IP 数据包（例如 TCP、UDP 或 ICMP），也可能是 ARP 等协议。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;5-3-报文的捕获&#34;&gt;5.3. 报文的捕获&lt;/h2&gt;
+&lt;p&gt;可以通过命令&lt;code&gt;ip -d link show flannel.1&lt;/code&gt;查看&lt;code&gt;vxlan id（VNI） &lt;/code&gt;，&lt;code&gt;vxlan端口&lt;/code&gt;，vxlan基于的物理网卡。&lt;/p&gt;
+&lt;p&gt;例如，以下查询到&lt;code&gt;vxlan id(VNI)为1&lt;/code&gt;，&lt;code&gt;vxlan端口为8472&lt;/code&gt;，基于的物理网卡是bond0。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# ip -d link show flannel.1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;10: flannel.1: &amp;lt;BROADCAST,MULTICAST,UP,LOWER_UP&amp;gt; mtu &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1450&lt;/span&gt; qdisc noqueue state UNKNOWN mode DEFAULT group default
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    link/ether xxxxxx brd xxxxx promiscuity &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; minmtu &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;68&lt;/span&gt; maxmtu &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;65535&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    vxlan id &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; &lt;span style=&#34;color:#204a87&#34;&gt;local&lt;/span&gt; xxxxxxx dev bond0 srcport &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt; dstport &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;8472&lt;/span&gt; nolearning ttl auto ageing &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;300&lt;/span&gt; udpcsum noudp6zerocsumtx noudp6zerocsumrx addrgenmode eui64 numtxqueues &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; numrxqueues &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt; gso_max_size &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;65536&lt;/span&gt; gso_max_segs &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;65535&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;使用 &lt;code&gt;tcpdump&lt;/code&gt;，在物理网卡上捕获 VXLAN 报文， 协议是UDP，添加vxlan的端口。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tcpdump -i bond0 udp port &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;8472&lt;/span&gt; -vv
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;6-如何避免vxlan冲突&#34;&gt;6. 如何避免VXLAN冲突&lt;/h1&gt;
+&lt;p&gt;在同一台物理机上如果存在其他设备（例如：弹性外网EIP设备）使用了VXLAN的隧道技术，可能与Flannel的VXLAN设备存在冲突，以下是冲突的可能性、原因及解决方法：&lt;/p&gt;
+&lt;h2 id=&#34;6-1-可能存在的冲突&#34;&gt;6.1. 可能存在的冲突&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;1. UDP 端口冲突&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;VXLAN 通常使用 &lt;strong&gt;UDP 端口 4789&lt;/strong&gt; 进行封装传输。如果弹性外网 IP 的 VXLAN 实现和 Flannel （默认端口8472）都使用相同的 UDP 端口，那么会导致端口冲突，使得其中一个功能失效。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;2. VNI (VXLAN Network Identifier) 冲突&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;VXLAN 的每个虚拟网络通过 &lt;strong&gt;VNI&lt;/strong&gt;（24 位）进行区分。&lt;/li&gt;
+&lt;li&gt;如果弹性外网 IP 和 Flannel 的 VXLAN 使用了相同的 VNI，则可能导致 VXLAN 隧道之间的隔离性失效，造成数据包混乱。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;&lt;code&gt;3. 路由或设备名冲突&lt;/code&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;两者都会在物理机上创建 VXLAN 设备（如 &lt;code&gt;vxlan0&lt;/code&gt; 或 &lt;code&gt;flannel.1&lt;/code&gt;），如果设备名称相同，可能导致配置混乱。&lt;/li&gt;
+&lt;li&gt;路由表可能同时存在与 VXLAN 隧道相关的规则，如果路由目标网络有重叠，可能导致流量被错误转发。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;6-2-冲突的解决方法&#34;&gt;6.2. 冲突的解决方法&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;1. 避免 UDP 端口冲突&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;确认弹性外网 IP 的 VXLAN 端口号。&lt;/li&gt;
+&lt;li&gt;自定义Flannel的VXLAN 端口号。确保两者使用不同的端口号。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;2. 避免 VNI 冲突&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;确认弹性外网 IP 的 VXLAN 实现是否允许指定 VNI。如果允许，则为两者设置不同的 VNI 范围。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Flannel VNI&lt;/strong&gt; 通常由其内部管理，自动分配，但可以在配置文件中指定范围或固定值。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;3. 避免设备名冲突&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Flannel&lt;/strong&gt; 默认设备名是 &lt;code&gt;flannel.1&lt;/code&gt;，一般非flannel的设备不会设置为该名称。&lt;/li&gt;
+&lt;li&gt;确保弹性外网 IP 的 VXLAN 设备名不同，或显式指定设备名称。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;4. 路由隔离&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;仔细检查路由表，确保两者的目标子网范围没有重叠&lt;/code&gt;。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;如果要修改flannel的冲突参数，可以修改配置文件。&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;kubectl edit cm -n kube-flannel kube-flannel-cfg&lt;/code&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-json&#34; data-lang=&#34;json&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;Network&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;10.244.0.0/16&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;Backend&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;Type&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;vxlan&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;VNI&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;,&lt;/span&gt; &lt;span style=&#34;color:#a40000&#34;&gt;#&lt;/span&gt; &lt;span style=&#34;color:#a40000&#34;&gt;默认值&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;&amp;#34;Port&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;8472&lt;/span&gt;  &lt;span style=&#34;color:#a40000&#34;&gt;#&lt;/span&gt; &lt;span style=&#34;color:#a40000&#34;&gt;默认值&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;6-3-查看设备的vxlan&#34;&gt;6.3. 查看设备的VXLAN&lt;/h2&gt;
+&lt;p&gt;可以使用以下命令列出所有 VXLAN 接口：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# ip link show type vxlan&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 输出&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;6: vxlan0: &amp;lt;BROADCAST,MULTICAST,UP,LOWER_UP&amp;gt; mtu &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1450&lt;/span&gt; ...
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;7: flannel.1: &amp;lt;BROADCAST,MULTICAST,UP,LOWER_UP&amp;gt; mtu &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1450&lt;/span&gt; ...
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;可以查看 VXLAN 接口的配置信息：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# ip -d link show &amp;lt;vxlan_interface&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;6: vxlan0: &amp;lt;BROADCAST,MULTICAST,UP,LOWER_UP&amp;gt; mtu &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1450&lt;/span&gt; qdisc noqueue state UNKNOWN mode DEFAULT group default qlen &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1000&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    link/ether 06:42:ae:ff:fe:90 brd ff:ff:ff:ff:ff:ff promiscuity &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    vxlan id &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;42&lt;/span&gt; &lt;span style=&#34;color:#204a87&#34;&gt;local&lt;/span&gt; 192.168.1.10 dev eth0 port &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;4789&lt;/span&gt; &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;0&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    ...
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# vxlan id 42：表示 VXLAN 的 VNI（Virtual Network Identifier）是 42。&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# port 4789：表示 VXLAN 使用的 UDP 端口是 4789（默认端口）。&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;如果 VXLAN 接口绑定到了桥接设备（bridge），可以通过 &lt;code&gt;bridge&lt;/code&gt; 命令查询详细信息。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;bridge fdb show dev &amp;lt;vxlan_interface&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 输出&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;00:00:00:00:00:13 dst x.x.x.x self permanent
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;7-总结&#34;&gt;7. 总结&lt;/h1&gt;
+&lt;p&gt;本文主要介绍了VXLAN的基本概念和原理，报文解析以及在Flannel中的使用。除了Flannel外，在Calico和Cilium的网络插件中也涉及到VXLAN的使用，基本原理类似，大同小异。通过本文的介绍，帮助读者对于其他场景下使用VXLAN的方式也能够快速理解，并且可以快速排查VXLAN相关的网络问题。&lt;/p&gt;
+&lt;p&gt;参考：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://datatracker.ietf.org/doc/html/rfc7348&#34;&gt;https://datatracker.ietf.org/doc/html/rfc7348&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/flannel-io/flannel/blob/master/Documentation/backends.md&#34;&gt;https://github.com/flannel-io/flannel/blob/master/Documentation/backends.md&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+      </description>
+    </item>
+    
   </channel>
 </rss>
