@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.54ee970df80c037329fb71398d405564.json"
+  data-offline-search-index-json-src="/offline-search-index.3936512069426c912e305e7466758d61.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -1542,10 +1542,142 @@ if (!doNotTrack) {
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>grep <span style="color:#4e9a06">&#39;certificate-authority-data&#39;</span> /etc/kubernetes/admin.conf <span style="color:#000;font-weight:bold">|</span> head -n <span style="color:#0000cf;font-weight:bold">1</span> <span style="color:#000;font-weight:bold">|</span> awk <span style="color:#4e9a06">&#39;{print $2}&#39;</span> <span style="color:#000;font-weight:bold">|</span> base64 -d &gt; ca.crt
 </span></span><span style="display:flex;"><span>grep <span style="color:#4e9a06">&#39;client-key-data&#39;</span> /etc/kubernetes/admin.conf <span style="color:#000;font-weight:bold">|</span> head -n <span style="color:#0000cf;font-weight:bold">1</span> <span style="color:#000;font-weight:bold">|</span> awk <span style="color:#4e9a06">&#39;{print $2}&#39;</span> <span style="color:#000;font-weight:bold">|</span> base64 -d &gt; client.key
 </span></span><span style="display:flex;"><span>grep <span style="color:#4e9a06">&#39;client-certificate-data&#39;</span> /etc/kubernetes/admin.conf <span style="color:#000;font-weight:bold">|</span> head -n <span style="color:#0000cf;font-weight:bold">1</span> <span style="color:#000;font-weight:bold">|</span> awk <span style="color:#4e9a06">&#39;{print $2}&#39;</span> <span style="color:#000;font-weight:bold">|</span> base64 -d &gt; client.crt
-</span></span></code></pre></div><h1 id="3-生成admin的kubeconfig">3. 生成admin的kubeconfig</h1>
-<h1 id="4-生成namespace的kubeconfig">4. 生成namespace的kubeconfig</h1>
-<h1 id="5-创建token来访问apiserver">5. 创建token来访问apiserver</h1>
-<p>参考：</p>
+</span></span></code></pre></div><h1 id="3-生成集群级别的kubeconfig">3. 生成集群级别的kubeconfig</h1>
+<h2 id="3-1-创建serviceaccount">3.1. 创建ServiceAccount</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 1. 创建用户</span>
+</span></span><span style="display:flex;"><span>cat<span style="color:#4e9a06">&lt;&lt;EOF | kubectl apply -f -
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">apiVersion: v1
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">kind: ServiceAccount
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">metadata:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  namespace: ${ServiceAccountNS}
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  name: ${ServiceAccountName}
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">EOF</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 2. 创建Secret绑定ServiceAccount</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># k8s 1.24后的版本不再自动生成secret，绑定后当删除ServiceAccount时会自动删除secret</span>
+</span></span><span style="display:flex;"><span>cat<span style="color:#4e9a06">&lt;&lt;EOF | kubectl apply -f -
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">apiVersion: v1
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">kind: Secret
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">metadata:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  name: ${SecretName}
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  namespace: ${ServiceAccountNS}
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  annotations:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">    kubernetes.io/service-account.name: &#34;${ServiceAccountName}&#34;   
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">type: kubernetes.io/service-account-token
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">EOF</span>
+</span></span></code></pre></div><h2 id="3-2-创建和绑定权限">3.2. 创建和绑定权限</h2>
+<p>如果不创建自定义权限，可以使用自带的ClusterRole: <code>cluster-admin/admin/edit/view</code>。如果需要生成集群admin的权限，可以绑定 <code>cluster-admin</code>的权限。建议权限授权时遵循最小权限原则。<code>即需要使用的权限授权，不需要使用的权限不授权，对于删除等敏感权限慎重授权</code>。</p>
+<p>如果要创建自定义权限，使用<code>ClusterRole</code>和<code>ClusterRoleBinding</code>的对象。</p>
+<ul>
+<li>
+<p>只读权限：verbs: [&quot;get&quot;,&quot;list&quot;,&quot;watch&quot;]</p>
+</li>
+<li>
+<p>可写权限：verbs: [&quot;create&quot;,&quot;update&quot;,&quot;patch&quot;,&quot;delete&quot;,&quot;deletecollection&quot;]</p>
+</li>
+<li>
+<p>全部权限：verbs: [&quot;*&quot;]</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 3. 创建权限: 可以自定义权限，或者使用clusterrole: cluster-admin/admin/edit/view权限</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 只读权限：verbs: [&#34;get&#34;,&#34;list&#34;,&#34;watch&#34;]</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 可写权限：verbs: [&#34;create&#34;,&#34;update&#34;,&#34;patch&#34;,&#34;delete&#34;,&#34;deletecollection&#34;]</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 全部权限：verbs: [&#34;*&#34;]</span>
+</span></span><span style="display:flex;"><span>cat<span style="color:#4e9a06">&lt;&lt;EOF | kubectl apply -f -
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">apiVersion: rbac.authorization.k8s.io/v1
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">kind: ClusterRole
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">metadata:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  name: ${ClusterRoleName}
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">rules:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">- apiGroups: [&#34;*&#34;]
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  resources: [&#34;pods&#34;,&#34;deployments&#34;]
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  verbs: [&#34;*&#34;]
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">EOF</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 4. 绑定权限</span>
+</span></span><span style="display:flex;"><span>cat<span style="color:#4e9a06">&lt;&lt;EOF | kubectl apply -f -
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">apiVersion: rbac.authorization.k8s.io/v1
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">kind: ClusterRoleBinding
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">metadata:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  name: ${ClusterRoleBindingName}
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">subjects:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">- kind: ServiceAccount
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  name: ${ServiceAccountName}
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  namespace: ${ServiceAccountNS}
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">roleRef:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  apiGroup: rbac.authorization.k8s.io
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  kind: ClusterRole
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  name: ${ClusterRoleName}
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">EOF</span>
+</span></span></code></pre></div><h2 id="3-3-创建kubeconfig">3.3. 创建kubeconfig</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 5. 基于secret获取token</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">TOKEN</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">$(</span>kubectl get secret <span style="color:#4e9a06">${</span><span style="color:#000">SecretName</span><span style="color:#4e9a06">}</span> -n <span style="color:#4e9a06">${</span><span style="color:#000">ServiceAccountNS</span><span style="color:#4e9a06">}</span> -o <span style="color:#000">jsonpath</span><span style="color:#ce5c00;font-weight:bold">={</span><span style="color:#4e9a06">&#34;.data.token&#34;</span><span style="color:#ce5c00;font-weight:bold">}</span> <span style="color:#000;font-weight:bold">|</span> base64 -d<span style="color:#204a87;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 6. 创建kubeconfig文件</span>
+</span></span><span style="display:flex;"><span>kubectl --kubeconfig<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">KubeDir</span><span style="color:#4e9a06">}</span>/<span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span>.yaml config set-cluster <span style="color:#4e9a06">${</span><span style="color:#000">KubeConfigCluster</span><span style="color:#4e9a06">}</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>  --server<span style="color:#ce5c00;font-weight:bold">=</span>https://<span style="color:#4e9a06">${</span><span style="color:#000">APISERVER</span><span style="color:#4e9a06">}</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>  --certificate-authority<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">CaFilePath</span><span style="color:#4e9a06">}</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>  --embed-certs<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87">true</span>
+</span></span><span style="display:flex;"><span>kubectl --kubeconfig<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">KubeDir</span><span style="color:#4e9a06">}</span>/<span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span>.yaml config set-credentials <span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span> --token<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">TOKEN</span><span style="color:#4e9a06">}</span>
+</span></span><span style="display:flex;"><span>kubectl --kubeconfig<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">KubeDir</span><span style="color:#4e9a06">}</span>/<span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span>.yaml config set-context <span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span>@<span style="color:#4e9a06">${</span><span style="color:#000">KubeConfigCluster</span><span style="color:#4e9a06">}</span> --cluster<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">KubeConfigCluster</span><span style="color:#4e9a06">}</span> --user<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span>
+</span></span><span style="display:flex;"><span>kubectl --kubeconfig<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">KubeDir</span><span style="color:#4e9a06">}</span>/<span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span>.yaml config use-context <span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span>@<span style="color:#4e9a06">${</span><span style="color:#000">KubeConfigCluster</span><span style="color:#4e9a06">}</span>
+</span></span><span style="display:flex;"><span>kubectl --kubeconfig<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">KubeDir</span><span style="color:#4e9a06">}</span>/<span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span>.yaml config view
+</span></span></code></pre></div><h1 id="4-生成namespace的kubeconfig">4. 生成namespace的kubeconfig</h1>
+<h2 id="4-1-创建serviceaccount">4.1. 创建ServiceAccount</h2>
+<p>创建ServiceAccout同上，没有区别。</p>
+<h2 id="4-2-创建和绑定权限">4.2. 创建和绑定权限</h2>
+<p>创建namespace级别的权限用<code>Role</code>和<code>RoleBinding</code>的对象。一个ServiceAccount可以绑定多个权限，可以通过创建<code>ClusterRoleBinding</code>或<code>RoleBinding</code>来实现对多个namespace的权限控制。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 3. 创建权限: 可以自定义权限，或者使用clusterrole: admin/edit/view权限</span>
+</span></span><span style="display:flex;"><span>cat<span style="color:#4e9a06">&lt;&lt;EOF | kubectl apply -f -
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">apiVersion: rbac.authorization.k8s.io/v1
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">kind: Role
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">metadata:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  namespace: ${USER_NAMESPACE}
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  name: ${RoleName}
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">rules:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">- apiGroups: [&#34;*&#34;] 
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  resources: [&#34;pods&#34;]
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  verbs: [&#34;*&#34;]
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">EOF</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 4. 绑定权限</span>
+</span></span><span style="display:flex;"><span>cat<span style="color:#4e9a06">&lt;&lt;EOF | kubectl apply -f -
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">kind: RoleBinding
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">apiVersion: rbac.authorization.k8s.io/v1
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">metadata:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  name: ${RoleBindingName}
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  namespace: ${USER_NAMESPACE}
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">subjects:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">- kind: ServiceAccount
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  name: ${ServiceAccountName}
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  namespace: ${ServiceAccountNS}
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">roleRef:
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  kind: Role
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  name: ${RoleName}
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">  apiGroup: rbac.authorization.k8s.io
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06">EOF</span>
+</span></span></code></pre></div><h2 id="4-3-创建kubeconfig">4.3. 创建kubeconfig</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 5. 基于secret获取token</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">TOKEN</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">$(</span>kubectl get secret <span style="color:#4e9a06">${</span><span style="color:#000">SecretName</span><span style="color:#4e9a06">}</span> -n <span style="color:#4e9a06">${</span><span style="color:#000">ServiceAccountNS</span><span style="color:#4e9a06">}</span> -o <span style="color:#000">jsonpath</span><span style="color:#ce5c00;font-weight:bold">={</span><span style="color:#4e9a06">&#34;.data.token&#34;</span><span style="color:#ce5c00;font-weight:bold">}</span> <span style="color:#000;font-weight:bold">|</span> base64 -d<span style="color:#204a87;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 6. 创建kubeconfig文件</span>
+</span></span><span style="display:flex;"><span>kubectl --kubeconfig<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">KubeDir</span><span style="color:#4e9a06">}</span>/<span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span>.yaml config set-cluster <span style="color:#4e9a06">${</span><span style="color:#000">KubeConfigCluster</span><span style="color:#4e9a06">}</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>  --server<span style="color:#ce5c00;font-weight:bold">=</span>https://<span style="color:#4e9a06">${</span><span style="color:#000">APISERVER</span><span style="color:#4e9a06">}</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>  --certificate-authority<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">CaFilePath</span><span style="color:#4e9a06">}</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>  --embed-certs<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87">true</span>
+</span></span><span style="display:flex;"><span>kubectl --kubeconfig<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">KubeDir</span><span style="color:#4e9a06">}</span>/<span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span>.yaml config set-credentials <span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span> --token<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">TOKEN</span><span style="color:#4e9a06">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 与cluster级别kubeconfig不同的增加了--namespace</span>
+</span></span><span style="display:flex;"><span>kubectl --kubeconfig<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">KubeDir</span><span style="color:#4e9a06">}</span>/<span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span>.yaml config set-context <span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span>@<span style="color:#4e9a06">${</span><span style="color:#000">KubeConfigCluster</span><span style="color:#4e9a06">}</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>  --cluster<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">KubeConfigCluster</span><span style="color:#4e9a06">}</span> --user<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span> --namespace<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">USER_NAMESPACE</span><span style="color:#4e9a06">}</span>
+</span></span><span style="display:flex;"><span>kubectl --kubeconfig<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">KubeDir</span><span style="color:#4e9a06">}</span>/<span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span>.yaml config use-context <span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span>@<span style="color:#4e9a06">${</span><span style="color:#000">KubeConfigCluster</span><span style="color:#4e9a06">}</span>
+</span></span><span style="display:flex;"><span>kubectl --kubeconfig<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">KubeDir</span><span style="color:#4e9a06">}</span>/<span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span>.yaml config view
+</span></span></code></pre></div><h1 id="5-创建token来访问apiserver">5. 创建token来访问apiserver</h1>
+<p>以上方式是通过创建<code>ServiceAccount</code>的<code>Secret</code>的方式来获取token，该token是永久生效的，如果要使token失效可以删除对应的<code>Secret</code>对象，</p>
+<p>如果要使用指定过期期限的token权限，可以通过以下命令生成：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 生成过期时间365天的token</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">TOKEN</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">$(</span>kubectl -n <span style="color:#4e9a06">${</span><span style="color:#000">NAMESPACE</span><span style="color:#4e9a06">}</span> create token <span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span> --duration 8760h<span style="color:#204a87;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>kubectl --kubeconfig<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">KubeDir</span><span style="color:#4e9a06">}</span>/<span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span>.yaml config set-credentials <span style="color:#4e9a06">${</span><span style="color:#000">USER</span><span style="color:#4e9a06">}</span> --token<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">TOKEN</span><span style="color:#4e9a06">}</span>
+</span></span></code></pre></div><p>参考：</p>
 <ul>
 <li><a href="https://coding.net/help/docs/cd/question/convert-certfile-to-certdata.html">如何将 Kubeconfig 中的证书文件转为证书数据 - CODING 帮助中心</a></li>
 </ul>
