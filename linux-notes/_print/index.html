@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.3936512069426c912e305e7466758d61.json"
+  data-offline-search-index-json-src="/offline-search-index.6f13c4ce8c5ee651855a80bd6679be18.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -1033,6 +1033,14 @@ if (!doNotTrack) {
     
 	
 <li>15.1: <a href="#pg-fced43a1ad90e1cdc08fa6daea3e24fb">BMC概念</a></li>
+
+
+    
+  
+    
+    
+	
+<li>15.2: <a href="#pg-37f45ccd9b715779fda2cec095a76286">格式化磁盘分区</a></li>
 
 
     
@@ -2675,7 +2683,7 @@ if (!doNotTrack) {
 <li><strong>Broadcom / LSI</strong>：LSI 是知名的存储控制器制造商，现已被 Broadcom 收购。MegaRAID 系列是其广泛使用的 RAID 控制器。</li>
 <li><strong>Adaptec</strong>:   Adaptec 提供一系列 RAID 控制器，主要用于高性能存储解决方案。</li>
 </ul>
-<h1 id="2-常见的-raid-控制器制造商及其命令行工具">2. 常见的 RAID 控制器制造商及其命令行工具</h1>
+<h1 id="2-常见的-raid-厂商及其命令行工具">2. 常见的 RAID 厂商及其命令行工具</h1>
 <table>
 <thead>
 <tr>
@@ -17454,6 +17462,196 @@ a. 重命名远程分支对应的本地分支</p>
     
 	
   
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-37f45ccd9b715779fda2cec095a76286">15.2 - 格式化磁盘分区</h1>
+    
+	<p>本文主要描述重装操作系统如何格式化跟分区和数据盘以及设置磁盘挂载配置。</p>
+<h1 id="1-将操作系统写入根分区设备">1.将操作系统写入根分区设备</h1>
+<p><strong>1、解绑根分区磁盘目录挂载</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 例如跟分区下的挂载目录如下：</span>
+</span></span><span style="display:flex;"><span>cat /proc/mounts <span style="color:#000;font-weight:bold">|</span> grep ^/dev/sda
+</span></span><span style="display:flex;"><span>/dev/sda4 / ext4 rw,relatime,errors<span style="color:#ce5c00;font-weight:bold">=</span>remount-ro <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>/dev/sda3 /boot ext4 rw,relatime <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>/dev/sda2 /boot/efi vfat rw,relatime,fmask<span style="color:#ce5c00;font-weight:bold">=</span>0077,dmask<span style="color:#ce5c00;font-weight:bold">=</span>0077,codepage<span style="color:#ce5c00;font-weight:bold">=</span>437,iocharset<span style="color:#ce5c00;font-weight:bold">=</span>iso8859-1,shortname<span style="color:#ce5c00;font-weight:bold">=</span>mixed,errors<span style="color:#ce5c00;font-weight:bold">=</span>remount-ro <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 例如根分区的块设备是/dev/sda，则解绑该块设备下所有挂载目录</span>
+</span></span><span style="display:flex;"><span>cat /proc/mounts <span style="color:#000;font-weight:bold">|</span> grep ^/dev/sda <span style="color:#000;font-weight:bold">|</span> awk <span style="color:#4e9a06">&#39;{print $2}&#39;</span> <span style="color:#000;font-weight:bold">|</span> xargs -n1 -i umount <span style="color:#ce5c00;font-weight:bold">{}</span>
+</span></span></code></pre></div><p><strong>2、删除块设备分区</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sfdisk --delete /dev/sda
+</span></span></code></pre></div><p><strong>3、将操作系统镜像写入根分区设备</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>qemu-img dd -f qcow2 -O raw <span style="color:#000">bs</span><span style="color:#ce5c00;font-weight:bold">=</span>16M <span style="color:#204a87;font-weight:bold">if</span><span style="color:#ce5c00;font-weight:bold">=</span>osi.qcow2 <span style="color:#000">of</span><span style="color:#ce5c00;font-weight:bold">=</span>/dev/sda
+</span></span></code></pre></div><p>命令参数说明：</p>
+<ul>
+<li>
+<p><strong><code>-f qcow2</code></strong></p>
+<ul>
+<li>指定输入文件的格式为 <code>qcow2</code>（QEMU Copy-On-Write v2）。</li>
+<li><code>osi.qcow2</code> 是一个虚拟磁盘文件，包含系统或数据。</li>
+</ul>
+</li>
+<li>
+<p><strong><code>-O raw</code></strong></p>
+<ul>
+<li>指定输出格式为 <code>raw</code>，即不包含额外元数据的裸数据格式。</li>
+<li>裸数据格式适用于直接写入物理磁盘设备。</li>
+</ul>
+</li>
+<li>
+<p><strong><code>bs=16M</code></strong></p>
+<ul>
+<li>设置块大小为 16 MB，在数据复制过程中以 16 MB 为单位进行读写。</li>
+<li>较大的块大小通常能提高写入效率，特别是对大容量文件。</li>
+</ul>
+</li>
+<li>
+<p><strong><code>if=osi.qcow2</code></strong></p>
+<ul>
+<li>输入文件路径，<code>osi.qcow2</code> 是源虚拟磁盘镜像文件。</li>
+</ul>
+</li>
+<li>
+<p><strong><code>of=/dev/sda</code></strong></p>
+<ul>
+<li>输出文件路径，<code>/dev/sda</code> 是目标物理磁盘设备。</li>
+<li>数据将直接写入 <code>/dev/sda</code>，覆盖其内容。</li>
+</ul>
+</li>
+</ul>
+<p><strong>4、检查并修复根分区</strong></p>
+<ul>
+<li>如果分区表无问题，<code>parted</code> 会直接显示分区信息。</li>
+<li>如果检测到分区表错误，<code>parted</code> 会自动应用修复并输出结果。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#204a87">echo</span> Fix <span style="color:#000;font-weight:bold">|</span> parted ---pretend-input-tty /dev/sda print
+</span></span></code></pre></div><p><strong>5、 通知内核重新读取分区表</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 通知内核重新加载指定设备的分区表，无需重启</span>
+</span></span><span style="display:flex;"><span>partprobe /dev/sda
+</span></span></code></pre></div><h1 id="2-根分区设备重新分区">2. 根分区设备重新分区</h1>
+<p>跟设备的分区主要包括三个分区</p>
+<ul>
+<li>
+<p><code>swap分区</code>：是否需要做swap分区</p>
+</li>
+<li>
+<p><code>根分区</code>：在swap分区做完后再做根分区</p>
+</li>
+<li>
+<p><code>跟设备的data分区</code>：在根分区做完后再做data分区。</p>
+</li>
+</ul>
+<h2 id="2-1-配置swap分区">2.1. 配置swap分区</h2>
+<p><code>swap分区一般从根分区设备大小中切分出来128G作为swap的分区，剩余的做根分区和data分区。</code></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 假设跟设备为sda</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">root_device</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;sda&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">swap_device_num</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 假设swap分区的大小是128G，换算为131072MiB</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">swap_size</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">131072</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 移除根分区</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> Ignore <span style="color:#000;font-weight:bold">|</span> parted ---pretend-input-tty /dev/<span style="color:#4e9a06">${</span><span style="color:#000">root_device</span><span style="color:#4e9a06">}</span> rm <span style="color:#4e9a06">${</span><span style="color:#000">swap_device_num</span><span style="color:#4e9a06">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 获取指定磁盘设备上最后一段空闲空间的起始位置（单位为 MiB）以便新建分区。</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">free_end</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">$(</span>parted /dev/<span style="color:#4e9a06">${</span><span style="color:#000">root_device</span><span style="color:#4e9a06">}</span> unit MiB print free <span style="color:#000;font-weight:bold">|</span> grep <span style="color:#4e9a06">&#39;Free Space&#39;</span><span style="color:#000;font-weight:bold">|</span>tail -1 <span style="color:#000;font-weight:bold">|</span> awk <span style="color:#4e9a06">&#39;{print $1}&#39;</span> <span style="color:#000;font-weight:bold">|</span> sed <span style="color:#4e9a06">&#39;s/MiB//&#39;</span><span style="color:#204a87;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建指定大小的swap分区</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">swap_start</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">free_end</span><span style="color:#4e9a06">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">swap_end</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">$((</span>swap_start <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#4e9a06">${</span><span style="color:#000">swap_size</span><span style="color:#4e9a06">}</span><span style="color:#204a87;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> Ignore <span style="color:#000;font-weight:bold">|</span> parted ---pretend-input-tty /dev/<span style="color:#4e9a06">${</span><span style="color:#000">root_device</span><span style="color:#4e9a06">}</span> -- mkpart primary <span style="color:#4e9a06">${</span><span style="color:#000">swap_start</span><span style="color:#4e9a06">}</span>MiB <span style="color:#4e9a06">${</span><span style="color:#000">swap_end</span><span style="color:#4e9a06">}</span>MiB
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 格式化分区为 Swap 类型，例如：mkswap /dev/sda1</span>
+</span></span><span style="display:flex;"><span>mkswap /dev/<span style="color:#4e9a06">${</span><span style="color:#000">root_device</span><span style="color:#4e9a06">}${</span><span style="color:#000">swap_device_num</span><span style="color:#4e9a06">}</span>
+</span></span></code></pre></div><h2 id="2-2-格式化根分区">2.2. 格式化根分区</h2>
+<h3 id="2-2-1-未指定根分区大小">2.2.1. 未指定根分区大小</h3>
+<p>如果没有指定根分区大小，一般不需要再做一个data分区，而是把根分区扩展为剩余的所有空间。</p>
+<p>1、如果根分区目录没有指定分区大小，且没有做swap分区。则重新调整大小，扩展到设备的所有剩余空间。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#000">root_device</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;sda&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">root_device_num</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> Yes <span style="color:#000;font-weight:bold">|</span> parted ---pretend-input-tty /dev/<span style="color:#4e9a06">${</span><span style="color:#000">root_device</span><span style="color:#4e9a06">}</span> -- resizepart <span style="color:#4e9a06">${</span><span style="color:#000">root_device_num</span><span style="color:#4e9a06">}</span> 100%
+</span></span></code></pre></div><p>2、如果根分区没有指定分区大小，但是有做swap分区。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#000">root_device</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;sda&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 获取空闲空间的起始位置</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">root_start</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">$(</span>parted /dev/<span style="color:#4e9a06">${</span><span style="color:#000">root_device</span><span style="color:#4e9a06">}</span> unit MiB print free <span style="color:#000;font-weight:bold">|</span> grep <span style="color:#4e9a06">&#39;Free Space&#39;</span><span style="color:#000;font-weight:bold">|</span>tail -1 <span style="color:#000;font-weight:bold">|</span> awk <span style="color:#4e9a06">&#39;{print $1}&#39;</span> <span style="color:#000;font-weight:bold">|</span> sed <span style="color:#4e9a06">&#39;s/MiB//&#39;</span><span style="color:#204a87;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 将剩余空间做一个root分区</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> Ignore <span style="color:#000;font-weight:bold">|</span> parted ---pretend-input-tty /dev/<span style="color:#4e9a06">${</span><span style="color:#000">root_device</span><span style="color:#4e9a06">}</span> -- mkpart primary <span style="color:#4e9a06">${</span><span style="color:#000">root_start</span><span style="color:#4e9a06">}</span>MiB 100%
+</span></span></code></pre></div><h3 id="2-2-2-指定根分区大小">2.2.2. 指定根分区大小</h3>
+<p>如果指定了根分区大小，一般需要再创建一个data分区，将data分区扩展为剩余的所有的空间。</p>
+<p>1、如果根分区目录有指定大小，且没有做swap分区。则按指定大小分区，例如将跟分区大小设置300G</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#000">root_device</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;sda&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">root_device_num</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">root_size</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">307200</span> <span style="color:#8f5902;font-style:italic"># 300G换算成单位MiB</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 获取根分区的起始位置和终止位置</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">root_start</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">$(</span>parted /dev/<span style="color:#4e9a06">${</span><span style="color:#000">root_device</span><span style="color:#4e9a06">}</span> unit MiB print <span style="color:#000;font-weight:bold">|</span> awk <span style="color:#4e9a06">&#39;/./{end=$2} END{print end}&#39;</span> <span style="color:#000;font-weight:bold">|</span> sed <span style="color:#4e9a06">&#39;s/MiB//&#39;</span><span style="color:#204a87;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">root_end</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">$((</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#ce5c00;font-weight:bold">+</span> root_start <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#4e9a06">${</span><span style="color:#000">root_size</span><span style="color:#4e9a06">}</span><span style="color:#204a87;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 调整跟分区大小</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> Yes <span style="color:#000;font-weight:bold">|</span> parted ---pretend-input-tty /dev/<span style="color:#4e9a06">${</span><span style="color:#000">root_device</span><span style="color:#4e9a06">}</span> -- resizepart <span style="color:#4e9a06">${</span><span style="color:#000">root_device_num</span><span style="color:#4e9a06">}</span> <span style="color:#4e9a06">${</span><span style="color:#000">root_end</span><span style="color:#4e9a06">}</span>
+</span></span></code></pre></div><p>2、如果根分区有指定大小，但是有做swap分区。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#000">root_device</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;sda&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">root_device_num</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">root_size</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">307200</span> <span style="color:#8f5902;font-style:italic"># 300G换算成单位MiB</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 获取根分区的起始位置和终止位置</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">root_start</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">$(</span>parted /dev/<span style="color:#4e9a06">${</span><span style="color:#000">root_device</span><span style="color:#4e9a06">}</span> unit MiB print free <span style="color:#000;font-weight:bold">|</span> grep <span style="color:#4e9a06">&#39;Free Space&#39;</span><span style="color:#000;font-weight:bold">|</span>tail -1 <span style="color:#000;font-weight:bold">|</span> awk <span style="color:#4e9a06">&#39;{print $1}&#39;</span> <span style="color:#000;font-weight:bold">|</span> sed <span style="color:#4e9a06">&#39;s/MiB//&#39;</span><span style="color:#204a87;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">root_end</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">$((</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#ce5c00;font-weight:bold">+</span> root_start <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#4e9a06">${</span><span style="color:#000">root_size</span><span style="color:#4e9a06">}</span><span style="color:#204a87;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建指定大小的根分区</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> Ignore <span style="color:#000;font-weight:bold">|</span> parted ---pretend-input-tty /dev/<span style="color:#4e9a06">${</span><span style="color:#000">root_device</span><span style="color:#4e9a06">}</span> -- mkpart primary <span style="color:#4e9a06">${</span><span style="color:#000">root_start</span><span style="color:#4e9a06">}</span>MiB <span style="color:#4e9a06">${</span><span style="color:#000">root_end</span><span style="color:#4e9a06">}</span>MiB
+</span></span></code></pre></div><h2 id="2-3-创建跟设备的data分区">2.3. 创建跟设备的data分区</h2>
+<p>如果有指定需要创建跟设备的data分区，则在创建完swap分区和根分区后，继续创建data分区。</p>
+<p>1、创建跟设备的data分区</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#000">root_device</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;sda&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 获取空闲空间的起始位置</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">data_start</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">$(</span>parted /dev/<span style="color:#4e9a06">${</span><span style="color:#000">root_device</span><span style="color:#4e9a06">}</span> unit MiB print free <span style="color:#000;font-weight:bold">|</span> grep <span style="color:#4e9a06">&#39;Free Space&#39;</span><span style="color:#000;font-weight:bold">|</span>tail -1 <span style="color:#000;font-weight:bold">|</span> awk <span style="color:#4e9a06">&#39;{print $1}&#39;</span> <span style="color:#000;font-weight:bold">|</span> sed <span style="color:#4e9a06">&#39;s/MiB//&#39;</span><span style="color:#204a87;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 将剩余空间做一个data分区</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> Ignore <span style="color:#000;font-weight:bold">|</span> parted ---pretend-input-tty /dev/<span style="color:#4e9a06">${</span><span style="color:#000">root_device</span><span style="color:#4e9a06">}</span> -- mkpart primary <span style="color:#4e9a06">${</span><span style="color:#000">data_start</span><span style="color:#4e9a06">}</span>MiB 100%
+</span></span></code></pre></div><p>2、格式化根data分区的文件系统</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># data分区的序号一般是在root分区的序号+1</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">device</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;/dev/sda2&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 格式化为xfs文件系统</span>
+</span></span><span style="display:flex;"><span>mkfs.xfs -f -n <span style="color:#000">ftype</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1</span> <span style="color:#4e9a06">${</span><span style="color:#000">device</span><span style="color:#4e9a06">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 格式化为ext4文件系统</span>
+</span></span><span style="display:flex;"><span>mkfs.ext4 -F <span style="color:#4e9a06">${</span><span style="color:#000">device</span><span style="color:#4e9a06">}</span>
+</span></span></code></pre></div><h1 id="2-格式化数据盘">2. 格式化数据盘</h1>
+<p><strong>1、找出数据盘所对应的块设备，例如：<code>/dev/sdb</code></strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>lsblk -J -d
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>   <span style="color:#4e9a06">&#34;blockdevices&#34;</span>: <span style="color:#ce5c00;font-weight:bold">[</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#ce5c00;font-weight:bold">{</span><span style="color:#4e9a06">&#34;name&#34;</span>:<span style="color:#4e9a06">&#34;sda&#34;</span>, <span style="color:#4e9a06">&#34;maj:min&#34;</span>:<span style="color:#4e9a06">&#34;8:0&#34;</span>, <span style="color:#4e9a06">&#34;rm&#34;</span>:false, <span style="color:#4e9a06">&#34;size&#34;</span>:<span style="color:#4e9a06">&#34;1.1T&#34;</span>, <span style="color:#4e9a06">&#34;ro&#34;</span>:false, <span style="color:#4e9a06">&#34;type&#34;</span>:<span style="color:#4e9a06">&#34;disk&#34;</span>, <span style="color:#4e9a06">&#34;mountpoint&#34;</span>:null<span style="color:#ce5c00;font-weight:bold">}</span>,
+</span></span><span style="display:flex;"><span>      <span style="color:#ce5c00;font-weight:bold">{</span><span style="color:#4e9a06">&#34;name&#34;</span>:<span style="color:#4e9a06">&#34;sdb&#34;</span>, <span style="color:#4e9a06">&#34;maj:min&#34;</span>:<span style="color:#4e9a06">&#34;8:16&#34;</span>, <span style="color:#4e9a06">&#34;rm&#34;</span>:false, <span style="color:#4e9a06">&#34;size&#34;</span>:<span style="color:#4e9a06">&#34;6.1T&#34;</span>, <span style="color:#4e9a06">&#34;ro&#34;</span>:false, <span style="color:#4e9a06">&#34;type&#34;</span>:<span style="color:#4e9a06">&#34;disk&#34;</span>, <span style="color:#4e9a06">&#34;mountpoint&#34;</span>:<span style="color:#4e9a06">&#34;/data&#34;</span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>   <span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><p><strong>2、删除块设备分区并重建分区</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 删除块设备所有的分区</span>
+</span></span><span style="display:flex;"><span>sfdisk --delete /dev/sdb
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 将分区重建为GPT格式</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> label:gpt <span style="color:#000;font-weight:bold">|</span> sfdisk /dev/sdb
+</span></span></code></pre></div><p><strong>3、 通知内核重新读取分区表</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 通知内核重新加载指定设备的分区表，无需重启</span>
+</span></span><span style="display:flex;"><span>partprobe /dev/sdb
+</span></span></code></pre></div><p><strong>4、格式化数据盘的文件系统</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 格式化为xfs文件系统</span>
+</span></span><span style="display:flex;"><span>mkfs.xfs -f -n <span style="color:#000">ftype</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1</span> /dev/sdb
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 格式化为ext4文件系统</span>
+</span></span><span style="display:flex;"><span>mkfs.ext4 -F /dev/sdb
+</span></span></code></pre></div><h1 id="3-设置fstab磁盘挂载">3. 设置fstab磁盘挂载</h1>
+<blockquote>
+<p>todo</p>
+</blockquote>
+
+</div>
+
+
+
+    
+	
+  
 
     
 	
@@ -17678,7 +17876,7 @@ a. 重命名远程分支对应的本地分支</p>
         
       </div>
       <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
-        <small class="text-white">&copy; 2024 www.huweihuang.com 保留所有权利</small>
+        <small class="text-white">&copy; 2025 www.huweihuang.com 保留所有权利</small>
         <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
 	
 		<p class="mt-2"><a href="/about/">About</a></p>
