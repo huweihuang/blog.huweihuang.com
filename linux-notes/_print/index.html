@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.6f13c4ce8c5ee651855a80bd6679be18.json"
+  data-offline-search-index-json-src="/offline-search-index.8c8a1be4496e6443ee03a141af9df95e.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -1052,7 +1052,34 @@ if (!doNotTrack) {
     
     
 	
-<li>16: <a href="#pg-025ba230ccbdecd2053c28d50a7b1b46"></a></li>
+<li>16: <a href="#pg-f9e021ef17cb105673447af8aecd0337">大模型</a></li>
+
+
+    
+    <ul>
+        
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>16.1: <a href="#pg-093f126ec9e750c4adca83e14d272d51">基于Ollama构建本地大模型</a></li>
+
+
+    
+  
+
+    </ul>
+    
+  
+    
+    
+	
+<li>17: <a href="#pg-025ba230ccbdecd2053c28d50a7b1b46"></a></li>
 
 
     
@@ -17641,6 +17668,10 @@ a. 重命名远程分支对应的本地分支</p>
 </span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 格式化为ext4文件系统</span>
 </span></span><span style="display:flex;"><span>mkfs.ext4 -F /dev/sdb
 </span></span></code></pre></div><h1 id="3-设置fstab磁盘挂载">3. 设置fstab磁盘挂载</h1>
+<p>设置swap分区磁盘挂载</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#000">swap_uuid</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">$(</span>lsblk -f <span style="color:#000;font-weight:bold">|</span>grep swap<span style="color:#000;font-weight:bold">|</span>awk <span style="color:#4e9a06">&#39;{print $3}&#39;</span><span style="color:#204a87;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> <span style="color:#4e9a06">&#34;UUID=</span><span style="color:#4e9a06">${</span><span style="color:#000">swap_uuid</span><span style="color:#4e9a06">}</span><span style="color:#4e9a06"> swap swap defaults 0 0&#34;</span> &gt;&gt; /etc/fstab
+</span></span></code></pre></div><p>设置根分区磁盘挂载</p>
 <blockquote>
 <p>todo</p>
 </blockquote>
@@ -17663,7 +17694,276 @@ a. 重命名远程分支对应的本地分支</p>
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-025ba230ccbdecd2053c28d50a7b1b46">16 - </h1>
+	<h1 id="pg-f9e021ef17cb105673447af8aecd0337">16 - 大模型</h1>
+    
+	
+</div>
+
+
+
+    
+      
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-093f126ec9e750c4adca83e14d272d51">16.1 - 基于Ollama构建本地大模型</h1>
+    
+	<p>本文主要介绍如何通过<code>Ollama</code>和<code>OpenWebUI</code>来搭建一个本地私有化运行的大模型工具。私有化大模型的构建主要用于解决<code>数据的安全性问题</code>，对于大部分私有数据不适合通过外部的大模型网站来上传和分析。</p>
+<h1 id="1-ollama-与-openwebui-介绍">1. Ollama 与 OpenWebUI 介绍</h1>
+<h2 id="1-1-ollama简介">1.1. Ollama简介</h2>
+<p>Ollama 是一个 <strong>本地运行的 AI 大模型管理工具</strong>，可以让你在本地 <strong>快速拉取、管理和运行</strong> 各种开源大语言模型（如 LLaMA、Mistral、deepseek 等），而无需依赖云端 API。它的主要特点包括：</p>
+<ul>
+<li><strong>简易安装</strong>：支持 macOS、Linux 和 Windows（WSL）。</li>
+<li><strong>本地推理</strong>：在本地设备上直接运行 LLM，保护数据隐私。</li>
+<li><strong>模型管理</strong>：可以像使用 Docker 一样 <code>ollama run llama2</code> 轻松拉取和运行模型。</li>
+<li><strong>自定义模型</strong>：支持通过 <code>Modelfile</code> 进行微调和定制。</li>
+<li><strong>支持 API</strong>：可以通过 Python、Node.js 等语言调用 Ollama 提供的本地 REST API。</li>
+</ul>
+<p>Ollama 适用于本地 AI 代理、嵌入式 AI 应用、隐私保护的智能助手等场景。你可以用它来运行大语言模型，而无需自己搭建复杂的推理环境。</p>
+<h2 id="1-2-openwebui简介">1.2. OpenWebUI简介</h2>
+<p><strong>Open-WebUI</strong> 是一个 <strong>开源的 Web 用户界面</strong>，用于管理和使用本地或远程的大语言模型（LLM），比如 Ollama、OpenAI、Gemini 等。它的主要特点包括：</p>
+<ul>
+<li><strong>友好的 Web 界面</strong>：提供 ChatGPT 类似的对话 UI，方便交互。</li>
+<li><strong>支持多种后端</strong>：可以连接 <strong>Ollama、OpenAI API、本地 LLM</strong> 等。</li>
+<li><strong>多用户支持</strong>：适用于团队协作。</li>
+<li><strong>对话历史管理</strong>：可保存和管理聊天记录。</li>
+<li><strong>插件和自定义功能</strong>：支持扩展，适用于不同应用场景。</li>
+</ul>
+<p>它可以让本地 LLM 变得更加易用，适合个人、企业部署本地 AI 助手。</p>
+<h1 id="2-部署ollama">2. 部署ollama</h1>
+<h2 id="2-1-脚本安装-ollama">2.1. 脚本安装<code>ollama</code></h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>curl -fsSL https://ollama.com/install.sh <span style="color:#000;font-weight:bold">|</span> sh
+</span></span></code></pre></div><p>输出</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>&gt;&gt;&gt; Installing ollama to /usr/local
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; Downloading Linux amd64 bundle
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">######################################################################## 100.0%</span>
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; Creating ollama user...
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; Adding ollama user to render group...
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; Adding ollama user to video group...
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; Adding current user to ollama group...
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; Creating ollama systemd service...
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; Enabling and starting ollama service...
+</span></span><span style="display:flex;"><span>Created symlink /etc/systemd/system/default.target.wants/ollama.service -&gt; /etc/systemd/system/ollama.service.
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; The Ollama API is now available at 127.0.0.1:11434.
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; Install complete. Run <span style="color:#4e9a06">&#34;ollama&#34;</span> from the <span style="color:#204a87">command</span> line.
+</span></span><span style="display:flex;"><span>WARNING: No NVIDIA/AMD GPU detected. Ollama will run in CPU-only mode.
+</span></span></code></pre></div><p>默认服务监听的地址为：<code>127.0.0.1:11434</code></p>
+<h2 id="2-2-查看-ollama-服务状态">2.2. 查看<code>ollama</code>服务状态</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl status ollama
+</span></span><span style="display:flex;"><span>* ollama.service - Ollama Service
+</span></span><span style="display:flex;"><span>     Loaded: loaded <span style="color:#ce5c00;font-weight:bold">(</span>/etc/systemd/system/ollama.service<span style="color:#000;font-weight:bold">;</span> enabled<span style="color:#000;font-weight:bold">;</span> vendor preset: enabled<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>     Active: active <span style="color:#ce5c00;font-weight:bold">(</span>running<span style="color:#ce5c00;font-weight:bold">)</span> since Fri 2025-02-07 17:21:55 +08<span style="color:#000;font-weight:bold">;</span> 23s ago
+</span></span><span style="display:flex;"><span>   Main PID: <span style="color:#0000cf;font-weight:bold">53472</span> <span style="color:#ce5c00;font-weight:bold">(</span>ollama<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      Tasks: <span style="color:#0000cf;font-weight:bold">10</span>
+</span></span><span style="display:flex;"><span>     Memory: 10.3M
+</span></span><span style="display:flex;"><span>     CGroup: /system.slice/ollama.service
+</span></span><span style="display:flex;"><span>             <span style="color:#4e9a06">`</span>-53472 /usr/local/bin/ollama serve
+</span></span></code></pre></div><p>查看<code>ollama</code>命令</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ollama --help</span>
+</span></span><span style="display:flex;"><span>Large language model runner
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Usage:
+</span></span><span style="display:flex;"><span>  ollama <span style="color:#ce5c00;font-weight:bold">[</span>flags<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>  ollama <span style="color:#ce5c00;font-weight:bold">[</span>command<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Available Commands:
+</span></span><span style="display:flex;"><span>  serve       Start ollama
+</span></span><span style="display:flex;"><span>  create      Create a model from a Modelfile
+</span></span><span style="display:flex;"><span>  show        Show information <span style="color:#204a87;font-weight:bold">for</span> a model
+</span></span><span style="display:flex;"><span>  run         Run a model
+</span></span><span style="display:flex;"><span>  stop        Stop a running model
+</span></span><span style="display:flex;"><span>  pull        Pull a model from a registry
+</span></span><span style="display:flex;"><span>  push        Push a model to a registry
+</span></span><span style="display:flex;"><span>  list        List models
+</span></span><span style="display:flex;"><span>  ps          List running models
+</span></span><span style="display:flex;"><span>  cp          Copy a model
+</span></span><span style="display:flex;"><span>  rm          Remove a model
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">help</span>        Help about any <span style="color:#204a87">command</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Flags:
+</span></span><span style="display:flex;"><span>  -h, --help      <span style="color:#204a87">help</span> <span style="color:#204a87;font-weight:bold">for</span> ollama
+</span></span><span style="display:flex;"><span>  -v, --version   Show version information
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Use <span style="color:#4e9a06">&#34;ollama [command] --help&#34;</span> <span style="color:#204a87;font-weight:bold">for</span> more information about a command.
+</span></span></code></pre></div><h2 id="2-3-拉取一个大模型数据">2.3. 拉取一个大模型数据</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 下载模型</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ollama pull mistral</span>
+</span></span><span style="display:flex;"><span>pulling manifest
+</span></span><span style="display:flex;"><span>pulling ff82381e2bea... 100% ▕██████████████████████████████████████████████████████████████████████████████████▏ 4.1 GB
+</span></span><span style="display:flex;"><span>pulling 43070e2d4e53... 100% ▕██████████████████████████████████████████████████████████████████████████████████▏  <span style="color:#0000cf;font-weight:bold">11</span> KB
+</span></span><span style="display:flex;"><span>pulling 491dfa501e59... 100% ▕██████████████████████████████████████████████████████████████████████████████████▏  <span style="color:#0000cf;font-weight:bold">801</span> B
+</span></span><span style="display:flex;"><span>pulling ed11eda7790d... 100% ▕██████████████████████████████████████████████████████████████████████████████████▏   <span style="color:#0000cf;font-weight:bold">30</span> B
+</span></span><span style="display:flex;"><span>pulling 42347cd80dc8... 100% ▕██████████████████████████████████████████████████████████████████████████████████▏  <span style="color:#0000cf;font-weight:bold">485</span> B
+</span></span><span style="display:flex;"><span>verifying sha256 digest
+</span></span><span style="display:flex;"><span>writing manifest
+</span></span><span style="display:flex;"><span>success
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看下载的模型信息</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ollama list</span>
+</span></span><span style="display:flex;"><span>NAME              ID              SIZE      MODIFIED
+</span></span><span style="display:flex;"><span>mistral:latest    f974a74358d6    4.1 GB    <span style="color:#0000cf;font-weight:bold">18</span> hours ago
+</span></span></code></pre></div><h2 id="2-4-运行模型">2.4. 运行模型</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ollama run mistral</span>
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; who are you
+</span></span><span style="display:flex;"><span> I am a model of the Babylon AI assistant. I was designed by a human team to <span style="color:#204a87">help</span> answer questions, provide information, and assist with tasks. How can I <span style="color:#204a87">help</span> you today?
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt;
+</span></span><span style="display:flex;"><span>Use Ctrl + d or /bye to exit.
+</span></span><span style="display:flex;"><span>&gt;&gt;&gt; /bye 
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看正在运行的模型</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ollama ps</span>
+</span></span><span style="display:flex;"><span>NAME              ID              SIZE      PROCESSOR    UNTIL
+</span></span><span style="display:flex;"><span>mistral:latest    f974a74358d6    5.9 GB    100% CPU     <span style="color:#0000cf;font-weight:bold">4</span> minutes from now
+</span></span></code></pre></div><h2 id="2-5-修改ollama服务地址">2.5. 修改ollama服务地址</h2>
+<p>ollama服务默认监听127.0.0.1, 如果要修改监听地址，则可以添加<code>Environment=&quot;OLLAMA_HOST=0.0.0.0:11434&quot;</code>。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>vi /etc/systemd/system/ollama.service
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Unit<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Description</span><span style="color:#ce5c00;font-weight:bold">=</span>Ollama Service
+</span></span><span style="display:flex;"><span><span style="color:#000">After</span><span style="color:#ce5c00;font-weight:bold">=</span>network-online.target
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Service<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Environment</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;OLLAMA_HOST=0.0.0.0:11434&#34;</span>   <span style="color:#8f5902;font-style:italic"># 增加环境变量</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">ExecStart</span><span style="color:#ce5c00;font-weight:bold">=</span>/usr/local/bin/ollama serve
+</span></span><span style="display:flex;"><span><span style="color:#000">User</span><span style="color:#ce5c00;font-weight:bold">=</span>ollama
+</span></span><span style="display:flex;"><span><span style="color:#000">Group</span><span style="color:#ce5c00;font-weight:bold">=</span>ollama
+</span></span><span style="display:flex;"><span><span style="color:#000">Restart</span><span style="color:#ce5c00;font-weight:bold">=</span>always
+</span></span><span style="display:flex;"><span><span style="color:#000">RestartSec</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">3</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Environment</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Install<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">WantedBy</span><span style="color:#ce5c00;font-weight:bold">=</span>default.target
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># systemctl daemon-reload</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># systemctl restart ollama</span>
+</span></span></code></pre></div><h1 id="3-部署open-webui">3. 部署open-webui</h1>
+<h2 id="3-1-单独部署open-webui">3.1. 单独部署open-webui</h2>
+<p>如果已经部署了ollama服务，可以通过以下命令单独部署open-webui，修改OLLAMA_BASE_URL为ollama的服务地址。如果使用host-network，默认服务监听端口为8080。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>docker run -d --network<span style="color:#ce5c00;font-weight:bold">=</span>host -e <span style="color:#000">OLLAMA_BASE_URL</span><span style="color:#ce5c00;font-weight:bold">=</span>http://OLLAMA_HOST:11434 -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:main
+</span></span></code></pre></div><p>环境变量</p>
+<ul>
+<li><code>OLLAMA_BASE_URL:http://OLLAMA_HOST:11434</code> : 设置ollama服务的地址</li>
+<li><code>HF_HUB_OFFLINE: &quot;1&quot;</code>：设置模型为离线的环境</li>
+<li><code>ENABLE_OPENAI_API: &quot;false&quot;</code>：设置关闭openai的接口</li>
+</ul>
+<p><strong>访问open-webui服务：</strong></p>
+<p>访问<code>http://服务器IP:8080</code>，注册用户名密码然后登录。就可以使用本地的大模型服务。</p>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1739864579/article/linux/llm/open-webui.png" alt=""></p>
+<h2 id="3-2-部署open-webui和ollama服务">3.2. 部署open-webui和ollama服务</h2>
+<p>如果不想单独部署ollama，可以通过open-webui:ollama镜像，同时部署open-webui和ollama，两个服务集成在同一个镜像中。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 下载镜像</span>
+</span></span><span style="display:flex;"><span>docker pull ghcr.io/open-webui/open-webui:ollama
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 运行open-webui:ollama</span>
+</span></span><span style="display:flex;"><span>docker run -d -p 3000:8080 -v ollama:/root/.ollama -v ollama-open-webui:/app/backend/data --name ollama-open-webui --restart always ghcr.io/open-webui/open-webui:ollama
+</span></span></code></pre></div><p>查看服务</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># docker images</span>
+</span></span><span style="display:flex;"><span>REPOSITORY                      TAG       IMAGE ID       CREATED        SIZE
+</span></span><span style="display:flex;"><span>ghcr.io/open-webui/open-webui   ollama    29d60b4958c8   <span style="color:#0000cf;font-weight:bold">4</span> days ago     8.02GB
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># docker ps</span>
+</span></span><span style="display:flex;"><span>CONTAINER ID   IMAGE                                  COMMAND           CREATED          STATUS                    PORTS                              NAMES
+</span></span><span style="display:flex;"><span>3175fc20c608   ghcr.io/open-webui/open-webui:ollama   <span style="color:#4e9a06">&#34;bash start.sh&#34;</span>   <span style="color:#0000cf;font-weight:bold">16</span> minutes ago   Up <span style="color:#0000cf;font-weight:bold">16</span> minutes <span style="color:#ce5c00;font-weight:bold">(</span>healthy<span style="color:#ce5c00;font-weight:bold">)</span>   0.0.0.0:3000-&gt;8080/tcp             ollama-open-webui
+</span></span></code></pre></div><p>登录容器下载大模型文件</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 登录容器</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># docker exec -it 3175fc20c608 bash</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 下载指定的大模型</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ollama pull deepseek-r1:7b</span>
+</span></span><span style="display:flex;"><span>pulling manifest
+</span></span><span style="display:flex;"><span>pulling 96c415656d37... 100% ▕███████████████████████████████████████████████████████████████████████████████████████████████████████████▏ 4.7 GB
+</span></span><span style="display:flex;"><span>pulling 369ca498f347... 100% ▕███████████████████████████████████████████████████████████████████████████████████████████████████████████▏  <span style="color:#0000cf;font-weight:bold">387</span> B
+</span></span><span style="display:flex;"><span>pulling 6e4c38e1172f... 100% ▕███████████████████████████████████████████████████████████████████████████████████████████████████████████▏ 1.1 KB
+</span></span><span style="display:flex;"><span>pulling f4d24e9138dd... 100% ▕███████████████████████████████████████████████████████████████████████████████████████████████████████████▏  <span style="color:#0000cf;font-weight:bold">148</span> B
+</span></span><span style="display:flex;"><span>pulling 40fb844194b2... 100% ▕███████████████████████████████████████████████████████████████████████████████████████████████████████████▏  <span style="color:#0000cf;font-weight:bold">487</span> B
+</span></span><span style="display:flex;"><span>verifying sha256 digest
+</span></span><span style="display:flex;"><span>writing manifest
+</span></span><span style="display:flex;"><span>success
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ollama list</span>
+</span></span><span style="display:flex;"><span>NAME              ID              SIZE      MODIFIED
+</span></span><span style="display:flex;"><span>deepseek-r1:7b    0a8c26691023    4.7 GB    <span style="color:#0000cf;font-weight:bold">12</span> minutes ago
+</span></span></code></pre></div><p>则可以访问所部属服务器的地址和端口来访问open-webui的服务。</p>
+<h2 id="3-3-构建本地知识库">3.3. 构建本地知识库</h2>
+<h3 id="3-3-1-自定义文件分析">3.3.1. 自定义文件分析</h3>
+<p>可以通过页面上传本地的知识库文件，让AI回答关于自定义文件中的内容。</p>
+<p>例如：我通过文件自定义了内容，提问张飞的电话号码，则可以通过文章中的内容来回答。</p>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1739871922/article/linux/llm/phone-chat.png" alt=""></p>
+<p>其中自定义文档的内容如下：</p>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1739869289/article/linux/llm/ollama-docs.png" alt=""></p>
+<p>同样可以上传其他文件来构建一个本地大模型知识库。然后借助大模型来查询和分析数据内容。</p>
+<h3 id="3-3-2-本地化数据存储">3.3.2. 本地化数据存储</h3>
+<p>其中open-webui的本地化数据存储在容器内的<code>/app/backend/data/</code>目录下。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>/app/backend/data# ls -l
+</span></span><span style="display:flex;"><span>total <span style="color:#0000cf;font-weight:bold">236</span>
+</span></span><span style="display:flex;"><span>drwxr-xr-x <span style="color:#0000cf;font-weight:bold">7</span> root root   <span style="color:#0000cf;font-weight:bold">4096</span> Feb <span style="color:#0000cf;font-weight:bold">11</span> 10:48 cache
+</span></span><span style="display:flex;"><span>drwxr-xr-x <span style="color:#0000cf;font-weight:bold">2</span> root root   <span style="color:#0000cf;font-weight:bold">4096</span> Feb <span style="color:#0000cf;font-weight:bold">18</span> 06:11 uploads
+</span></span><span style="display:flex;"><span>drwxr-xr-x <span style="color:#0000cf;font-weight:bold">3</span> root root   <span style="color:#0000cf;font-weight:bold">4096</span> Feb <span style="color:#0000cf;font-weight:bold">18</span> 06:11 vector_db
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">229376</span> Feb <span style="color:#0000cf;font-weight:bold">18</span> 06:38 webui.db
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 可以从uploads目录看到上传的本地文件</span>
+</span></span><span style="display:flex;"><span>/app/backend/data/uploads# cat 117e6f99-0657-40d1-ab6f-1bea81e78053_ollama-docs.md
+</span></span><span style="display:flex;"><span>张飞的电话号码是u987438274
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>曹操的电话号码是123456
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>关羽的电话号码是5352345
+</span></span></code></pre></div><h2 id="3-4-faq">3.4. FAQ</h2>
+<h3 id="1-open-webui页面无法选择模型">1）open-webui页面无法选择模型</h3>
+<p><strong>问题：</strong></p>
+<p>当单独部署open-webui，可能会遇到open-webui页面无法选择模型具体的现象如下：</p>
+<img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1739864579/article/linux/llm/open-webui-error.png" title="" alt="" width="709">
+<p>open-webui日志报错：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>INFO  <span style="color:#ce5c00;font-weight:bold">[</span>open_webui.routers.ollama<span style="color:#ce5c00;font-weight:bold">]</span> get_all_models<span style="color:#ce5c00;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>ERROR <span style="color:#ce5c00;font-weight:bold">[</span>open_webui.routers.ollama<span style="color:#ce5c00;font-weight:bold">]</span> Connection error: Cannot connect to host 1.1.1.1:11434 ssl:default <span style="color:#ce5c00;font-weight:bold">[</span>Connect call failed <span style="color:#ce5c00;font-weight:bold">(</span><span style="color:#4e9a06">&#39;1.1.1.1&#39;</span>, 11434<span style="color:#ce5c00;font-weight:bold">)]</span>
+</span></span></code></pre></div><p><strong>原因：</strong></p>
+<p>按官网命令使用<code>端口映射</code>的网络模式，如果OLLAMA_BASE_URL配置为127.0.0.1则访问不到单独部署的ollama服务，如果改用具体的ollama的IP也可能存在访问失败的问题。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>docker run -d -p 3000:8080 -e <span style="color:#000">OLLAMA_BASE_URL</span><span style="color:#ce5c00;font-weight:bold">=</span>https://example.com -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:main
+</span></span></code></pre></div><p><strong>解决方案：</strong></p>
+<p>docker网络模式改为<code>host-network</code>的网络模式</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>docker run -d --network<span style="color:#ce5c00;font-weight:bold">=</span>host -e <span style="color:#000">OLLAMA_BASE_URL</span><span style="color:#ce5c00;font-weight:bold">=</span>http://OLLAMA_HOST:11434 -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:main
+</span></span></code></pre></div><h1 id="4-总结">4. 总结</h1>
+<p>本文主要介绍了ollama和open-webui的部署，从而搭建一个<code>本地化私有的大模型工具</code>，<code>所有的数据都存储在本地</code>。可以通过上传文件来分析本地的数据，类似构建<code>本地大模型知识库</code>。</p>
+<p>不过本地大模型的响应速度依赖于大模型本身和本地的资源，包括cpu和gpu，没有gpu资源也可以运行。在资源较小的情况下，大模型回答问题的速度比较慢。如果完全需要离线的大模型分析数据，在资源受限的情况下需要再进一步做优化才能得到比较好的体验。</p>
+<p>参考：</p>
+<ul>
+<li><a href="https://ollama.com/download/linux">https://ollama.com/download/linux</a></li>
+<li><a href="https://github.com/ollama/ollama/blob/main/docs/faq.md">https://github.com/ollama/ollama/blob/main/docs/faq.md</a></li>
+<li><a href="https://docs.openwebui.com/getting-started/quick-start">https://docs.openwebui.com/getting-started/quick-start</a></li>
+<li><a href="https://github.com/open-webui/open-webui#troubleshooting">https://github.com/open-webui/open-webui#troubleshooting</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-025ba230ccbdecd2053c28d50a7b1b46">17 - </h1>
     
 	<h1 id="summary">Summary</h1>
 <h2 id="序言">序言</h2>
