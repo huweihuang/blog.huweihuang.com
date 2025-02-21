@@ -184,6 +184,7 @@
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 迁移数据&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;cp -fr /usr/share/ollama/.ollama/models/* /data/ollama/models
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;sudo chown -R ollama:ollama /data/ollama/models
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;3-部署open-webui&#34;&gt;3. 部署open-webui&lt;/h1&gt;
 &lt;h2 id=&#34;3-1-单独部署open-webui&#34;&gt;3.1. 单独部署open-webui&lt;/h2&gt;
 &lt;p&gt;如果已经部署了ollama服务，可以通过以下命令单独部署open-webui，修改&lt;code&gt;OLLAMA_BASE_URL&lt;/code&gt;为ollama的服务地址。如果使用host-network，默认服务监听端口为&lt;code&gt;8080&lt;/code&gt;。&lt;/p&gt;
@@ -269,6 +270,19 @@
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;解决方案：&lt;/strong&gt;&lt;/p&gt;
 &lt;p&gt;docker网络模式改为&lt;code&gt;host-network&lt;/code&gt;的网络模式&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;docker run -d --network&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;host -e &lt;span style=&#34;color:#000&#34;&gt;OLLAMA_BASE_URL&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;http://OLLAMA_HOST:11434 -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:main
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;2-数据目录没权限permission-denied&#34;&gt;2）数据目录没权限permission denied&lt;/h3&gt;
+&lt;p&gt;如果用户修改了ollama的models的存储目录，出现ollama服务重启失败，或者pull model数据报错&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 修改ollama的model目录后ollama服务重启报错&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;Error: mkdir /data/ollama: permission denied
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 迁移model数据后出现没权限，因为使用了root命令执行&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;cp -fr /usr/share/ollama/.ollama/models/* /data/ollama/models
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# ollama pull deepseek-r1:70b&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;writing manifest
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;Error: open /data/ollama/models/manifests/registry.ollama.ai/library/deepseek-r1/70b: permission denied
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;原因：&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;ollama默认使用的用户名是 ollama，因此需要给目录添加用户的权限，例如：目录创建和model文件迁移是通过root或其他用户执行的话。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;sudo chown -R ollama:ollama /data/ollama/models
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;4-总结&#34;&gt;4. 总结&lt;/h1&gt;
 &lt;p&gt;本文主要介绍了ollama和open-webui的部署，从而搭建一个&lt;code&gt;本地化私有的大模型工具&lt;/code&gt;，&lt;code&gt;所有的数据都存储在本地&lt;/code&gt;。可以通过上传文件来分析本地的数据，类似构建&lt;code&gt;本地大模型知识库&lt;/code&gt;。&lt;/p&gt;
 &lt;p&gt;不过本地大模型的响应速度依赖于大模型本身和本地的资源，包括cpu和gpu，没有gpu资源也可以运行。在资源较小的情况下，大模型回答问题的速度比较慢。如果完全需要离线的大模型分析数据，在资源受限的情况下需要再进一步做优化才能得到比较好的体验。&lt;/p&gt;
