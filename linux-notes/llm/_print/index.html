@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.1ca0b82b47f0775c523454bc6974cf3d.json"
+  data-offline-search-index-json-src="/offline-search-index.2f3d54c0f8eab0ab567f21fb0df68403.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -330,7 +330,8 @@ if (!doNotTrack) {
 </span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ollama ps</span>
 </span></span><span style="display:flex;"><span>NAME              ID              SIZE      PROCESSOR    UNTIL
 </span></span><span style="display:flex;"><span>deepseek-r1:7b    0a8c26691023    5.5 GB    100% CPU     <span style="color:#0000cf;font-weight:bold">3</span> minutes from now
-</span></span></code></pre></div><h2 id="2-5-修改ollama服务地址">2.5. 修改ollama服务地址</h2>
+</span></span></code></pre></div><h2 id="2-5-修改ollama服务地址和目录">2.5. 修改ollama服务地址和目录</h2>
+<h3 id="2-5-1-修改ollama服务地址">2.5.1. 修改ollama服务地址</h3>
 <p>ollama服务默认监听127.0.0.1, 如果要修改监听地址，则可以添加<code>Environment=&quot;OLLAMA_HOST=0.0.0.0:11434&quot;</code>。</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>vi /etc/systemd/system/ollama.service
 </span></span><span style="display:flex;"><span>
@@ -350,8 +351,38 @@ if (!doNotTrack) {
 </span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Install<span style="color:#ce5c00;font-weight:bold">]</span>
 </span></span><span style="display:flex;"><span><span style="color:#000">WantedBy</span><span style="color:#ce5c00;font-weight:bold">=</span>default.target
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># systemctl daemon-reload</span>
-</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># systemctl restart ollama</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 重启服务</span>
+</span></span><span style="display:flex;"><span>systemctl daemon-reload
+</span></span><span style="display:flex;"><span>systemctl restart ollama
+</span></span><span style="display:flex;"><span>systemctl status ollama
+</span></span></code></pre></div><h3 id="2-5-2-修改ollama数据目录">2.5.2. 修改ollama数据目录</h3>
+<p>参考：<a href="https://github.com/ollama/ollama/blob/main/docs/faq.md#where-are-models-stored">ollama/docs/faq.md</a></p>
+<p>默认存储目录</p>
+<ul>
+<li>macOS: <code>~/.ollama/models</code></li>
+<li>Linux: <code>/usr/share/ollama/.ollama/models</code></li>
+<li>Windows: <code>C:\Users\%username%\.ollama\models</code></li>
+</ul>
+<p>以linux系统为例，修改默认的存储目录：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#000">dir</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;/data/ollama/models&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建目录并分配权限</span>
+</span></span><span style="display:flex;"><span>mkdir -p /data/ollama/models
+</span></span><span style="display:flex;"><span>sudo chown -R ollama:ollama /data/ollama/models
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 添加环境变量OLLAMA_MODELS</span>
+</span></span><span style="display:flex;"><span>vi /etc/systemd/system/ollama.service
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">[</span>Service<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">Environment</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;OLLAMA_MODELS=/data/ollama/models&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 重启服务</span>
+</span></span><span style="display:flex;"><span>systemctl daemon-reload
+</span></span><span style="display:flex;"><span>systemctl restart ollama
+</span></span><span style="display:flex;"><span>systemctl status ollama
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 迁移数据</span>
+</span></span><span style="display:flex;"><span>cp -fr /usr/share/ollama/.ollama/models/* /data/ollama/models
 </span></span></code></pre></div><h1 id="3-部署open-webui">3. 部署open-webui</h1>
 <h2 id="3-1-单独部署open-webui">3.1. 单独部署open-webui</h2>
 <p>如果已经部署了ollama服务，可以通过以下命令单独部署open-webui，修改<code>OLLAMA_BASE_URL</code>为ollama的服务地址。如果使用host-network，默认服务监听端口为<code>8080</code>。</p>
