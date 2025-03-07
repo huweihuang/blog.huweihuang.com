@@ -54,7 +54,7 @@
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;c0u1p2  &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; SSD  &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; HUAWEI HWE52SS3960L005N3248033GSN10L5002805 &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 893.1 Gb &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; Online, Spun Up &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 12.0Gb/s &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 29C  &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;[&lt;/span&gt;134:2&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;]&lt;/span&gt;  &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;c0u1p3  &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; SSD  &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; HUAWEI HWE52SS3960L005N3248033GSN10L5002797 &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 893.1 Gb &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; Online, Spun Up &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 12.0Gb/s &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; 29C  &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;[&lt;/span&gt;134:3&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;]&lt;/span&gt;  &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;3&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;2-解决umount-target-is-busy挂载盘卸载不掉问题&#34;&gt;2. 解决umount target is busy挂载盘卸载不掉问题&lt;/h1&gt;
-&lt;p&gt;问题描述:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;问题描述:&lt;/strong&gt;&lt;/p&gt;
 &lt;p&gt;由于有进程占用目录，因此无法umount目录，需要先将占用进程杀死，再umount目录。&lt;/p&gt;
 &lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ umount /data
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;umount: /data: target is busy.
@@ -75,6 +75,21 @@
 &lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-k,--kill &lt;span style=&#34;color:#204a87&#34;&gt;kill&lt;/span&gt; 　　processes accessing the named file
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-m,--mount 　　 show all processes using the named filesystems or block device
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;-v,--verbose 　　 verbose output
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;3-删除大文件后磁盘空间没减少&#34;&gt;3. 删除大文件后磁盘空间没减少&lt;/h1&gt;
+&lt;p&gt;&lt;strong&gt;问题描述：&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;为了清理磁盘空间，在删除某些大文件后，查看df -h发现磁盘的空间并没减少。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;原因：&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;有进程占用了被删除的文件，导致空间没有清理。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;解决方案:&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;查看所占用文件的进程，并杀掉该进程。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# lsof 查看删除文件对应的进程&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;lsof &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; grep deleted&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt;grep &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;/data/xxxx&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 杀掉进程&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87&#34;&gt;kill&lt;/span&gt; -9 &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;{&lt;/span&gt;pid&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 查看空间,此时空间已经腾出来&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;df -h 
 &lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
       </description>
     </item>
