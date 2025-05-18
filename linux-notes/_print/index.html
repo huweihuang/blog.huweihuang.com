@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.cd08e58297ebae4ae591ebc8eb0817dc.json"
+  data-offline-search-index-json-src="/offline-search-index.b53179dcc72342bcd73c09bc0f2ec912.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -1056,7 +1056,15 @@ if (!doNotTrack) {
     
     
 	
-<li>15.2: <a href="#pg-37f45ccd9b715779fda2cec095a76286">格式化磁盘分区</a></li>
+<li>15.2: <a href="#pg-9518c18f4390f81263a98d07b0d07cff">Redfish API</a></li>
+
+
+    
+  
+    
+    
+	
+<li>15.3: <a href="#pg-37f45ccd9b715779fda2cec095a76286">格式化磁盘分区</a></li>
 
 
     
@@ -17632,7 +17640,347 @@ a. 重命名远程分支对应的本地分支</p>
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-37f45ccd9b715779fda2cec095a76286">15.2 - 格式化磁盘分区</h1>
+	<h1 id="pg-9518c18f4390f81263a98d07b0d07cff">15.2 - Redfish API</h1>
+    
+	<blockquote>
+<p>本文主要介绍redfish api的调用路径及格式。</p>
+</blockquote>
+<p>Redfish是一种基于HTTPs服务的管理标准，利用RESTful接口实现设备管理。可以理解为redfish api就是通过http的调用方式来操作服务器的bmc设备，从而实现对设备的远程控制。</p>
+<h1 id="1-bmc常用功能操作">1. BMC常用功能操作</h1>
+<ul>
+<li>
+<p>BIOS 管理</p>
+</li>
+<li>
+<p>启动设置（boot order）</p>
+</li>
+<li>
+<p>虚拟媒体管理</p>
+</li>
+<li>
+<p>电源管理（开机、关机、重启）</p>
+</li>
+<li>
+<p>固件升级</p>
+</li>
+<li>
+<p>远程控制（VNC/SOL）</p>
+</li>
+<li>
+<p>监控和日志</p>
+</li>
+</ul>
+<h1 id="2-通用-redfish-api-接口格式">2. 通用 Redfish API 接口格式</h1>
+<h2 id="2-1-通用-redfish-api-接口格式">2.1. 通用 Redfish API 接口格式</h2>
+<h3 id="2-1-1-基础路径结构">2.1.1. 基础路径结构</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>/redfish/v1/
+</span></span></code></pre></div><h3 id="2-1-2-主要资源类型">2.1.2. 主要资源类型</h3>
+<ol>
+<li><strong>系统资源 (Systems)</strong></li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>/redfish/v1/Systems/<span style="color:#ce5c00;font-weight:bold">{</span>systemId<span style="color:#ce5c00;font-weight:bold">}</span>/
+</span></span><span style="display:flex;"><span>├── Bios/                    <span style="color:#8f5902;font-style:italic"># BIOS设置</span>
+</span></span><span style="display:flex;"><span>├── Boot/                    <span style="color:#8f5902;font-style:italic"># 启动设置</span>
+</span></span><span style="display:flex;"><span>├── Memory/                  <span style="color:#8f5902;font-style:italic"># 内存信息</span>
+</span></span><span style="display:flex;"><span>├── Processors/              <span style="color:#8f5902;font-style:italic"># 处理器信息</span>
+</span></span><span style="display:flex;"><span>├── Storage/                 <span style="color:#8f5902;font-style:italic"># 存储信息</span>
+</span></span><span style="display:flex;"><span>├── EthernetInterfaces/      <span style="color:#8f5902;font-style:italic"># 网络接口</span>
+</span></span><span style="display:flex;"><span>└── Actions/                 <span style="color:#8f5902;font-style:italic"># 系统操作</span>
+</span></span></code></pre></div><ol start="2">
+<li><strong>机箱资源 (Chassis)</strong></li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>/redfish/v1/Chassis/<span style="color:#ce5c00;font-weight:bold">{</span>chassisId<span style="color:#ce5c00;font-weight:bold">}</span>/
+</span></span><span style="display:flex;"><span>├── Power/                   <span style="color:#8f5902;font-style:italic"># 电源管理</span>
+</span></span><span style="display:flex;"><span>├── Thermal/                 <span style="color:#8f5902;font-style:italic"># 温度管理</span>
+</span></span><span style="display:flex;"><span>├── NetworkAdapters/         <span style="color:#8f5902;font-style:italic"># 网络适配器</span>
+</span></span><span style="display:flex;"><span>└── Actions/                 <span style="color:#8f5902;font-style:italic"># 机箱操作</span>
+</span></span></code></pre></div><ol start="3">
+<li><strong>管理控制器 (Managers)</strong></li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>/redfish/v1/Managers/<span style="color:#ce5c00;font-weight:bold">{</span>managerId<span style="color:#ce5c00;font-weight:bold">}</span>/
+</span></span><span style="display:flex;"><span>├── NetworkProtocol/         <span style="color:#8f5902;font-style:italic"># 网络协议</span>
+</span></span><span style="display:flex;"><span>├── VirtualMedia/            <span style="color:#8f5902;font-style:italic"># 虚拟媒体</span>
+</span></span><span style="display:flex;"><span>├── LogServices/            <span style="color:#8f5902;font-style:italic"># 日志服务</span>
+</span></span><span style="display:flex;"><span>└── Actions/                <span style="color:#8f5902;font-style:italic"># 管理操作</span>
+</span></span></code></pre></div><ol start="4">
+<li><strong>更新服务 (UpdateService)</strong></li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>/redfish/v1/UpdateService/
+</span></span><span style="display:flex;"><span>├── FirmwareInventory/      <span style="color:#8f5902;font-style:italic"># 固件清单</span>
+</span></span><span style="display:flex;"><span>└── Actions/                <span style="color:#8f5902;font-style:italic"># 更新操作</span>
+</span></span></code></pre></div><h1 id="3-bios-管理">3. BIOS 管理</h1>
+<h2 id="1-通用-bios-接口路径">1. 通用 BIOS 接口路径</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>/redfish/v1/Systems/<span style="color:#ce5c00;font-weight:bold">{</span>systemId<span style="color:#ce5c00;font-weight:bold">}</span>/Bios
+</span></span></code></pre></div><p>获取 BIOS 属性</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>GET /redfish/v1/Systems/<span style="color:#ce5c00;font-weight:bold">{</span>systemId<span style="color:#ce5c00;font-weight:bold">}</span>/Bios
+</span></span></code></pre></div><p>设置 BIOS 属性</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>PATCH /redfish/v1/Systems/<span style="color:#ce5c00;font-weight:bold">{</span>systemId<span style="color:#ce5c00;font-weight:bold">}</span>/Bios/Settings
+</span></span></code></pre></div><h2 id="2-各厂商路径">2. 各厂商路径</h2>
+<table>
+<thead>
+<tr>
+<th>厂商</th>
+<th>操作</th>
+<th>方法</th>
+<th>路径</th>
+<th>request</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dell</td>
+<td>获取 BIOS 属性</td>
+<td>GET</td>
+<td>/redfish/v1/Systems/{systemId}/Bios</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>设置 BIOS 属性</td>
+<td>PATCH</td>
+<td>/redfish/v1/Systems/{systemId}/Bios/Settings</td>
+<td>{&quot;Attributes&quot;:                 attrs,<br /> &quot;@Redfish.SettingsApplyTime&quot;: &quot;OnReset&quot;}</td>
+</tr>
+<tr>
+<td>HPE</td>
+<td>获取 BIOS 属性</td>
+<td>GET</td>
+<td>/redfish/v1/Systems/{systemId}/Bios</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>设置 BIOS 属性</td>
+<td>PATCH</td>
+<td>/redfish/v1/Systems/{systemId}/Bios/Settings</td>
+<td>{&quot;Attributes&quot;:                 attrs,<br /> &quot;@Redfish.SettingsApplyTime&quot;: &quot;OnReset&quot;}</td>
+</tr>
+<tr>
+<td>HUAWEI</td>
+<td>获取 BIOS 属性</td>
+<td>GET</td>
+<td>/redfish/v1/Systems/{systemId}/Bios</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>设置 BIOS 属性</td>
+<td>PATCH</td>
+<td>/redfish/v1/Systems/{systemId}/Bios/Settings</td>
+<td>{ &quot;Attributes&quot;: attrs}</td>
+</tr>
+<tr>
+<td>Inspur</td>
+<td>获取 BIOS 属性</td>
+<td>GET</td>
+<td>/redfish/v1/Systems/{systemId}/Bios</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>设置 BIOS 属性</td>
+<td>PATCH</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Lenovo</td>
+<td>获取 BIOS 属性</td>
+<td>GET</td>
+<td>/redfish/v1/Systems/{systemId}/Bios</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>设置 BIOS 属性</td>
+<td>PATCH</td>
+<td>/redfish/v1/Systems/{systemId}/Bios/Settings</td>
+<td>{ &quot;Attributes&quot;: attrs}</td>
+</tr>
+<tr>
+<td>xFusion</td>
+<td>获取 BIOS 属性</td>
+<td>GET</td>
+<td>/redfish/v1/Systems/{systemId}/Bios</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>设置 BIOS 属性</td>
+<td>PATCH</td>
+<td>/redfish/v1/Systems/{systemId}/Bios/Settings</td>
+<td>{ &quot;Attributes&quot;: attrs}</td>
+</tr>
+</tbody>
+</table>
+<h1 id="4-启动设置-boot-order">4. 启动设置（boot order）</h1>
+<h1 id="5-virtualmedia-的通用接口路径">5. VirtualMedia 的通用接口路径</h1>
+<h2 id="1-通用-virtualmedia-接口路径">1. 通用 VirtualMedia 接口路径</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>/redfish/v1/Managers/<span style="color:#ce5c00;font-weight:bold">{</span>managerId<span style="color:#ce5c00;font-weight:bold">}</span>/VirtualMedia/<span style="color:#ce5c00;font-weight:bold">{</span>mediaId<span style="color:#ce5c00;font-weight:bold">}</span>/
+</span></span></code></pre></div><p>获取虚拟媒体信息</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>GET /redfish/v1/Managers/<span style="color:#ce5c00;font-weight:bold">{</span>managerId<span style="color:#ce5c00;font-weight:bold">}</span>/VirtualMedia/<span style="color:#ce5c00;font-weight:bold">{</span>mediaId<span style="color:#ce5c00;font-weight:bold">}</span>/
+</span></span></code></pre></div><p>插入虚拟媒体</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>POST /redfish/v1/Managers/<span style="color:#ce5c00;font-weight:bold">{</span>managerId<span style="color:#ce5c00;font-weight:bold">}</span>/VirtualMedia/<span style="color:#ce5c00;font-weight:bold">{</span>mediaId<span style="color:#ce5c00;font-weight:bold">}</span>/Actions/VirtualMedia.InsertMedia
+</span></span></code></pre></div><p>弹出虚拟媒体</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>POST /redfish/v1/Managers/<span style="color:#ce5c00;font-weight:bold">{</span>managerId<span style="color:#ce5c00;font-weight:bold">}</span>/VirtualMedia/<span style="color:#ce5c00;font-weight:bold">{</span>mediaId<span style="color:#ce5c00;font-weight:bold">}</span>/Actions/VirtualMedia.EjectMedia
+</span></span></code></pre></div><h2 id="2-各厂商路径-1">2. 各厂商路径</h2>
+<table>
+<thead>
+<tr>
+<th>厂商</th>
+<th>操作</th>
+<th>方法</th>
+<th>路径</th>
+<th>request</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dell</td>
+<td>获取VirtualMedia</td>
+<td>GET</td>
+<td>/redfish/v1/Managers/{managerId}/VirtualMedia/CD</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>插入VirtualMedia</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>弹出VirtualMedia</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>HPE</td>
+<td>获取VirtualMedia</td>
+<td>GET</td>
+<td>/redfish/v1/Managers/{managerId}/VirtualMedia/{mediaId}</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>插入VirtualMedia</td>
+<td>POST</td>
+<td>/redfish/v1/Managers/{managerId}/VirtualMedia/{mediaId}/Actions/VirtualMedia.InsertMedia</td>
+<td>{<br/> &quot;Image&quot;: &quot;string&quot;,<br/> &quot;Inserted&quot;: boolean,<br/> &quot;WriteProtected&quot;: boolean<br/>}</td>
+</tr>
+<tr>
+<td></td>
+<td>弹出VirtualMedia</td>
+<td>POST</td>
+<td>/redfish/v1/Managers/{managerId}/VirtualMedia/{mediaId}/Actions/VirtualMedia.EjectMedia</td>
+<td></td>
+</tr>
+<tr>
+<td>HUAWEI</td>
+<td>获取VirtualMedia</td>
+<td>GET</td>
+<td>/redfish/v1/Managers/{managerId}/VirtualMedia/CD</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>插入VirtualMedia</td>
+<td>POST</td>
+<td>/redfish/v1/Managers/{managerId}/VirtualMedia/CD/Oem/Huawei/Actions/VirtualMedia.VmmControl</td>
+<td>{&quot;VmmControlType&quot;: &quot;Connect&quot;,<br/> &quot;Image&quot;: imageURL}</td>
+</tr>
+<tr>
+<td></td>
+<td>弹出VirtualMedia</td>
+<td>POST</td>
+<td>/redfish/v1/Managers/{managerId}/VirtualMedia/CD/Oem/Huawei/Actions/VirtualMedia.VmmControl</td>
+<td>{&quot;VmmControlType&quot;: &quot;Disconnect&quot;}</td>
+</tr>
+<tr>
+<td>Inspur(M6)</td>
+<td>获取VirtualMedia</td>
+<td>GET</td>
+<td>/redfish/v1/Managers/{managerId}/VirtualMedia/{mediaId}</td>
+<td>mediaId=CD/CD1</td>
+</tr>
+<tr>
+<td></td>
+<td>插入VirtualMedia</td>
+<td>POST</td>
+<td>/redfish/v1/Managers/{managerId}/VirtualMedia/{mediaId}/Actions/VirtualMedia.InsertMedia</td>
+<td>{&quot;Image&quot;: image,<br/>&quot;TransferProtocolType&quot;: &quot;NFS&quot;}</td>
+</tr>
+<tr>
+<td></td>
+<td>弹出VirtualMedia</td>
+<td>POST</td>
+<td>/redfish/v1/Managers/{managerId}/VirtualMedia/{mediaId}/Actions/VirtualMedia.EjectMedia</td>
+<td></td>
+</tr>
+<tr>
+<td>Lenovo</td>
+<td>获取VirtualMedia</td>
+<td>GET</td>
+<td>/redfish/v1/Systems/{systemId}/VirtualMedia/EXT1</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>插入VirtualMedia</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>弹出VirtualMedia</td>
+<td>PATCH</td>
+<td>/redfish/v1/Systems/{systemId}/VirtualMedia/EXT1</td>
+<td>{&quot;Inserted&quot;: false}</td>
+</tr>
+<tr>
+<td>xFusion(华为子品牌)</td>
+<td>获取VirtualMedia</td>
+<td>GET</td>
+<td>/redfish/v1/Managers/{managerId}/VirtualMedia/CD</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>插入VirtualMedia</td>
+<td>POST</td>
+<td>/redfish/v1/Managers/{managerId}/VirtualMedia/CD/Oem/xFusion/Actions/VirtualMedia.VmmControl</td>
+<td>{&quot;VmmControlType&quot;: &quot;Connect&quot;,<br/> &quot;Image&quot;: imageURL}</td>
+</tr>
+<tr>
+<td></td>
+<td>弹出VirtualMedia</td>
+<td>POST</td>
+<td>/redfish/v1/Managers/{managerId}/VirtualMedia/CD/Oem/xFusion/Actions/VirtualMedia.VmmControl</td>
+<td>{&quot;VmmControlType&quot;: &quot;Disconnect&quot;}</td>
+</tr>
+</tbody>
+</table>
+<h1 id="6-电源管理-开机-关机-重启">6. 电源管理（开机、关机、重启）</h1>
+<h1 id="7-固件升级">7. 固件升级</h1>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-37f45ccd9b715779fda2cec095a76286">15.3 - 格式化磁盘分区</h1>
     
 	<p>本文主要描述重装操作系统如何格式化跟分区和数据盘以及设置磁盘挂载配置。</p>
 <h1 id="1-将操作系统写入根分区设备">1.将操作系统写入根分区设备</h1>
