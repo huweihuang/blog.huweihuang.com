@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.04c0c360e5ecaf59b760d59575e8c6e9.json"
+  data-offline-search-index-json-src="/offline-search-index.292089385b51c3ba33c310ecd72069b0.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -749,6 +749,14 @@ if (!doNotTrack) {
   
 
     </ul>
+    
+  
+    
+    
+	
+<li>11.3: <a href="#pg-637fdd90dbbca8cc7090a27b277cd979">Go实现限流器</a></li>
+
+
     
   
 
@@ -7269,6 +7277,268 @@ mux.handler(r).ServeHTTP(w,r)</li>
     
 	
   
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-637fdd90dbbca8cc7090a27b277cd979">11.3 - Go实现限流器</h1>
+    
+	<p>在 Go 中实现一个简单的 <strong>Rate Limiter（限流器）</strong> 可以有多种方式，常见的有基于 <strong>令牌桶（Token Bucket）</strong> 和 <strong>漏桶（Leaky Bucket）</strong> 的实现。下面我们先介绍一种经典方式 —— <strong>令牌桶算法</strong> 实现。</p>
+<h1 id="1-令牌桶算法">1. 令牌桶算法</h1>
+<p>“<strong>令牌桶算法（Token Bucket）</strong>”是一种 <strong>限流算法</strong>，用于控制请求的速率，是常见于 API 网关、负载均衡器、流控中间件等的核心策略之一。</p>
+<h2 id="1-1-核心思想">1.1. 核心思想</h2>
+<blockquote>
+<p><strong>系统以固定速率往“桶”里放令牌，每次请求必须拿到一个令牌才能被处理，否则被拒绝（限流）。</strong></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>桶（Bucket）</td>
+<td>保存令牌的容器，最多可以装 <code>burst</code> 个令牌（突发容量）</td>
+</tr>
+<tr>
+<td>令牌（Token）</td>
+<td>每个令牌代表一次允许的操作（如一次 HTTP 请求）</td>
+</tr>
+<tr>
+<td>速率（Rate）</td>
+<td>向桶中添加令牌的速度，比如每秒放 5 个</td>
+</tr>
+<tr>
+<td>请求到来时</td>
+<td>若桶中有令牌，请求就“取出一个令牌”被允许；否则就被拒绝或等待</td>
+</tr>
+</tbody>
+</table>
+<h2 id="1-2-动态行为图示">1.2. 动态行为图示</h2>
+<p>假设：每秒生成1个令牌，桶最多装3个。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>时间：0s 桶：<span style="color:#ce5c00;font-weight:bold">[</span>●<span style="color:#ce5c00;font-weight:bold">]</span> 请求：允许（消耗1个令牌）
+</span></span><span style="display:flex;"><span>时间：1s 桶：<span style="color:#ce5c00;font-weight:bold">[</span>●<span style="color:#ce5c00;font-weight:bold">]</span> 请求：允许（消耗1个令牌）
+</span></span><span style="display:flex;"><span>时间：2s 桶：<span style="color:#ce5c00;font-weight:bold">[</span>●●<span style="color:#ce5c00;font-weight:bold">]</span> 请求：允许
+</span></span><span style="display:flex;"><span>时间：3s 桶：<span style="color:#ce5c00;font-weight:bold">[</span>●●●<span style="color:#ce5c00;font-weight:bold">]</span> 请求：允许
+</span></span><span style="display:flex;"><span>时间：4s 桶：<span style="color:#ce5c00;font-weight:bold">[</span>●●●<span style="color:#ce5c00;font-weight:bold">]</span> 请求：没有消费，桶满了（不再增加）
+</span></span><span style="display:flex;"><span>时间：5s 桶：<span style="color:#ce5c00;font-weight:bold">[</span>●●●<span style="color:#ce5c00;font-weight:bold">]</span> 来5个请求，只允许3个，其余被限流
+</span></span></code></pre></div><h2 id="1-3-和漏桶算法的对比">1.3. 和漏桶算法的对比</h2>
+<table>
+<thead>
+<tr>
+<th>比较项</th>
+<th>令牌桶（Token Bucket）</th>
+<th>漏桶（Leaky Bucket）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>控制方式</td>
+<td>控制请求进入速率</td>
+<td>控制请求处理速率</td>
+</tr>
+<tr>
+<td>支持突发请求</td>
+<td>✅ 支持</td>
+<td>❌ 严格匀速处理</td>
+</tr>
+<tr>
+<td>应用场景</td>
+<td>限流（API、接口）</td>
+<td>排队（网络、处理任务）</td>
+</tr>
+</tbody>
+</table>
+<h2 id="1-4-应用场景举例">1.4. 应用场景举例</h2>
+<ul>
+<li>
+<p>API 请求速率控制（每个用户最多1秒10次）</p>
+</li>
+<li>
+<p>登录/注册防暴力攻击（每 IP 限1分钟5次）</p>
+</li>
+<li>
+<p>CDN 边缘限流（防止源站被打爆）</p>
+</li>
+<li>
+<p>后端任务投递（防止 RabbitMQ 拥堵）</p>
+</li>
+</ul>
+<h1 id="2-实现简单-token-bucket-限流器">2. 实现简单 Token Bucket 限流器</h1>
+<h2 id="2-1-使用-time-ticker-实现">2.1. 使用 time.Ticker 实现</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">package</span> <span style="color:#000">main</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;fmt&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;time&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">RateLimiter</span> <span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">tokens</span>       <span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">struct</span><span style="color:#000;font-weight:bold">{}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">ticker</span>       <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Ticker</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">maxTokens</span>    <span style="color:#204a87;font-weight:bold">int</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">refillPeriod</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Duration</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">NewRateLimiter</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">rps</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">burst</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">RateLimiter</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">rl</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">RateLimiter</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">tokens</span><span style="color:#000;font-weight:bold">:</span>       <span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">struct</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#000">burst</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">ticker</span><span style="color:#000;font-weight:bold">:</span>       <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewTicker</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Second</span> <span style="color:#ce5c00;font-weight:bold">/</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Duration</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">rps</span><span style="color:#000;font-weight:bold">)),</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">maxTokens</span><span style="color:#000;font-weight:bold">:</span>    <span style="color:#000">burst</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">refillPeriod</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Second</span> <span style="color:#ce5c00;font-weight:bold">/</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Duration</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">rps</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 初始化 token 桶
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">;</span> <span style="color:#000">i</span> <span style="color:#000;font-weight:bold">&lt;</span> <span style="color:#000">burst</span><span style="color:#000;font-weight:bold">;</span> <span style="color:#000">i</span><span style="color:#ce5c00;font-weight:bold">++</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">rl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">tokens</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span> <span style="color:#204a87;font-weight:bold">struct</span><span style="color:#000;font-weight:bold">{}{}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 后台协程定时放 token
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#204a87;font-weight:bold">go</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">for</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">rl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ticker</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">C</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">select</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#000">rl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">tokens</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span> <span style="color:#204a87;font-weight:bold">struct</span><span style="color:#000;font-weight:bold">{}{}:</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">default</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#8f5902;font-style:italic">// 桶满时丢弃 token
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>            <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">rl</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Allow 会阻塞直到有 token 可用（可改成 TryAllow 非阻塞版本）
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">rl</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">RateLimiter</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Allow</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#204a87;font-weight:bold">bool</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">select</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">case</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#000">rl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">tokens</span><span style="color:#000;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">true</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">default</span><span style="color:#000;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">false</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">main</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">limiter</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">NewRateLimiter</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#0000cf;font-weight:bold">10</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#8f5902;font-style:italic">// 每秒 5 个请求，最多缓冲 10 个
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">i</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">;</span> <span style="color:#000">i</span> <span style="color:#000;font-weight:bold">&lt;</span> <span style="color:#0000cf;font-weight:bold">20</span><span style="color:#000;font-weight:bold">;</span> <span style="color:#000">i</span><span style="color:#ce5c00;font-weight:bold">++</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">limiter</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Allow</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Request&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">i</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;allowed at&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Now</span><span style="color:#000;font-weight:bold">())</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span> <span style="color:#204a87;font-weight:bold">else</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Request&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">i</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;denied at&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Now</span><span style="color:#000;font-weight:bold">())</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Sleep</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">100</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Millisecond</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-2-使用go-rate包实现">2.2. 使用Go rate包实现</h2>
+<p>Go 的 <code>golang.org/x/time/rate</code> 包就实现了 <strong>令牌桶算法</strong>，例如：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 每秒5个令牌，最多能装10个（允许突发10次）
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">limiter</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">rate</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewLimiter</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#0000cf;font-weight:bold">10</span><span style="color:#000;font-weight:bold">)</span> 
+</span></span></code></pre></div><p>你可以使用 <code>.Allow()</code> 来判断是否获得令牌：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">limiter</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Allow</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 有令牌，请求通过
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span> <span style="color:#204a87;font-weight:bold">else</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 没令牌，请求被限流
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="3-实现gin按用户或-ip-限流中间件">3. 实现Gin按用户或 IP 限流中间件</h1>
+<h2 id="3-1-限流器结构-使用-rate-limiter">3.1. 限流器结构（使用 rate.Limiter）</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">package</span> <span style="color:#000">ratelimiter</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;sync&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;golang.org/x/time/rate&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">RateLimiter</span> <span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">rate</span>     <span style="color:#000">rate</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Limit</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">burst</span>    <span style="color:#204a87;font-weight:bold">int</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">buckets</span>  <span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">rate</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Limiter</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">mutex</span>    <span style="color:#000">sync</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Mutex</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">NewRateLimiter</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">r</span> <span style="color:#000">rate</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Limit</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">b</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">RateLimiter</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">RateLimiter</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">rate</span><span style="color:#000;font-weight:bold">:</span>    <span style="color:#000">r</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">burst</span><span style="color:#000;font-weight:bold">:</span>   <span style="color:#000">b</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">buckets</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">rate</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Limiter</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">rl</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">RateLimiter</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">getLimiter</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">rate</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Limiter</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">rl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">mutex</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Lock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">rl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">mutex</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Unlock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">limiter</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">exists</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">rl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">buckets</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">];</span> <span style="color:#000">exists</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">limiter</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">limiter</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">rate</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewLimiter</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">rl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">rate</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">rl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">burst</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">rl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">buckets</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">limiter</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">limiter</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">rl</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">RateLimiter</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Allow</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">bool</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">rl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">getLimiter</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Allow</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="3-2-gin-中间件">3.2. Gin 中间件</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">package</span> <span style="color:#000">ratelimiter</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;net/http&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;github.com/gin-gonic/gin&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">KeyFunc</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">gin</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Context</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">Middleware</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">rl</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">RateLimiter</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">keyFn</span> <span style="color:#000">KeyFunc</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">gin</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HandlerFunc</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">gin</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Context</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">key</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">keyFn</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">!</span><span style="color:#000">rl</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Allow</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">AbortWithStatusJSON</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">http</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">StatusTooManyRequests</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">gin</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">H</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#4e9a06">&#34;error&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#4e9a06">&#34;rate limit exceeded&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000;font-weight:bold">})</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Next</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="3-3-在-main-go-中使用-按-ip-限流">3.3. 在 main.go 中使用（按 IP 限流）</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">package</span> <span style="color:#000">main</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;github.com/gin-gonic/gin&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;golang.org/x/time/rate&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#4e9a06">&#34;your_project/ratelimiter&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">main</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 每秒2个请求，最多突发5个
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">rl</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">ratelimiter</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewRateLimiter</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#0000cf;font-weight:bold">5</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">r</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">gin</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Default</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">r</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Use</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ratelimiter</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Middleware</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">rl</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">gin</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Context</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">string</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ClientIP</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#8f5902;font-style:italic">// 或使用 c.GetString(&#34;userID&#34;) 实现按用户限流
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000;font-weight:bold">}))</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">r</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">GET</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;/hello&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">gin</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Context</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">JSON</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">200</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">gin</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">H</span><span style="color:#000;font-weight:bold">{</span><span style="color:#4e9a06">&#34;msg&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#4e9a06">&#34;hello&#34;</span><span style="color:#000;font-weight:bold">})</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">})</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">r</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Run</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;:8080&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div>
+</div>
+
+
 
     
 	
