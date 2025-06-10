@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.2a5adfd47615bf8c81bb30ba075d9ca4.json"
+  data-offline-search-index-json-src="/offline-search-index.8f38458ed036ae235aaab0d3a80ec8cb.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -755,6 +755,14 @@ if (!doNotTrack) {
     
 	
 <li>11.3: <a href="#pg-637fdd90dbbca8cc7090a27b277cd979">Go实现限流器</a></li>
+
+
+    
+  
+    
+    
+	
+<li>11.4: <a href="#pg-02626ee0f622db38dac84407191bbe42">Go实现本地缓存系统</a></li>
 
 
     
@@ -7536,6 +7544,402 @@ mux.handler(r).ServeHTTP(w,r)</li>
 </span></span><span style="display:flex;"><span>    <span style="color:#000">r</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Run</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;:8080&#34;</span><span style="color:#000;font-weight:bold">)</span>
 </span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
 </span></span></code></pre></div>
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-02626ee0f622db38dac84407191bbe42">11.4 - Go实现本地缓存系统</h1>
+    
+	<p>本文主要说明如何用 Go 实现简单的<strong>本地缓存系统 SDK</strong>。</p>
+<h1 id="1-目标特性">1. 目标特性</h1>
+<ul>
+<li>
+<p>✅ 通用缓存接口（Set/Get/Delete）</p>
+</li>
+<li>
+<p>✅ 支持 TTL（过期自动清除）</p>
+</li>
+<li>
+<p>✅ 并发安全（支持高并发读写）</p>
+</li>
+<li>
+<p>✅ 易于集成到任意平台（封装为模块）</p>
+</li>
+</ul>
+<h1 id="2-简易版实现">2. 简易版实现</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>localcache/
+</span></span><span style="display:flex;"><span>├── cache.go         <span style="color:#8f5902;font-style:italic"># 外部可用接口</span>
+</span></span><span style="display:flex;"><span>└── entry.go         <span style="color:#8f5902;font-style:italic"># 缓存条目定义</span>
+</span></span></code></pre></div><h2 id="1-缓存条目定义-entry-go">✅ 1. 缓存条目定义 <code>entry.go</code></h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">package</span> <span style="color:#000">localcache</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#4e9a06">&#34;time&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">entry</span> <span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">value</span>      <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">expireAt</span>   <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Time</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">hasExpired</span> <span style="color:#204a87;font-weight:bold">bool</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">e</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">entry</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">isExpired</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#204a87;font-weight:bold">bool</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">!</span><span style="color:#000">e</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">hasExpired</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">false</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Now</span><span style="color:#000;font-weight:bold">().</span><span style="color:#000">After</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">e</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">expireAt</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-缓存实现-cache-go">✅ 2. 缓存实现 <code>cache.go</code></h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">package</span> <span style="color:#000">localcache</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#4e9a06">&#34;sync&#34;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#4e9a06">&#34;time&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">Cache</span> <span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">items</span> <span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">entry</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">mu</span>    <span style="color:#000">sync</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">RWMutex</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">ttl</span>   <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Duration</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">quit</span>  <span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">struct</span><span style="color:#000;font-weight:bold">{}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">NewCache</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">defaultTTL</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Duration</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">Cache</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">Cache</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">items</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">entry</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">ttl</span><span style="color:#000;font-weight:bold">:</span>   <span style="color:#000">defaultTTL</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">quit</span><span style="color:#000;font-weight:bold">:</span>  <span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">chan</span> <span style="color:#204a87;font-weight:bold">struct</span><span style="color:#000;font-weight:bold">{}),</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">go</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">cleanupLoop</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">c</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">Cache</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Set</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">value</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#000">ttl</span> <span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Duration</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">exp</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ttl</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ttl</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">exp</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">ttl</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Lock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Unlock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">items</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">entry</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">value</span><span style="color:#000;font-weight:bold">:</span>      <span style="color:#000">value</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">expireAt</span><span style="color:#000;font-weight:bold">:</span>   <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Now</span><span style="color:#000;font-weight:bold">().</span><span style="color:#000">Add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">exp</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">hasExpired</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">exp</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">Cache</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Get</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#204a87;font-weight:bold">bool</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">RLock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">RUnlock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">item</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">ok</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">items</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">!</span><span style="color:#000">ok</span> <span style="color:#ce5c00;font-weight:bold">||</span> <span style="color:#000">item</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">isExpired</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">false</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">item</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">value</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">true</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">Cache</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Delete</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Lock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Unlock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87">delete</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">items</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">Cache</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">cleanupLoop</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">ticker</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewTicker</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Minute</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">ticker</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Stop</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">select</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">case</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#000">ticker</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">C</span><span style="color:#000;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">cleanExpired</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">case</span> <span style="color:#ce5c00;font-weight:bold">&lt;-</span><span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">quit</span><span style="color:#000;font-weight:bold">:</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87;font-weight:bold">return</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">Cache</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">cleanExpired</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Lock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Unlock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">now</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Now</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">for</span> <span style="color:#000">k</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">v</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">range</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">items</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">v</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">hasExpired</span> <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> <span style="color:#000">now</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">After</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">v</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">expireAt</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#204a87">delete</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">items</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">k</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">Cache</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Close</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87">close</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">quit</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="3-如何使用">✅ 3. 如何使用</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">cache</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">localcache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewCache</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">10</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Minute</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">cache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Close</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#000">cache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Set</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;username&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;huweihuang&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">value</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">found</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Get</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;username&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">found</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Got:&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">value</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="3-增强版实现">3. 增强版实现</h1>
+<p><strong>基于最大容量的缓存，并使用 LRU（Least Recently Used，最近最少使用）策略进行淘汰</strong>。</p>
+<p>我们在前面提供的 <code>Cache</code> 实现基础上，引入 <strong>双向链表 + map</strong> 来实现高效的 O(1) 时间复杂度的 LRU 缓存淘汰机制。</p>
+<h2 id="增强目标">✅ 增强目标</h2>
+<ul>
+<li>
+<p>✅ 支持最大容量限制 <code>maxEntries</code></p>
+</li>
+<li>
+<p>✅ 最近使用的缓存项保留，最久未使用的优先被淘汰</p>
+</li>
+<li>
+<p>✅ 并发安全、支持 TTL 清理</p>
+</li>
+<li>
+<p>✅ <code>Get</code> / <code>Set</code> 都更新访问时间</p>
+</li>
+</ul>
+<h2 id="实现结构">✅ 实现结构</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">LRUCache</span>
+</span></span><span style="display:flex;"><span><span style="color:#a40000">├──</span> <span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">list</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Element</span>     <span style="color:#8f5902;font-style:italic">// 快速查找
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#a40000">├──</span> <span style="color:#000">list</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">List</span>                    <span style="color:#8f5902;font-style:italic">// 保存访问顺序，头是最近使用，尾是最久未使用
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#a40000">└──</span> <span style="color:#000">entry</span> <span style="color:#000;font-weight:bold">{</span> <span style="color:#000">key</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">value</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">expireAt</span> <span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="lru-缓存结构代码">✅ LRU 缓存结构代码</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">package</span> <span style="color:#000">lru</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#4e9a06">&#34;container/list&#34;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#4e9a06">&#34;sync&#34;</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#4e9a06">&#34;time&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">entry</span> <span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">key</span>       <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">value</span>     <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">expireAt</span>  <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Time</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">ttlSet</span>    <span style="color:#204a87;font-weight:bold">bool</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">LRUCache</span> <span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">capacity</span> <span style="color:#204a87;font-weight:bold">int</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">mu</span>       <span style="color:#000">sync</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Mutex</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">ll</span>       <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">list</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">List</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">cache</span>    <span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">list</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Element</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">ttl</span>      <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Duration</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">NewLRUCache</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">capacity</span> <span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">defaultTTL</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Duration</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">LRUCache</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">LRUCache</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">capacity</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">capacity</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">ll</span><span style="color:#000;font-weight:bold">:</span>       <span style="color:#000">list</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">New</span><span style="color:#000;font-weight:bold">(),</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">cache</span><span style="color:#000;font-weight:bold">:</span>    <span style="color:#204a87">make</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">list</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Element</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">ttl</span><span style="color:#000;font-weight:bold">:</span>      <span style="color:#000">defaultTTL</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="核心操作逻辑">✅ 核心操作逻辑</h2>
+<p>Set</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">LRUCache</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Set</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">value</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#000">ttl</span> <span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Duration</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Lock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Unlock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">ele</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">ok</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">cache</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">];</span> <span style="color:#000">ok</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#8f5902;font-style:italic">// update existing
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>		<span style="color:#000">en</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">ele</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Value</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">entry</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">en</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">value</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">value</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">en</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">expireAt</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">getExpireAt</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ttl</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">en</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ttlSet</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87;font-weight:bold">true</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ll</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">MoveToFront</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ele</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// new entry
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">en</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">entry</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">key</span><span style="color:#000;font-weight:bold">:</span>      <span style="color:#000">key</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">value</span><span style="color:#000;font-weight:bold">:</span>    <span style="color:#000">value</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">expireAt</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">getExpireAt</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ttl</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">ttlSet</span><span style="color:#000;font-weight:bold">:</span>   <span style="color:#204a87;font-weight:bold">true</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">ele</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ll</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">PushFront</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">en</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">cache</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">ele</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ll</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Len</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">capacity</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">removeOldest</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">LRUCache</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">getExpireAt</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ttl</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Duration</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Time</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">d</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ttl</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ttl</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">d</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">ttl</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">d</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Time</span><span style="color:#000;font-weight:bold">{}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Now</span><span style="color:#000;font-weight:bold">().</span><span style="color:#000">Add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">d</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>Get</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">LRUCache</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Get</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{},</span> <span style="color:#204a87;font-weight:bold">bool</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Lock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">mu</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Unlock</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">ele</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">ok</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">cache</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">!</span><span style="color:#000">ok</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">false</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">en</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">ele</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Value</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">entry</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">en</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ttlSet</span> <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> <span style="color:#000;font-weight:bold">!</span><span style="color:#000">en</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">expireAt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">IsZero</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Now</span><span style="color:#000;font-weight:bold">().</span><span style="color:#000">After</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">en</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">expireAt</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">removeElement</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ele</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">false</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ll</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">MoveToFront</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ele</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">en</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">value</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">true</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p><code>removeOldest</code> &amp; <code>removeElement</code></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">LRUCache</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">removeOldest</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">ele</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ll</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Back</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">ele</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">removeElement</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ele</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">LRUCache</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">removeElement</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">e</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">list</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Element</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">en</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">e</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Value</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">entry</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87">delete</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">cache</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">en</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">c</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ll</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Remove</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">e</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="使用方式示例">✅ 使用方式示例</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">cache</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">lru</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewLRUCache</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">100</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#0000cf;font-weight:bold">5</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Minute</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#000">cache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Set</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;a&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;1&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">cache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Set</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;b&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;2&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#000">val</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">ok</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Get</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;a&#34;</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#8f5902;font-style:italic">// 会变为“最近使用”
+</span></span></span></code></pre></div><h1 id="4-原理">4. 原理</h1>
+<p>要理解这个 Go 实现的 <strong>本地 LRU 缓存系统</strong> 的原理，我们可以从两部分来讲：<strong>基本思想</strong> 和 <strong>核心数据结构设计</strong>。</p>
+<h2 id="4-1-基本原理-逻辑流程">🔧 4.1. 基本原理（逻辑流程）</h2>
+<h3 id="缓存的本质">📌 缓存的本质：</h3>
+<ul>
+<li>
+<p>把热点数据保存在内存中，提高读取速度。</p>
+</li>
+<li>
+<p>每个缓存项可能有「生命周期」（TTL）。</p>
+</li>
+<li>
+<p>当缓存空间满了，需要<strong>淘汰旧的数据</strong>。</p>
+</li>
+</ul>
+<h3 id="lru-least-recently-used-策略">📌 LRU（Least Recently Used）策略：</h3>
+<ul>
+<li>
+<p><strong>含义</strong>：优先淘汰最久没有被访问过的缓存项。</p>
+</li>
+<li>
+<p><strong>适用场景</strong>：访问数据具有局部性原则（近期使用的数据可能会再次被访问）。</p>
+</li>
+</ul>
+<h3 id="怎么实现-lru-ttl">📌 怎么实现 LRU + TTL：</h3>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>实现方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>O(1) 访问</td>
+<td>用 <code>map[string]*list.Element</code> 快速查找 key</td>
+</tr>
+<tr>
+<td>O(1) 更新访问顺序</td>
+<td>用 <code>container/list</code> 双向链表（LRU 队列）</td>
+</tr>
+<tr>
+<td>O(1) 淘汰最旧项</td>
+<td>从链表尾部直接删除</td>
+</tr>
+<tr>
+<td>TTL 过期</td>
+<td>每个 entry 存 <code>expireAt</code> 时间戳，访问时检查</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4-2-核心数据结构设计">🧠 4.2. 核心数据结构设计</h2>
+<h3 id="1-map-双向链表">1. Map + 双向链表</h3>
+<pre tabindex="0"><code class="language-textile" data-lang="textile">     LRU 队列（最近访问的放头部）：
+
+  [Most Recently Used] ---&gt; [Middle] ---&gt; [Least Recently Used]
+          ↑                                ↑
+         list.Front()                    list.Back()
+</code></pre><div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">LRUCache</span> <span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">ll</span>    <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">list</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">List</span>                        <span style="color:#8f5902;font-style:italic">// 双向链表：记录访问顺序
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">cache</span> <span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">]</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">list</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Element</span>         <span style="color:#8f5902;font-style:italic">// 快速定位 key -&gt; 链表节点
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="2-每个缓存-entry-包含信息">2. 每个缓存 entry 包含信息</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">entry</span> <span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">key</span>       <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">value</span>     <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">expireAt</span>  <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Time</span>  <span style="color:#8f5902;font-style:italic">// TTL 过期时间
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">ttlSet</span>    <span style="color:#204a87;font-weight:bold">bool</span>       <span style="color:#8f5902;font-style:italic">// 是否设置了 TTL
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="4-3-工作流程举例">⚙️ 4.3. 工作流程举例</h2>
+<h3 id="1-添加元素-set-a-1">1. 添加元素 <code>Set(&quot;a&quot;, 1)</code>：</h3>
+<ul>
+<li>
+<p>如果 <code>a</code> 已存在：更新值，移动到链表头部。</p>
+</li>
+<li>
+<p>如果不存在：</p>
+<ul>
+<li>
+<p>创建新 entry，放到链表头部。</p>
+</li>
+<li>
+<p>如果超过最大容量：删除链表尾部元素。</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="2-访问元素-get-a">2. 访问元素 <code>Get(&quot;a&quot;)</code>：</h3>
+<ul>
+<li>
+<p>找到 <code>a</code> 对应的链表节点。</p>
+</li>
+<li>
+<p>如果 TTL 未过期，移动它到链表头部（表示最近使用）。</p>
+</li>
+</ul>
+<h3 id="3-淘汰策略">3. 淘汰策略：</h3>
+<ul>
+<li>添加新元素时，如果超过容量，就执行：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">removeElement</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">list</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Back</span><span style="color:#000;font-weight:bold">())</span> <span style="color:#8f5902;font-style:italic">// 淘汰最久未用的缓存项
+</span></span></span></code></pre></div><h2 id="4-4-并发安全">🛡️ 4.4. 并发安全</h2>
+<ul>
+<li>
+<p>所有操作都使用 <code>sync.Mutex</code> 加锁。</p>
+</li>
+<li>
+<p>确保在多 goroutine 下不会出现竞争状态。</p>
+</li>
+</ul>
+<h2 id="总结一句话">✅ 总结一句话：</h2>
+<blockquote>
+<p><strong>这个缓存系统本质上是一个「哈希表 + 双向链表」的组合，用于快速定位 + 快速维护访问顺序，并结合 TTL 保证缓存不过期且高效清理。</strong></p>
+</blockquote>
+
 </div>
 
 
