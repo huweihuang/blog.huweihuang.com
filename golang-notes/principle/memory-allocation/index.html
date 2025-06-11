@@ -19,24 +19,41 @@
 <link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
 
 <title>内存分配 | 胡伟煌</title>
-<meta name="description" content="
-TODO
+<meta name="description" content="1. 内存分配器的问题
+当给不同大小的变量分配连续地址的内存的时候，可能因为部分变量内存的回收导致在分配新的内存需求时无法利用被回收的内存地址，因此内存管理不当，容易导致内存的碎片。
+2.基本策略：
 
-">
+每次从操作系统申请⼀⼤块内存（⽐如 1MB），以减少系统调⽤。
+将申请到的⼤块内存按照特定⼤⼩预先 …">
 <meta property="og:title" content="内存分配" />
-<meta property="og:description" content="TODO" />
+<meta property="og:description" content="1. 内存分配器的问题 当给不同大小的变量分配连续地址的内存的时候，可能因为部分变量内存的回收导致在分配新的内存需求时无法利用被回收的内存地址，因此内存管理不当，容易导致内存的碎片。
+2.基本策略： 每次从操作系统申请⼀⼤块内存（⽐如 1MB），以减少系统调⽤。 将申请到的⼤块内存按照特定⼤⼩预先切分成⼩块，构成链表。 为对象分配内存时，只需从⼤⼩合适的链表提取⼀个⼩块即可。 回收对象内存时，将该⼩块内存重新归还到原链表，以便复⽤。 如闲置内存过多，则尝试归还部分内存给操作系统，降低整体开销 3.内存分配的本质 针对不同大小的对象，在不同的 cache 层中，使用不同的内存结构；将从系统中获得的一块连续内存分割成多层次的 cache，以减少锁的使用以提高内存分配效率；申请不同类大小的内存块来减少内存碎片，同时加速内存释放后的垃圾回收。
+go的内存分配器将内存页分成67个不同大小规格（size class）的块，最小为8KB，最大为32768KB。
+内存块的分类：
+span:由多个地址连续的页（page）组成的大块内存。面向内部管理。 object：将span按照特定的大小切分成多个小块，每个小块可以存储一个对象。面向对象分配。 内存分配器的三个数据结构（申请逐级向上）：
+mcache：goroutine cache，可以认为是 本地 cache。不涉及锁竞争。 mcentral：全局cache，mcache 不够用的时候向 mcentral 申请。涉及锁竞争。 mheap：当mcentral 也不够用的时候，通过 mheap 向操作系统申请。 4.内存分配的流程 object size &lt; 16K，使用 mcache 的小对象分配器 tiny 直接分配。 object size &gt; 32K，则使用 mheap 直接分配。 object size &gt; 16K &amp;&amp; object size &lt; 32K，先使用 mcache 中对应的 size class 分配。 如果 mcache 对应的 size class 的 span 已经没有可用的块，则向 mcentral 请求。 如果 mcentral 也没有可用的块，则向 mheap申请，并切分。 如果 mheap 也没有合适的 span，则想操作系统申请。 5." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://blog.huweihuang.com/golang-notes/principle/memory-allocation/" /><meta property="article:section" content="golang-notes" />
 
 <meta property="article:modified_time" content="2022-07-17T15:13:28+08:00" /><meta property="og:site_name" content="胡伟煌" />
 
 <meta itemprop="name" content="内存分配">
-<meta itemprop="description" content="TODO">
+<meta itemprop="description" content="1. 内存分配器的问题 当给不同大小的变量分配连续地址的内存的时候，可能因为部分变量内存的回收导致在分配新的内存需求时无法利用被回收的内存地址，因此内存管理不当，容易导致内存的碎片。
+2.基本策略： 每次从操作系统申请⼀⼤块内存（⽐如 1MB），以减少系统调⽤。 将申请到的⼤块内存按照特定⼤⼩预先切分成⼩块，构成链表。 为对象分配内存时，只需从⼤⼩合适的链表提取⼀个⼩块即可。 回收对象内存时，将该⼩块内存重新归还到原链表，以便复⽤。 如闲置内存过多，则尝试归还部分内存给操作系统，降低整体开销 3.内存分配的本质 针对不同大小的对象，在不同的 cache 层中，使用不同的内存结构；将从系统中获得的一块连续内存分割成多层次的 cache，以减少锁的使用以提高内存分配效率；申请不同类大小的内存块来减少内存碎片，同时加速内存释放后的垃圾回收。
+go的内存分配器将内存页分成67个不同大小规格（size class）的块，最小为8KB，最大为32768KB。
+内存块的分类：
+span:由多个地址连续的页（page）组成的大块内存。面向内部管理。 object：将span按照特定的大小切分成多个小块，每个小块可以存储一个对象。面向对象分配。 内存分配器的三个数据结构（申请逐级向上）：
+mcache：goroutine cache，可以认为是 本地 cache。不涉及锁竞争。 mcentral：全局cache，mcache 不够用的时候向 mcentral 申请。涉及锁竞争。 mheap：当mcentral 也不够用的时候，通过 mheap 向操作系统申请。 4.内存分配的流程 object size &lt; 16K，使用 mcache 的小对象分配器 tiny 直接分配。 object size &gt; 32K，则使用 mheap 直接分配。 object size &gt; 16K &amp;&amp; object size &lt; 32K，先使用 mcache 中对应的 size class 分配。 如果 mcache 对应的 size class 的 span 已经没有可用的块，则向 mcentral 请求。 如果 mcentral 也没有可用的块，则向 mheap申请，并切分。 如果 mheap 也没有合适的 span，则想操作系统申请。 5.">
 <meta itemprop="dateModified" content="2022-07-17T15:13:28+08:00" />
-<meta itemprop="wordCount" content="1">
+<meta itemprop="wordCount" content="99">
 <meta itemprop="keywords" content="Golang," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="内存分配"/>
-<meta name="twitter:description" content="TODO"/>
+<meta name="twitter:description" content="1. 内存分配器的问题 当给不同大小的变量分配连续地址的内存的时候，可能因为部分变量内存的回收导致在分配新的内存需求时无法利用被回收的内存地址，因此内存管理不当，容易导致内存的碎片。
+2.基本策略： 每次从操作系统申请⼀⼤块内存（⽐如 1MB），以减少系统调⽤。 将申请到的⼤块内存按照特定⼤⼩预先切分成⼩块，构成链表。 为对象分配内存时，只需从⼤⼩合适的链表提取⼀个⼩块即可。 回收对象内存时，将该⼩块内存重新归还到原链表，以便复⽤。 如闲置内存过多，则尝试归还部分内存给操作系统，降低整体开销 3.内存分配的本质 针对不同大小的对象，在不同的 cache 层中，使用不同的内存结构；将从系统中获得的一块连续内存分割成多层次的 cache，以减少锁的使用以提高内存分配效率；申请不同类大小的内存块来减少内存碎片，同时加速内存释放后的垃圾回收。
+go的内存分配器将内存页分成67个不同大小规格（size class）的块，最小为8KB，最大为32768KB。
+内存块的分类：
+span:由多个地址连续的页（page）组成的大块内存。面向内部管理。 object：将span按照特定的大小切分成多个小块，每个小块可以存储一个对象。面向对象分配。 内存分配器的三个数据结构（申请逐级向上）：
+mcache：goroutine cache，可以认为是 本地 cache。不涉及锁竞争。 mcentral：全局cache，mcache 不够用的时候向 mcentral 申请。涉及锁竞争。 mheap：当mcentral 也不够用的时候，通过 mheap 向操作系统申请。 4.内存分配的流程 object size &lt; 16K，使用 mcache 的小对象分配器 tiny 直接分配。 object size &gt; 32K，则使用 mheap 直接分配。 object size &gt; 16K &amp;&amp; object size &lt; 32K，先使用 mcache 中对应的 size class 分配。 如果 mcache 对应的 size class 的 span 已经没有可用的块，则向 mcentral 请求。 如果 mcentral 也没有可用的块，则向 mheap申请，并切分。 如果 mheap 也没有合适的 span，则想操作系统申请。 5."/>
 
 
 
@@ -148,7 +165,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.8f38458ed036ae235aaab0d3a80ec8cb.json"
+  data-offline-search-index-json-src="/offline-search-index.0101315472b6cf5e9e047fe4491f1003.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -170,7 +187,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.8f38458ed036ae235aaab0d3a80ec8cb.json"
+  data-offline-search-index-json-src="/offline-search-index.0101315472b6cf5e9e047fe4491f1003.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -475,6 +492,21 @@ if (!doNotTrack) {
             
 
 
+<div class="td-toc"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-内存分配器的问题">1. 内存分配器的问题</a></li>
+    <li><a href="#2-基本策略">2.基本策略：</a></li>
+    <li><a href="#3-内存分配的本质">3.内存分配的本质</a></li>
+    <li><a href="#4-内存分配的流程">4.内存分配的流程</a></li>
+    <li><a href="#5-内存回收的流程">5.内存回收的流程</a></li>
+    <li><a href="#6-tcmalloc-thread-caching-mallo">6.tcmalloc(thread-caching mallo)</a>
+      <ul>
+        <li><a href="#总结">总结</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></div>
+
 
 
             
@@ -640,9 +672,56 @@ if (!doNotTrack) {
 
 		
 	</header>    
-	<blockquote>
-<p>TODO</p>
-</blockquote>
+	<h1 id="1-内存分配器的问题">1. 内存分配器的问题</h1>
+<p>当给不同大小的变量分配连续地址的内存的时候，可能因为部分变量内存的回收导致在分配新的内存需求时无法利用被回收的内存地址，因此内存管理不当，容易导致内存的碎片。</p>
+<h1 id="2-基本策略">2.基本策略：</h1>
+<ol>
+<li>每次从操作系统申请⼀⼤块内存（⽐如 1MB），以减少系统调⽤。</li>
+<li>将申请到的⼤块内存按照特定⼤⼩预先切分成⼩块，构成链表。</li>
+<li>为对象分配内存时，只需从⼤⼩合适的链表提取⼀个⼩块即可。</li>
+<li>回收对象内存时，将该⼩块内存重新归还到原链表，以便复⽤。</li>
+<li>如闲置内存过多，则尝试归还部分内存给操作系统，降低整体开销</li>
+</ol>
+<h1 id="3-内存分配的本质">3.内存分配的本质</h1>
+<p>针对不同大小的对象，在不同的 cache 层中，使用不同的内存结构；将从系统中获得的一块连续内存分割成多层次的 cache，以减少锁的使用以提高内存分配效率；申请不同类大小的内存块来减少内存碎片，同时加速内存释放后的垃圾回收。</p>
+<p>go的内存分配器将内存页分成67个不同大小规格（size class）的块，最小为8KB，最大为32768KB。</p>
+<p>内存块的分类：</p>
+<ul>
+<li>span:由多个地址连续的页（page）组成的大块内存。面向内部管理。</li>
+<li>object：将span按照特定的大小切分成多个小块，每个小块可以存储一个对象。面向对象分配。</li>
+</ul>
+<p>内存分配器的三个数据结构（申请逐级向上）：</p>
+<ul>
+<li>mcache：goroutine cache，可以认为是 本地 cache。不涉及锁竞争。</li>
+<li>mcentral：全局cache，mcache 不够用的时候向 mcentral 申请。涉及锁竞争。</li>
+<li>mheap：当mcentral 也不够用的时候，通过 mheap 向操作系统申请。</li>
+</ul>
+<h1 id="4-内存分配的流程">4.内存分配的流程</h1>
+<ol>
+<li>object size &lt; 16K，使用 mcache 的小对象分配器 tiny 直接分配。</li>
+<li>object size &gt; 32K，则使用 mheap 直接分配。</li>
+<li>object size &gt; 16K &amp;&amp; object size &lt; 32K，先使用 mcache 中对应的 size class 分配。</li>
+<li>如果 mcache 对应的 size class 的 span 已经没有可用的块，则向 mcentral 请求。</li>
+<li>如果 mcentral 也没有可用的块，则向 mheap申请，并切分。</li>
+<li>如果 mheap 也没有合适的 span，则想操作系统申请。</li>
+</ol>
+<h1 id="5-内存回收的流程">5.内存回收的流程</h1>
+<ul>
+<li>mcache 归还内存分两部分：归还mcentral内存，可能涉及锁竞争；除此之外，归还到mheap，直接插入链表头。</li>
+<li>mcentral 归还mheap。</li>
+<li>mheap 定时归还系统内存。</li>
+</ul>
+<h1 id="6-tcmalloc-thread-caching-mallo">6.tcmalloc(thread-caching mallo)</h1>
+<p>是google推出的一种内存分配器。</p>
+<p>具体策略：全局缓存堆和进程的私有缓存。</p>
+<p>1.对于一些小容量的内存申请试用进程的私有缓存，私有缓存不足的时候可以再从全局缓存申请一部分作为私有缓存。</p>
+<p>2.对于大容量的内存申请则需要从全局缓存中进行申请。而大小容量的边界就是32k。缓存的组织方式是一个单链表数组，数组的每个元素是一个单链表，链表中的每个元素具有相同的大小。</p>
+<p>golang语言中MHeap就是全局缓存堆，MCache作为线程私有缓存。</p>
+<p>内存池就是利用MHeap实现，大小切分则是在申请内存的时候就做了，同时MCache分配内存时，可以用MCentral去取对应的sizeClass，多线程管理方面则是通过MCache去实现。</p>
+<h2 id="总结">总结</h2>
+<p>1.<code>MHeap</code>是一个全局变量，负责向系统申请内存，mallocinit()函数进行初始化。如果分配内存对象大于32K直接向MHeap申请。</p>
+<p>2.<code>MCache</code>线程级别管理内存池，关联结构体P，主要是负责线程内部内存申请。</p>
+<p>3.<code>MCentral</code>连接MHeap与MCache的，MCache内存不够则向MCentral申请，MCentral不够时向MHeap申请内存。</p>
 
 	
 		<style>

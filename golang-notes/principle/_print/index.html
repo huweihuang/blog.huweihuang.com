@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.8f38458ed036ae235aaab0d3a80ec8cb.json"
+  data-offline-search-index-json-src="/offline-search-index.0101315472b6cf5e9e047fe4491f1003.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -341,9 +341,56 @@ if (!doNotTrack) {
     
 	<h1 id="pg-b8b91a006ccc6631bf1d4686e528f557">2 - 内存分配</h1>
     
-	<blockquote>
-<p>TODO</p>
-</blockquote>
+	<h1 id="1-内存分配器的问题">1. 内存分配器的问题</h1>
+<p>当给不同大小的变量分配连续地址的内存的时候，可能因为部分变量内存的回收导致在分配新的内存需求时无法利用被回收的内存地址，因此内存管理不当，容易导致内存的碎片。</p>
+<h1 id="2-基本策略">2.基本策略：</h1>
+<ol>
+<li>每次从操作系统申请⼀⼤块内存（⽐如 1MB），以减少系统调⽤。</li>
+<li>将申请到的⼤块内存按照特定⼤⼩预先切分成⼩块，构成链表。</li>
+<li>为对象分配内存时，只需从⼤⼩合适的链表提取⼀个⼩块即可。</li>
+<li>回收对象内存时，将该⼩块内存重新归还到原链表，以便复⽤。</li>
+<li>如闲置内存过多，则尝试归还部分内存给操作系统，降低整体开销</li>
+</ol>
+<h1 id="3-内存分配的本质">3.内存分配的本质</h1>
+<p>针对不同大小的对象，在不同的 cache 层中，使用不同的内存结构；将从系统中获得的一块连续内存分割成多层次的 cache，以减少锁的使用以提高内存分配效率；申请不同类大小的内存块来减少内存碎片，同时加速内存释放后的垃圾回收。</p>
+<p>go的内存分配器将内存页分成67个不同大小规格（size class）的块，最小为8KB，最大为32768KB。</p>
+<p>内存块的分类：</p>
+<ul>
+<li>span:由多个地址连续的页（page）组成的大块内存。面向内部管理。</li>
+<li>object：将span按照特定的大小切分成多个小块，每个小块可以存储一个对象。面向对象分配。</li>
+</ul>
+<p>内存分配器的三个数据结构（申请逐级向上）：</p>
+<ul>
+<li>mcache：goroutine cache，可以认为是 本地 cache。不涉及锁竞争。</li>
+<li>mcentral：全局cache，mcache 不够用的时候向 mcentral 申请。涉及锁竞争。</li>
+<li>mheap：当mcentral 也不够用的时候，通过 mheap 向操作系统申请。</li>
+</ul>
+<h1 id="4-内存分配的流程">4.内存分配的流程</h1>
+<ol>
+<li>object size &lt; 16K，使用 mcache 的小对象分配器 tiny 直接分配。</li>
+<li>object size &gt; 32K，则使用 mheap 直接分配。</li>
+<li>object size &gt; 16K &amp;&amp; object size &lt; 32K，先使用 mcache 中对应的 size class 分配。</li>
+<li>如果 mcache 对应的 size class 的 span 已经没有可用的块，则向 mcentral 请求。</li>
+<li>如果 mcentral 也没有可用的块，则向 mheap申请，并切分。</li>
+<li>如果 mheap 也没有合适的 span，则想操作系统申请。</li>
+</ol>
+<h1 id="5-内存回收的流程">5.内存回收的流程</h1>
+<ul>
+<li>mcache 归还内存分两部分：归还mcentral内存，可能涉及锁竞争；除此之外，归还到mheap，直接插入链表头。</li>
+<li>mcentral 归还mheap。</li>
+<li>mheap 定时归还系统内存。</li>
+</ul>
+<h1 id="6-tcmalloc-thread-caching-mallo">6.tcmalloc(thread-caching mallo)</h1>
+<p>是google推出的一种内存分配器。</p>
+<p>具体策略：全局缓存堆和进程的私有缓存。</p>
+<p>1.对于一些小容量的内存申请试用进程的私有缓存，私有缓存不足的时候可以再从全局缓存申请一部分作为私有缓存。</p>
+<p>2.对于大容量的内存申请则需要从全局缓存中进行申请。而大小容量的边界就是32k。缓存的组织方式是一个单链表数组，数组的每个元素是一个单链表，链表中的每个元素具有相同的大小。</p>
+<p>golang语言中MHeap就是全局缓存堆，MCache作为线程私有缓存。</p>
+<p>内存池就是利用MHeap实现，大小切分则是在申请内存的时候就做了，同时MCache分配内存时，可以用MCentral去取对应的sizeClass，多线程管理方面则是通过MCache去实现。</p>
+<h2 id="总结">总结</h2>
+<p>1.<code>MHeap</code>是一个全局变量，负责向系统申请内存，mallocinit()函数进行初始化。如果分配内存对象大于32K直接向MHeap申请。</p>
+<p>2.<code>MCache</code>线程级别管理内存池，关联结构体P，主要是负责线程内部内存申请。</p>
+<p>3.<code>MCentral</code>连接MHeap与MCache的，MCache内存不够则向MCentral申请，MCentral不够时向MHeap申请内存。</p>
 
 </div>
 
@@ -361,8 +408,36 @@ if (!doNotTrack) {
     
 	<h1 id="pg-6175b2f5094c6f2f7f140051010d2af5">3 - 垃圾回收</h1>
     
-	<blockquote>
-<p>TODO</p>
+	<h1 id="1-三色标记法">1. 三色标记法</h1>
+<p>go的垃圾回收机制是通过三色标记法来实现的，其中</p>
+<ul>
+<li>黑色：没有指向（引用）白色集合中的任何对象</li>
+<li>灰色：可能指向（引用）白色集合中的某些对象</li>
+<li>白色：剩下的需要被回收的候选对象，当灰色集合为空时，表示白色集合中的对象都没有被引用，那么这些对象就可以被回收。</li>
+</ul>
+<p>一个垃圾回收循环的步骤：</p>
+<ol>
+<li>将所有的对象都放入白色集合中</li>
+<li>扫描所有roots对象，放入灰色集合中，roots对象表示在应用中可以被直接访问，一般是全局变量和其他在栈中的对象。</li>
+<li>将灰色集合中的某个对象放入黑色集合，然后扫描这个对象有引到到的白色集合中的对象，将那些白色集合中引用到的所有对象放入灰色集合，以此类推，将灰色集合中的对象不断放入黑色集合中，然后白色集合中的对象不断放入灰色集合中。</li>
+<li>当灰色集合中的对象为0，即都被放入到黑色集合中了，表示没有任何对象会引用到白色集合中的对象了，因为黑色集合存放不会引用白色集合对象的元素，而灰色集合为0，也不存在引用白色集合对象的元素。所以白色集合中的对象即是没有被引用的对象，可以回收的对象。</li>
+</ol>
+<h1 id="2-三色标记和写屏障">2. 三色标记和写屏障</h1>
+<p>这是让标记和⽤户代码并发的基本保障，基本原理：</p>
+<ul>
+<li>起初所有对象都是⽩⾊。</li>
+<li>扫描找出所有可达对象，标记为灰⾊，放⼊待处理队列。</li>
+<li>从队列提取灰⾊对象，将其引⽤对象标记为灰⾊放⼊队列，⾃⾝标记为⿊⾊。</li>
+<li>写屏障监视对象内存修改，重新标⾊或放回队列。</li>
+</ul>
+<p>当完成全部扫描和标记⼯作后，剩余不是⽩⾊就是⿊⾊，分别代表要待回收和活跃对象，清理操作只需将⽩⾊对象内存收回即可。</p>
+<h1 id="3-标记清除算法-mark-sweep">3. 标记清除算法 (Mark-Sweep)</h1>
+<p>标记-清除算法分为两个阶段：标记阶段和清除阶段。</p>
+<p>标记阶段的任务是标记出所有需要被回收的对象，清除阶段就是回收被标记的对象所占用的空间。</p>
+<p>优点是简单，容易实现。
+缺点是容易产生内存碎片，碎片太多可能会导致后续过程中需要为大对象分配空间时无法找到足够的空间而提前触发新的一次垃圾收集动作。（因为没有对不同生命周期的对象采用不同算法，所以碎片多，内存容易满，gc频率高，耗时）</p>
+<blockquote>
+<p>待完善</p>
 </blockquote>
 
 </div>
@@ -381,9 +456,63 @@ if (!doNotTrack) {
     
 	<h1 id="pg-153a0dea4426741d355082018e61bbca">4 - 深入理解Channel</h1>
     
-	<blockquote>
-<p>TODO</p>
-</blockquote>
+	<h1 id="channel的原理">channel的原理</h1>
+<p>channel的作用是解决goroutine之间的通信问题。不要通过共享内存来通信，而应该通过通信来共享内存。</p>
+<h2 id="1-channel的特性">1. channel的特性</h2>
+<ul>
+<li>goroutine安全</li>
+<li>提供FIFO语义(buffered channel提供)，缓冲大小</li>
+<li>在不同的goroutine之间存储和传输值</li>
+<li>可以让goroutine block/unblock</li>
+</ul>
+<h2 id="2-channel的数据结构">2. channel的数据结构</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">hchan</span> <span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">qcount</span>   <span style="color:#204a87;font-weight:bold">uint</span>           <span style="color:#8f5902;font-style:italic">// 当前队列中剩余元素个数
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">dataqsiz</span> <span style="color:#204a87;font-weight:bold">uint</span>           <span style="color:#8f5902;font-style:italic">// 环形队列长度，即可以存放的元素个数
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">buf</span>      <span style="color:#000">unsafe</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Pointer</span> <span style="color:#8f5902;font-style:italic">// 环形队列指针
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">elemsize</span> <span style="color:#204a87;font-weight:bold">uint16</span>         <span style="color:#8f5902;font-style:italic">// 每个元素的大小
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">closed</span>   <span style="color:#204a87;font-weight:bold">uint32</span>            <span style="color:#8f5902;font-style:italic">// 标识关闭状态
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">elemtype</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">_type</span>         <span style="color:#8f5902;font-style:italic">// 元素类型
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">sendx</span>    <span style="color:#204a87;font-weight:bold">uint</span>           <span style="color:#8f5902;font-style:italic">// 队列下标，指示元素写入时存放到队列中的位置
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">recvx</span>    <span style="color:#204a87;font-weight:bold">uint</span>           <span style="color:#8f5902;font-style:italic">// 队列下标，指示元素从队列的该位置读出
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">recvq</span>    <span style="color:#000">waitq</span>          <span style="color:#8f5902;font-style:italic">// 等待读消息的goroutine队列
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">sendq</span>    <span style="color:#000">waitq</span>          <span style="color:#8f5902;font-style:italic">// 等待写消息的goroutine队列
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">lock</span> <span style="color:#000">mutex</span>              <span style="color:#8f5902;font-style:italic">// 互斥锁，chan不允许并发读写
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p><code>hchan</code>维护了两个链表，<code>recvq</code>是因读这个chan而阻塞的G，<code>sendq</code>则是因写这个chan而阻塞的G。<code>waitq</code>队列中每个元素的数据结构为sudog，其中elem用于保存数据。</p>
+<h2 id="3-创建channel">3. 创建channel</h2>
+<p>make函数在创建channel的时候会在该进程的heap区申请一块内存，创建一个hchan结构体，返回执行该内存的指针，所以获取的的ch变量本身就是一个指针，在函数之间传递的时候是同一个channel。</p>
+<p>hchan结构体使<strong>用一个环形队列</strong>来保存groutine之间传递的数据(如果是缓存channel的话)，使用<strong>两个list</strong>保存像该chan发送和从改chan接收数据的goroutine，还有一个mutex来保证操作这些结构的安全。</p>
+<h2 id="4-写入channel">4. 写入channel</h2>
+<p>recvq存放读取channel阻塞的G，此时说明channel里面没有数据。sendq存放写入channel阻塞的G，此时说明channel已经满了。</p>
+<ol>
+<li>如果等待接收队列recvq不为空，说明缓冲区中没有数据或者没有缓冲区，此时直接从recvq取出G,并把数据写入，最后把该recvq的G唤醒，结束发送过程；</li>
+<li>如果缓冲区中有空余位置，将数据写入缓冲区，结束发送过程；</li>
+<li>如果缓冲区满了，将待发送数据写入G，将当前G加入sendq，进入睡眠（阻塞状态），等待被读goroutine唤醒；</li>
+</ol>
+<h2 id="5-读出channel">5. 读出channel</h2>
+<ol>
+<li>如果等待发送队列sendq不为空，且没有缓冲区，直接从sendq中取出G，把G中数据读出，最后把G唤醒，结束读取过程；</li>
+<li>如果等待发送队列sendq不为空，此时说明缓冲区已满，从缓冲区中首部读出数据，把G中数据写入缓冲区尾部，把G唤醒，结束读取过程；</li>
+<li>如果等待发送队列sendq为空，说明缓冲区中有数据，则从缓冲区取出数据，结束读取过程；</li>
+<li>如果channel读取不到数据，将当前goroutine加入recvq，进入睡眠（阻塞状态），等待被写goroutine唤醒；</li>
+</ol>
+<h2 id="6-关闭channel">6. 关闭channel</h2>
+<ul>
+<li>
+<p>将 c.closed 设置为 1</p>
+</li>
+<li>
+<p>唤醒 recvq 队列里面的阻塞 goroutine</p>
+</li>
+<li>
+<p>唤醒 sendq 队列里面的阻塞 goroutine</p>
+</li>
+</ul>
+<h2 id="7-阻塞">7. 阻塞</h2>
+<p>当G1向buf已经满了的ch发送数据的时候，当runtine检测到对应的hchan的buf已经满了，会通知调度器，调度器会将G1的状态设置为waiting, 移除与线程M的联系，然后从P的runqueue中选择一个goroutine在线程M中执行，此时G1就是阻塞状态，但是不是操作系统的线程阻塞，所以这个时候只用消耗少量的资源。</p>
+<h2 id="8-唤醒">8. 唤醒</h2>
+<p>当G1变为waiting状态后，会创建一个代表自己的sudog的结构，然后放到sendq这个list中，sudog结构中保存了channel相关的变量的指针。当G2从ch中接收一个数据时，会通知调度器，设置G1的状态为runnable，然后将加入P的runqueue里，等待线程执行.</p>
 
 </div>
 
