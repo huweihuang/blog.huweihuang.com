@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<meta name="robots" content="index, follow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>workqueue源码分析 | 胡伟煌</title>
+<meta name="description" content="本文主要分析client-go中使用的workqueue，从而来分析k8s是如何基于任务队列做并发控制的。其中代码参考：
+
+https://github.com/kubernetes/client-go/tree/release-1.30
+
+1. 概述
+k8s的控制器大多是基于任务队列的方式进行并发 …">
+<meta property="og:title" content="workqueue源码分析" />
+<meta property="og:description" content="本文主要分析client-go中使用的workqueue，从而来分析k8s是如何基于任务队列做并发控制的。其中代码参考：
+https://github.com/kubernetes/client-go/tree/release-1.30 1. 概述 k8s的控制器大多是基于任务队列的方式进行并发控制，甚至包括基于controller-manager开发的自定义operator控制器。以下我们以deployment controller为例展示workqueue在k8s中的使用。
+2. Deployment中的workqueue 2.1. 初始化workqueue Deployment 的构建函数NewDeploymentController中初始化了任务队列和对于event事件处理相对应的workqueue的操作。
+初始化workqueue的限速任务队列。 添加event handler使得deployment对象入队，等待处理。 func NewDeploymentController(ctx context.Context, dInformer appsinformers.DeploymentInformer, rsInformer appsinformers.ReplicaSetInformer, podInformer coreinformers.PodInformer, client clientset.Interface) (*DeploymentController, error) { dc := &amp;DeploymentController{ // 初始化一个限速的任务队列 queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), &#34;deployment&#34;), } // 添加 add, update, delete的event handler, 其中handler的操作都添加对象到任务队列中。 dInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{ AddFunc: func(obj interface{}) { dc.addDeployment(logger, obj) }, UpdateFunc: func(oldObj, newObj interface{}) { dc.updateDeployment(logger, oldObj, newObj) }, // This will enter the sync loop and no-op, because the deployment has been deleted from the store." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.huweihuang.com/k8s-source-code-analysis/kube-controller-manager/workqueue/" /><meta property="article:section" content="k8s-source-code-analysis" />
+
+<meta property="og:site_name" content="胡伟煌" />
+
+<meta itemprop="name" content="workqueue源码分析">
+<meta itemprop="description" content="本文主要分析client-go中使用的workqueue，从而来分析k8s是如何基于任务队列做并发控制的。其中代码参考：
+https://github.com/kubernetes/client-go/tree/release-1.30 1. 概述 k8s的控制器大多是基于任务队列的方式进行并发控制，甚至包括基于controller-manager开发的自定义operator控制器。以下我们以deployment controller为例展示workqueue在k8s中的使用。
+2. Deployment中的workqueue 2.1. 初始化workqueue Deployment 的构建函数NewDeploymentController中初始化了任务队列和对于event事件处理相对应的workqueue的操作。
+初始化workqueue的限速任务队列。 添加event handler使得deployment对象入队，等待处理。 func NewDeploymentController(ctx context.Context, dInformer appsinformers.DeploymentInformer, rsInformer appsinformers.ReplicaSetInformer, podInformer coreinformers.PodInformer, client clientset.Interface) (*DeploymentController, error) { dc := &amp;DeploymentController{ // 初始化一个限速的任务队列 queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), &#34;deployment&#34;), } // 添加 add, update, delete的event handler, 其中handler的操作都添加对象到任务队列中。 dInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{ AddFunc: func(obj interface{}) { dc.addDeployment(logger, obj) }, UpdateFunc: func(oldObj, newObj interface{}) { dc.updateDeployment(logger, oldObj, newObj) }, // This will enter the sync loop and no-op, because the deployment has been deleted from the store.">
+
+<meta itemprop="wordCount" content="370">
+<meta itemprop="keywords" content="源码分析," /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="workqueue源码分析"/>
+<meta name="twitter:description" content="本文主要分析client-go中使用的workqueue，从而来分析k8s是如何基于任务队列做并发控制的。其中代码参考：
+https://github.com/kubernetes/client-go/tree/release-1.30 1. 概述 k8s的控制器大多是基于任务队列的方式进行并发控制，甚至包括基于controller-manager开发的自定义operator控制器。以下我们以deployment controller为例展示workqueue在k8s中的使用。
+2. Deployment中的workqueue 2.1. 初始化workqueue Deployment 的构建函数NewDeploymentController中初始化了任务队列和对于event事件处理相对应的workqueue的操作。
+初始化workqueue的限速任务队列。 添加event handler使得deployment对象入队，等待处理。 func NewDeploymentController(ctx context.Context, dInformer appsinformers.DeploymentInformer, rsInformer appsinformers.ReplicaSetInformer, podInformer coreinformers.PodInformer, client clientset.Interface) (*DeploymentController, error) { dc := &amp;DeploymentController{ // 初始化一个限速的任务队列 queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), &#34;deployment&#34;), } // 添加 add, update, delete的event handler, 其中handler的操作都添加对象到任务队列中。 dInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{ AddFunc: func(obj interface{}) { dc.addDeployment(logger, obj) }, UpdateFunc: func(oldObj, newObj interface{}) { dc.updateDeployment(logger, oldObj, newObj) }, // This will enter the sync loop and no-op, because the deployment has been deleted from the store."/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" as="style">
+<link href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-114718458-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-page">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">胡伟煌</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/kubernetes-notes/" ><span>Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/k8s-source-code-analysis/" ><span class="active">Kubernetes源码分析</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/golang-notes/" ><span>Golang学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/linux-notes/" ><span>Linux学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/about/" ><span>About</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.16f3c2880a3c8f3cec052b95e5efa0c6.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <aside class="col-12 col-md-3 col-xl-2 td-sidebar d-print-none">
+            
+<div id="td-sidebar-menu" class="td-sidebar__inner">
+  <form class="td-sidebar__search d-flex align-items-center">
+    <input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.16f3c2880a3c8f3cec052b95e5efa0c6.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+
+    <button class="btn btn-link td-sidebar__toggle d-md-none p-0 ml-3 fas fa-bars" type="button" data-toggle="collapse" data-target="#td-section-nav" aria-controls="td-docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    </button>
+  </form>
+  <nav class="collapse td-sidebar-nav foldable-nav" id="td-section-nav">
+    <ul class="td-sidebar-nav__section pr-md-3 ul-0">
+      <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-k8s-source-code-analysis-li">
+  <a href="/k8s-source-code-analysis/" class="align-left pl-0 td-sidebar-link td-sidebar-link__section tree-root" id="m-k8s-source-code-analysis"><span class="">Kubernetes源码分析</span></a>
+  <ul class="ul-1">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-k8s-source-code-analysis-summary-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-summary-check"/>
+  <label for="m-k8s-source-code-analysis-summary-check"><a href="/k8s-source-code-analysis/summary/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-k8s-source-code-analysis-summary"><span class="">summary</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-summary-resource-object-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-summary-resource-object-check"/>
+  <label for="m-k8s-source-code-analysis-summary-resource-object-check"><a href="/k8s-source-code-analysis/summary/resource-object/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-summary-resource-object"><span class="">k8s核心数据结构分析</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-summary-etcd-storage-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-summary-etcd-storage-check"/>
+  <label for="m-k8s-source-code-analysis-summary-etcd-storage-check"><a href="/k8s-source-code-analysis/summary/etcd-storage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-summary-etcd-storage"><span class="">k8s中Etcd存储的实现</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-k8s-source-code-analysis-kube-apiserver-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-apiserver-check"/>
+  <label for="m-k8s-source-code-analysis-kube-apiserver-check"><a href="/k8s-source-code-analysis/kube-apiserver/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-k8s-source-code-analysis-kube-apiserver"><span class="">kube-apiserver</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand-check"/>
+  <label for="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand-check"><a href="/k8s-source-code-analysis/kube-apiserver/newapiservercommand/" title="kube-apiserver源码分析（一）之 NewAPIServerCommand" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand"><span class="">NewAPIServerCommand</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-k8s-source-code-analysis-kube-controller-manager-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-check" checked/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-check"><a href="/k8s-source-code-analysis/kube-controller-manager/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-k8s-source-code-analysis-kube-controller-manager"><span class="">kube-controller-manager</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind-check"><a href="/k8s-source-code-analysis/kube-controller-manager/controller-manager-xmind/" title="controller-manager 源码思维导图" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind"><span class="">源码思维导图</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand-check"><a href="/k8s-source-code-analysis/kube-controller-manager/newcontrollermanagercommand/" title="kube-controller-manager源码分析（一）之 NewControllerManagerCommand" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand"><span class="">NewControllerManager</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller-check"><a href="/k8s-source-code-analysis/kube-controller-manager/deployment-controller/" title="kube-controller-manager源码分析（二）之 DeploymentController" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller"><span class="">DeploymentController</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-informer-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-informer-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-informer-check"><a href="/k8s-source-code-analysis/kube-controller-manager/informer/" title="kube-controller-manager源码分析（三）之 Informer机制" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-informer"><span class="">Informer机制</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-replicaset-controller-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-replicaset-controller-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-replicaset-controller-check"><a href="/k8s-source-code-analysis/kube-controller-manager/replicaset-controller/" title="kube-controller-manager源码分析（四）之 ReplicaSetController" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-replicaset-controller"><span class="">ReplicaSetController</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-daemonset-controller-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-daemonset-controller-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-daemonset-controller-check"><a href="/k8s-source-code-analysis/kube-controller-manager/daemonset-controller/" title="kube-controller-manager源码分析（五）之 DaemonSetController" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-daemonset-controller"><span class="">DaemonSetController</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-controller-runtime-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-controller-runtime-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-controller-runtime-check"><a href="/k8s-source-code-analysis/kube-controller-manager/controller-runtime/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-controller-runtime"><span class="">controller-runtime源码分析</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-workqueue-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-workqueue-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-workqueue-check"><a href="/k8s-source-code-analysis/kube-controller-manager/workqueue/" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-workqueue"><span class="td-sidebar-nav-active-item">workqueue源码分析</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-k8s-source-code-analysis-kube-scheduler-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-check"><a href="/k8s-source-code-analysis/kube-scheduler/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-k8s-source-code-analysis-kube-scheduler"><span class="">kube-scheduler</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind-check"><a href="/k8s-source-code-analysis/kube-scheduler/scheduler-xmind/" title="kube-scheduler 源码思维导图" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind"><span class="">源码思维导图</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand-check"><a href="/k8s-source-code-analysis/kube-scheduler/newschedulercommand/" title="kube-scheduler源码分析（一）之 NewSchedulerCommand" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand"><span class="">NewSchedulerCommand</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider-check"><a href="/k8s-source-code-analysis/kube-scheduler/registeralgorithmprovider/" title="kube-scheduler源码分析（二）之 调度算法" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider"><span class="">调度算法</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-scheduleone-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-scheduleone-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-scheduleone-check"><a href="/k8s-source-code-analysis/kube-scheduler/scheduleone/" title="kube-scheduler源码分析（三）之 调度流程" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-scheduleone"><span class="">调度流程</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit-check"><a href="/k8s-source-code-analysis/kube-scheduler/findnodesthatfit/" title="kube-scheduler源码分析（四）之 预选策略" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit"><span class="">预选策略</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes-check"><a href="/k8s-source-code-analysis/kube-scheduler/prioritizenodes/" title="kube-scheduler源码分析（五）之 优选策略" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes"><span class="">优选策略</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-preempt-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-preempt-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-preempt-check"><a href="/k8s-source-code-analysis/kube-scheduler/preempt/" title="kube-scheduler源码分析（六）之 抢占逻辑" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-preempt"><span class="">抢占逻辑</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-k8s-source-code-analysis-kubelet-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-check"><a href="/k8s-source-code-analysis/kubelet/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-k8s-source-code-analysis-kubelet"><span class="">kubelet</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-kubelet-xmind-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-kubelet-xmind-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-kubelet-xmind-check"><a href="/k8s-source-code-analysis/kubelet/kubelet-xmind/" title="kubelet 源码思维导图" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-kubelet-xmind"><span class="">源码思维导图</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-newkubeletcommand-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-newkubeletcommand-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-newkubeletcommand-check"><a href="/k8s-source-code-analysis/kubelet/newkubeletcommand/" title="kubelet源码分析（一）之 NewKubeletCommand" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-newkubeletcommand"><span class="">NewKubeletCommand</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-newmainkubelet-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-newmainkubelet-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-newmainkubelet-check"><a href="/k8s-source-code-analysis/kubelet/newmainkubelet/" title="kubelet源码分析（二）之 NewMainKubelet" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-newmainkubelet"><span class="">NewMainKubelet</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-startkubelet-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-startkubelet-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-startkubelet-check"><a href="/k8s-source-code-analysis/kubelet/startkubelet/" title="kubelet源码分析（三）之 RunKubelet" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-startkubelet"><span class="">startKubelet</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-syncloopiteration-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-syncloopiteration-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-syncloopiteration-check"><a href="/k8s-source-code-analysis/kubelet/syncloopiteration/" title="kubelet源码分析（四）之 syncLoopIteration" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-syncloopiteration"><span class="">syncLoopIteration</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-syncpod-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-syncpod-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-syncpod-check"><a href="/k8s-source-code-analysis/kubelet/syncpod/" title="kubelet源码分析（五）之 syncPod" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-syncpod"><span class="">syncPod</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-runc-code-analysis-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-runc-code-analysis-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-runc-code-analysis-check"><a href="/k8s-source-code-analysis/kubelet/runc-code-analysis/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-runc-code-analysis"><span class="">runc源码分析</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li>
+    </ul>
+  </nav>
+</div>
+
+          </aside>
+          <aside class="d-none d-xl-block col-xl-2 td-sidebar-toc d-print-none">
+            
+<div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
+<a href="https://github.com/huweihuang/blog.huweihuang.com/tree/master/content/zh-cn/k8s-source-code-analysis/kube-controller-manager/workqueue.md" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa fa-file-alt fa-fw"></i> 查看页面源码</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/edit/master/content/zh-cn/k8s-source-code-analysis/kube-controller-manager/workqueue.md" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 编辑此页</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/new/master/content/zh-cn/k8s-source-code-analysis/kube-controller-manager/workqueue.md?filename=change-me.md&amp;value=---%0Atitle%3A&#43;%22Long&#43;Page&#43;Title%22%0AlinkTitle%3A&#43;%22Short&#43;Nav&#43;Title%22%0Aweight%3A&#43;100%0Adescription%3A&#43;%3E-%0A&#43;&#43;&#43;&#43;&#43;Page&#43;description&#43;for&#43;heading&#43;and&#43;indexes.%0A---%0A%0A%23%23&#43;Heading%0A%0AEdit&#43;this&#43;template&#43;to&#43;create&#43;your&#43;new&#43;page.%0A%0A%2A&#43;Give&#43;it&#43;a&#43;good&#43;name%2C&#43;ending&#43;in&#43;%60.md%60&#43;-&#43;e.g.&#43;%60getting-started.md%60%0A%2A&#43;Edit&#43;the&#43;%22front&#43;matter%22&#43;section&#43;at&#43;the&#43;top&#43;of&#43;the&#43;page&#43;%28weight&#43;controls&#43;how&#43;its&#43;ordered&#43;amongst&#43;other&#43;pages&#43;in&#43;the&#43;same&#43;directory%3B&#43;lowest&#43;number&#43;first%29.%0A%2A&#43;Add&#43;a&#43;good&#43;commit&#43;message&#43;at&#43;the&#43;bottom&#43;of&#43;the&#43;page&#43;%28%3C80&#43;characters%3B&#43;use&#43;the&#43;extended&#43;description&#43;field&#43;for&#43;more&#43;detail%29.%0A%2A&#43;Create&#43;a&#43;new&#43;branch&#43;so&#43;you&#43;can&#43;preview&#43;your&#43;new&#43;file&#43;and&#43;request&#43;a&#43;review&#43;via&#43;Pull&#43;Request.%0A" class="td-page-meta--child" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 添加子页面</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new?title=workqueue%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new" class="td-page-meta--project-issue" target="_blank" rel="noopener"><i class="fas fa-tasks fa-fw"></i> 提交项目问题</a>
+  <a id="print" href="https://blog.huweihuang.com/k8s-source-code-analysis/kube-controller-manager/_print/"><i class="fa fa-print fa-fw"></i> 整节打印</a>
+
+</div>
+
+            
+
+
+<div class="td-toc"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-概述">1. 概述</a></li>
+    <li><a href="#2-deployment中的workqueue">2. Deployment中的workqueue</a>
+      <ul>
+        <li><a href="#2-1-初始化workqueue">2.1. 初始化workqueue</a></li>
+        <li><a href="#2-2-添加任务到队列">2.2. 添加任务到队列</a></li>
+        <li><a href="#2-3-读取任务队列">2.3. 读取任务队列</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></div>
+
+
+
+            
+
+	
+		
+			
+				
+			
+			
+
+
+
+  
+  
+    <div class="taxonomy taxonomy-terms-cloud taxo-tags">
+      
+        <h5 class="taxonomy-title">Tags</h5>
+      
+      <ul class="taxonomy-terms">
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/apisix/" data-taxonomy-term="apisix"><span class="taxonomy-label">ApiSix</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/cni/" data-taxonomy-term="cni"><span class="taxonomy-label">CNI</span><span class="taxonomy-count">7</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/containerd/" data-taxonomy-term="containerd"><span class="taxonomy-label">Containerd</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/csi/" data-taxonomy-term="csi"><span class="taxonomy-label">CSI</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/disk/" data-taxonomy-term="disk"><span class="taxonomy-label">disk</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/docker/" data-taxonomy-term="docker"><span class="taxonomy-label">Docker</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/etcd/" data-taxonomy-term="etcd"><span class="taxonomy-label">Etcd</span><span class="taxonomy-count">8</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/git/" data-taxonomy-term="git"><span class="taxonomy-label">Git</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/golang/" data-taxonomy-term="golang"><span class="taxonomy-label">Golang</span><span class="taxonomy-count">38</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/ide/" data-taxonomy-term="ide"><span class="taxonomy-label">IDE</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/iptables/" data-taxonomy-term="iptables"><span class="taxonomy-label">iptables</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/karmada/" data-taxonomy-term="karmada"><span class="taxonomy-label">Karmada</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/keepalived/" data-taxonomy-term="keepalived"><span class="taxonomy-label">Keepalived</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubeadm/" data-taxonomy-term="kubeadm"><span class="taxonomy-label">kubeadm</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubeedge/" data-taxonomy-term="kubeedge"><span class="taxonomy-label">Kubeedge</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubernetes/" data-taxonomy-term="kubernetes"><span class="taxonomy-label">Kubernetes</span><span class="taxonomy-count">65</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubevirt/" data-taxonomy-term="kubevirt"><span class="taxonomy-label">KubeVirt</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/linux/" data-taxonomy-term="linux"><span class="taxonomy-label">Linux</span><span class="taxonomy-count">11</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/memcached/" data-taxonomy-term="memcached"><span class="taxonomy-label">Memcached</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/monitor/" data-taxonomy-term="monitor"><span class="taxonomy-label">Monitor</span><span class="taxonomy-count">6</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/mysql/" data-taxonomy-term="mysql"><span class="taxonomy-label">Mysql</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/network/" data-taxonomy-term="network"><span class="taxonomy-label">Network</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/nginx/" data-taxonomy-term="nginx"><span class="taxonomy-label">Nginx</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/openyurt/" data-taxonomy-term="openyurt"><span class="taxonomy-label">OpenYurt</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/operator/" data-taxonomy-term="operator"><span class="taxonomy-label">Operator</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/pod/" data-taxonomy-term="pod"><span class="taxonomy-label">Pod</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/redis/" data-taxonomy-term="redis"><span class="taxonomy-label">Redis</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/runtime/" data-taxonomy-term="runtime"><span class="taxonomy-label">Runtime</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/serverless/" data-taxonomy-term="serverless"><span class="taxonomy-label">Serverless</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/shell/" data-taxonomy-term="shell"><span class="taxonomy-label">Shell</span><span class="taxonomy-count">9</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/tcpip/" data-taxonomy-term="tcpip"><span class="taxonomy-label">TCPIP</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/vim/" data-taxonomy-term="vim"><span class="taxonomy-label">VIM</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/virtualkubelet/" data-taxonomy-term="virtualkubelet"><span class="taxonomy-label">VirtualKubelet</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%A4%9A%E9%9B%86%E7%BE%A4/" data-taxonomy-term="%E5%A4%9A%E9%9B%86%E7%BE%A4"><span class="taxonomy-label">多集群</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%A4%A7%E6%A8%A1%E5%9E%8B/" data-taxonomy-term="%E5%A4%A7%E6%A8%A1%E5%9E%8B"><span class="taxonomy-label">大模型</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%BF%AB%E6%8D%B7%E9%94%AE/" data-taxonomy-term="%E5%BF%AB%E6%8D%B7%E9%94%AE"><span class="taxonomy-label">快捷键</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-taxonomy-term="%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="taxonomy-label">源码分析</span><span class="taxonomy-count">25</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E8%A3%B8%E9%87%91%E5%B1%9E/" data-taxonomy-term="%E8%A3%B8%E9%87%91%E5%B1%9E"><span class="taxonomy-label">裸金属</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/" data-taxonomy-term="%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5"><span class="taxonomy-label">问题排查</span><span class="taxonomy-count">9</span></a></li>
+        
+      </ul>
+    </div>
+  
+
+		
+			
+				
+			
+			
+
+
+
+  
+  
+
+		
+	
+
+          </aside>
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+  
+
+            <nav aria-label="breadcrumb" class="td-breadcrumbs">
+  <ol class="breadcrumb">
+  <li class="breadcrumb-item">
+    <a href="https://blog.huweihuang.com/k8s-source-code-analysis/">Kubernetes源码分析</a>
+  </li>
+  <li class="breadcrumb-item">
+    <a href="https://blog.huweihuang.com/k8s-source-code-analysis/kube-controller-manager/">kube-controller-manager</a>
+  </li>
+  <li class="breadcrumb-item active" aria-current="page">
+    <a href="https://blog.huweihuang.com/k8s-source-code-analysis/kube-controller-manager/workqueue/">workqueue源码分析</a>
+  </li>
+  </ol>
+</nav>
+            
+<div class="td-content">
+	<h1>workqueue源码分析</h1>
+	
+	<header class="article-meta">
+		
+
+  
+    
+      
+
+
+<div class="taxonomy taxonomy-terms-article taxo-tags">
+  <h5 class="taxonomy-title">Tags:</h5>
+  <ul class="taxonomy-terms">
+    
+      <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-taxonomy-term="%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="taxonomy-label">源码分析</span></a></li>
+    
+  </ul>
+</div>
+
+    
+      
+
+
+    
+  
+
+		
+	</header>    
+	<p>本文主要分析client-go中使用的workqueue，从而来分析k8s是如何基于任务队列做并发控制的。其中代码参考：</p>
+<ul>
+<li><a href="https://github.com/kubernetes/client-go/tree/release-1.30">https://github.com/kubernetes/client-go/tree/release-1.30</a></li>
+</ul>
+<h1 id="1-概述">1. 概述</h1>
+<p>k8s的控制器大多是基于任务队列的方式进行并发控制，甚至包括基于controller-manager开发的自定义operator控制器。以下我们以deployment controller为例展示workqueue在k8s中的使用。</p>
+<h1 id="2-deployment中的workqueue">2. Deployment中的workqueue</h1>
+<h2 id="2-1-初始化workqueue">2.1. 初始化workqueue</h2>
+<p>Deployment 的构建函数NewDeploymentController中初始化了任务队列和对于event事件处理相对应的workqueue的操作。</p>
+<ol>
+<li>初始化workqueue的限速任务队列。</li>
+<li>添加event handler使得deployment对象入队，等待处理。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">NewDeploymentController</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctx</span> <span style="color:#000">context</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Context</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">dInformer</span> <span style="color:#000">appsinformers</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">DeploymentInformer</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">rsInformer</span> <span style="color:#000">appsinformers</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ReplicaSetInformer</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">podInformer</span> <span style="color:#000">coreinformers</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">PodInformer</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">client</span> <span style="color:#000">clientset</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Interface</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">dc</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 初始化一个限速的任务队列
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>		<span style="color:#000">queue</span><span style="color:#000;font-weight:bold">:</span>            <span style="color:#000">workqueue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewNamedRateLimitingQueue</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">workqueue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">DefaultControllerRateLimiter</span><span style="color:#000;font-weight:bold">(),</span> <span style="color:#4e9a06">&#34;deployment&#34;</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#8f5902;font-style:italic">// 添加 add, update, delete的event handler, 其中handler的操作都添加对象到任务队列中。
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  	<span style="color:#000">dInformer</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Informer</span><span style="color:#000;font-weight:bold">().</span><span style="color:#000">AddEventHandler</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ResourceEventHandlerFuncs</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">AddFunc</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">obj</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">addDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">logger</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">obj</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">UpdateFunc</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">oldObj</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">newObj</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">updateDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">logger</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">oldObj</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">newObj</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#8f5902;font-style:italic">// This will enter the sync loop and no-op, because the deployment has been deleted from the store.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>		<span style="color:#000">DeleteFunc</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">obj</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">deleteDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">logger</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">obj</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">})</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">// 定义队列处理函数
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">enqueueDeployment</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">enqueue</span>
+</span></span></code></pre></div><p>以下显示event handler具体逻辑，可见，无论是add，update，delete event handler都是调用enqueueDeployment的函数，而enqueueDeployment实际上就是初始化函数中的dc.enqueue。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">dc</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">addDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">logger</span> <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Logger</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">obj</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">d</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">obj</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">apps</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Deployment</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">logger</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Info</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Adding deployment&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;deployment&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">KObj</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">d</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">enqueueDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">d</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">dc</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">updateDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">logger</span> <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Logger</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">old</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">cur</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">oldD</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">old</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">apps</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Deployment</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">curD</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cur</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">apps</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Deployment</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">logger</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Info</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Updating deployment&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;deployment&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">KObj</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">oldD</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">enqueueDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">curD</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">dc</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">deleteDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">logger</span> <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Logger</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">obj</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">d</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">ok</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">obj</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">apps</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Deployment</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">logger</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Info</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Deleting deployment&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;deployment&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">KObj</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">d</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">enqueueDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">d</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-2-添加任务到队列">2.2. 添加任务到队列</h2>
+<p>以下是dc.enqueue的具体实现，可见最终的调用workqueue的Add方法，添加对象到任务队列中。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">dc</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">enqueue</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">deployment</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">apps</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Deployment</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>   <span style="color:#000">key</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">controller</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">KeyFunc</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">deployment</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#8f5902;font-style:italic">// 添加到任务队列中。
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>   <span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">queue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>其中key是<code>namespace/name</code>的拼接字符串，通过MetaNamespaceKeyFunc函数获取对象的key。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 通过该函数获取k8s对象中处理的key。
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">MetaNamespaceKeyFunc</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">obj</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">key</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">ok</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">obj</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#000">ExplicitKey</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#000">ok</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87">string</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">),</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">objName</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">ObjectToName</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">obj</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#4e9a06">&#34;&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">objName</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">String</span><span style="color:#000;font-weight:bold">(),</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 拼接namespace和name
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">objName</span> <span style="color:#000">ObjectName</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">String</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#204a87;font-weight:bold">string</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">objName</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Namespace</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">objName</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Namespace</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#4e9a06">&#34;/&#34;</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#000">objName</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Name</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">objName</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Name</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-3-读取任务队列">2.3. 读取任务队列</h2>
+<p>deployment controller会调用<code>dc.queue.Get()</code>来读取任务队列中的对象。该goroutine是一个常驻的逻辑实时获取。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">dc</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">processNextWorkItem</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctx</span> <span style="color:#000">context</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Context</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">bool</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">// 读取任务队列
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">key</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">quit</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">queue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Get</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">quit</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">false</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">// 返回将key设置为done。
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">queue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Done</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// 处理任务
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">syncHandler</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctx</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">key</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">handleErr</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctx</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">true</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>任务的错误处理：</p>
+<ol>
+<li>如果错误为空，则调用Forget移出队列</li>
+<li>如果小于最大重试次数，则加入延迟队列</li>
+<li>如果大于最大重试次数，则移出队列。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">dc</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">handleErr</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctx</span> <span style="color:#000">context</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Context</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">key</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// 如果错误为空，则调用Forget移出队列
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#ce5c00;font-weight:bold">||</span> <span style="color:#000">errors</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HasStatusCause</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">v1</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NamespaceTerminatingCause</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">queue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Forget</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">ns</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">name</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">keyErr</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SplitMetaNamespaceKey</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// 如果小于最大重试次数，则加入延迟队列
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">queue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NumRequeues</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">&lt;</span> <span style="color:#000">maxRetries</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">queue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">AddRateLimited</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// 如果大于最大重试次数，则移出队列。
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">utilruntime</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HandleError</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">logger</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Info</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Dropping deployment out of the queue&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;deployment&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">KRef</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ns</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">name</span><span style="color:#000;font-weight:bold">),</span> <span style="color:#4e9a06">&#34;err&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">queue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Forget</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>syncDeployment获取deployment对象，基于ns和name重新获取deployment。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">dc</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">syncDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctx</span> <span style="color:#000">context</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Context</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">key</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">// 拆分key获取ns和name
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">namespace</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">name</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SplitMetaNamespaceKey</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// 基于ns和name获取deployment对象
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">deployment</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">dLister</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Deployments</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">namespace</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Get</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">name</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">errors</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">IsNotFound</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">logger</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Info</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Deployment has been deleted&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;deployment&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">KRef</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">namespace</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">name</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// deepcopy deployment对象
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">d</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">deployment</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">DeepCopy</span><span style="color:#000;font-weight:bold">()</span>
+</span></span></code></pre></div><blockquote>
+<p>待完善</p>
+</blockquote>
+
+	
+		<style>
+  .feedback--answer {
+    display: inline-block;
+  }
+  .feedback--answer-no {
+    margin-left: 1em;
+  }
+  .feedback--response {
+    display: none;
+    margin-top: 1em;
+  }
+  .feedback--response__visible {
+    display: block;
+  }
+</style>
+<div class="d-print-none">
+<h2 class="feedback--title">Feedback</h2>
+<p class="feedback--question">Was this page helpful?</p>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-yes">Yes</button>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-no">No</button>
+<p class="feedback--response feedback--response-yes">
+  Glad to hear it! Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+<p class="feedback--response feedback--response-no">
+  Sorry to hear that. Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+</div>
+<script>
+  const yesButton = document.querySelector('.feedback--answer-yes');
+  const noButton = document.querySelector('.feedback--answer-no');
+  const yesResponse = document.querySelector('.feedback--response-yes');
+  const noResponse = document.querySelector('.feedback--response-no');
+  const disableButtons = () => {
+    yesButton.disabled = true;
+    noButton.disabled = true;
+  };
+  const sendFeedback = (value) => {
+    if (typeof ga !== 'function') return;
+    const args = {
+      command: 'send',
+      hitType: 'event',
+      category: 'Helpful',
+      action: 'click',
+      label: window.location.pathname,
+      value: value
+    };
+    ga(args.command, args.hitType, args.category, args.action, args.label, args.value);
+  };
+  yesButton.addEventListener('click', () => {
+    yesResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(1);
+  });
+  noButton.addEventListener('click', () => {
+    noResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(0);
+  });
+</script>
+
+		<br />
+	
+	
+	
+</div>
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/blog.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2025 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		<p class="mt-2"><a href="/about/">About</a></p>
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+  </body>
+</html>

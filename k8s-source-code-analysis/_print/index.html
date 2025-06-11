@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.c3b9e7e6edf6be3f86c0770c24473c75.json"
+  data-offline-search-index-json-src="/offline-search-index.16f3c2880a3c8f3cec052b95e5efa0c6.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -318,6 +318,14 @@ if (!doNotTrack) {
 
     
   
+    
+    
+	
+<li>3.8: <a href="#pg-a167c51f6d71759ce1fb280bf2d2542d">workqueue源码分析</a></li>
+
+
+    
+  
 
     </ul>
     
@@ -460,24 +468,16 @@ if (!doNotTrack) {
 
     
   
+    
+    
+	
+<li>5.7: <a href="#pg-530d7df789771887e02908b769f6701c">runc源码分析</a></li>
+
+
+    
+  
 
     </ul>
-    
-  
-    
-    
-	
-<li>6: <a href="#pg-898ea575def35e9fb298d3ef43d4c620"></a></li>
-
-
-    
-  
-    
-    
-	
-<li>7: <a href="#pg-ed559570a2db89907b1f35218e4ce988"></a></li>
-
-
     
   
 
@@ -721,8 +721,7 @@ if (!doNotTrack) {
     
 	<h1 id="pg-1d0c5119a423537de8c993fbd3cc3ebe">2.1 - kube-apiserver源码分析（一）之 NewAPIServerCommand</h1>
     
-	<h1 id="kube-apiserver源码分析-一-之-newapiservercommand">kube-apiserver源码分析（一）之 NewAPIServerCommand</h1>
-<blockquote>
+	<blockquote>
 <p>以下代码分析基于 <code>kubernetes v1.12.0</code> 版本。</p>
 </blockquote>
 <p>本文主要分析<code>kube-apiserver</code>中<code>cmd</code>部分的代码，即<code>NewAPIServerCommand</code>相关的代码。更多具体的逻辑待后续文章分析。</p>
@@ -4928,7 +4927,7 @@ if (!doNotTrack) {
 </span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">true</span>
 </span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
 </span></span></code></pre></div><h1 id="7-reconcilehandler">7. reconcileHandler</h1>
-<p>reconcileHandler部分的代码是整个reconciler逻辑中的核心，自定义的reconciler函数最终是调用了reconcileHandler来实现，并且该函数描述了具体的任务队列处理的几种类型。</p>
+<p><code>reconcileHandler</code>部分的代码是整个reconciler逻辑中的核心，自定义的reconciler函数最终是调用了reconcileHandler来实现，并且该函数描述了具体的任务队列处理的几种类型。</p>
 <ul>
 <li><code>err != nil</code>：如果错误不为空，则重新入队，等待处理。</li>
 <li><code>result.RequeueAfter &gt; 0</code>：如果指定RequeueAfter &gt; 0，则做延迟入队处理。</li>
@@ -4977,17 +4976,167 @@ if (!doNotTrack) {
 <ol>
 <li>controller-runtime封装了k8s-controller-manager控制器的主要逻辑，其中就包括创建list-watch对象，waitForSync等，创建任务队列，将任务处理的goroutine抽象成一个reconcile函数，使用户更方便的编写operator工具。</li>
 <li>kubebuilder是一个基于controller-runtime框架的命令生成工具。可以用于快速生成和部署crd对象，快速生成controller-runtime框架的基本代码。</li>
-<li>controller-runtime框架的最核心需要处理的代理及处理reconcile函数，该函数定义了4种错误处理及入队重试的类型。可以根据具体的业务需求选择合适的方法来处理。</li>
+<li>controller-runtime框架的最核心是reconcileHandler函数，该函数定义了reconcile的4种错误处理及入队重试的类型。可以根据具体的业务需求选择合适的方法来处理。</li>
 </ol>
 <p>参考：</p>
 <ul>
 <li>
-<p><a href="https://qiankunli.github.io/2020/08/10/controller_runtime.html">controller-runtime源码分析 | 李乾坤的博客</a></p>
+<p><a href="https://qiankunli.github.io/2020/08/10/controller_runtime.html">controller-runtime源码分析</a></p>
 </li>
 <li>
-<p><a href="https://qiankunli.github.io/2022/11/24/controller_runtime_detail.html">controller-runtime细节分析 | 李乾坤的博客</a></p>
+<p><a href="https://qiankunli.github.io/2022/11/24/controller_runtime_detail.html">controller-runtime细节分析</a></p>
 </li>
 </ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-a167c51f6d71759ce1fb280bf2d2542d">3.8 - workqueue源码分析</h1>
+    
+	<p>本文主要分析client-go中使用的workqueue，从而来分析k8s是如何基于任务队列做并发控制的。其中代码参考：</p>
+<ul>
+<li><a href="https://github.com/kubernetes/client-go/tree/release-1.30">https://github.com/kubernetes/client-go/tree/release-1.30</a></li>
+</ul>
+<h1 id="1-概述">1. 概述</h1>
+<p>k8s的控制器大多是基于任务队列的方式进行并发控制，甚至包括基于controller-manager开发的自定义operator控制器。以下我们以deployment controller为例展示workqueue在k8s中的使用。</p>
+<h1 id="2-deployment中的workqueue">2. Deployment中的workqueue</h1>
+<h2 id="2-1-初始化workqueue">2.1. 初始化workqueue</h2>
+<p>Deployment 的构建函数NewDeploymentController中初始化了任务队列和对于event事件处理相对应的workqueue的操作。</p>
+<ol>
+<li>初始化workqueue的限速任务队列。</li>
+<li>添加event handler使得deployment对象入队，等待处理。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">NewDeploymentController</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctx</span> <span style="color:#000">context</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Context</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">dInformer</span> <span style="color:#000">appsinformers</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">DeploymentInformer</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">rsInformer</span> <span style="color:#000">appsinformers</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ReplicaSetInformer</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">podInformer</span> <span style="color:#000">coreinformers</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">PodInformer</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">client</span> <span style="color:#000">clientset</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Interface</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">dc</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 初始化一个限速的任务队列
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>		<span style="color:#000">queue</span><span style="color:#000;font-weight:bold">:</span>            <span style="color:#000">workqueue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewNamedRateLimitingQueue</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">workqueue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">DefaultControllerRateLimiter</span><span style="color:#000;font-weight:bold">(),</span> <span style="color:#4e9a06">&#34;deployment&#34;</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#8f5902;font-style:italic">// 添加 add, update, delete的event handler, 其中handler的操作都添加对象到任务队列中。
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  	<span style="color:#000">dInformer</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Informer</span><span style="color:#000;font-weight:bold">().</span><span style="color:#000">AddEventHandler</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ResourceEventHandlerFuncs</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">AddFunc</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">obj</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">addDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">logger</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">obj</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">UpdateFunc</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">oldObj</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">newObj</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">updateDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">logger</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">oldObj</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">newObj</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#8f5902;font-style:italic">// This will enter the sync loop and no-op, because the deployment has been deleted from the store.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>		<span style="color:#000">DeleteFunc</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">obj</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">deleteDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">logger</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">obj</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">})</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">// 定义队列处理函数
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>  <span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">enqueueDeployment</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">enqueue</span>
+</span></span></code></pre></div><p>以下显示event handler具体逻辑，可见，无论是add，update，delete event handler都是调用enqueueDeployment的函数，而enqueueDeployment实际上就是初始化函数中的dc.enqueue。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">dc</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">addDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">logger</span> <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Logger</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">obj</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">d</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">obj</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">apps</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Deployment</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">logger</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Info</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Adding deployment&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;deployment&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">KObj</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">d</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">enqueueDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">d</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">dc</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">updateDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">logger</span> <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Logger</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">old</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">cur</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">oldD</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">old</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">apps</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Deployment</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">curD</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cur</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">apps</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Deployment</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">logger</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Info</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Updating deployment&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;deployment&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">KObj</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">oldD</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">enqueueDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">curD</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">dc</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">deleteDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">logger</span> <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Logger</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">obj</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">d</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">ok</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">obj</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">apps</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Deployment</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">logger</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Info</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Deleting deployment&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;deployment&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">KObj</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">d</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">enqueueDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">d</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-2-添加任务到队列">2.2. 添加任务到队列</h2>
+<p>以下是dc.enqueue的具体实现，可见最终的调用workqueue的Add方法，添加对象到任务队列中。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">dc</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">enqueue</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">deployment</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">apps</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Deployment</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>   <span style="color:#000">key</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">controller</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">KeyFunc</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">deployment</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#8f5902;font-style:italic">// 添加到任务队列中。
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>   <span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">queue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Add</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>其中key是<code>namespace/name</code>的拼接字符串，通过MetaNamespaceKeyFunc函数获取对象的key。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 通过该函数获取k8s对象中处理的key。
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">MetaNamespaceKeyFunc</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">obj</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">key</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">ok</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">obj</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#000">ExplicitKey</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#000">ok</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87">string</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">),</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">objName</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">ObjectToName</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">obj</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#4e9a06">&#34;&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">objName</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">String</span><span style="color:#000;font-weight:bold">(),</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// 拼接namespace和name
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">objName</span> <span style="color:#000">ObjectName</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">String</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#204a87;font-weight:bold">string</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">objName</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Namespace</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">objName</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Namespace</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#4e9a06">&#34;/&#34;</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#000">objName</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Name</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">objName</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Name</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-3-读取任务队列">2.3. 读取任务队列</h2>
+<p>deployment controller会调用<code>dc.queue.Get()</code>来读取任务队列中的对象。该goroutine是一个常驻的逻辑实时获取。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">dc</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">processNextWorkItem</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctx</span> <span style="color:#000">context</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Context</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">bool</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">// 读取任务队列
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">key</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">quit</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">queue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Get</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">quit</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">false</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">// 返回将key设置为done。
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#204a87;font-weight:bold">defer</span> <span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">queue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Done</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// 处理任务
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">syncHandler</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctx</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">key</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">handleErr</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctx</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">true</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>任务的错误处理：</p>
+<ol>
+<li>如果错误为空，则调用Forget移出队列</li>
+<li>如果小于最大重试次数，则加入延迟队列</li>
+<li>如果大于最大重试次数，则移出队列。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">dc</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">handleErr</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctx</span> <span style="color:#000">context</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Context</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">key</span> <span style="color:#204a87;font-weight:bold">interface</span><span style="color:#000;font-weight:bold">{})</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// 如果错误为空，则调用Forget移出队列
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#ce5c00;font-weight:bold">||</span> <span style="color:#000">errors</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HasStatusCause</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">v1</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NamespaceTerminatingCause</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">queue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Forget</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">ns</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">name</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">keyErr</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SplitMetaNamespaceKey</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// 如果小于最大重试次数，则加入延迟队列
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">queue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NumRequeues</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">&lt;</span> <span style="color:#000">maxRetries</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">queue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">AddRateLimited</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// 如果大于最大重试次数，则移出队列。
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">utilruntime</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HandleError</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">logger</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Info</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Dropping deployment out of the queue&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;deployment&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">KRef</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ns</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">name</span><span style="color:#000;font-weight:bold">),</span> <span style="color:#4e9a06">&#34;err&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">queue</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Forget</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>syncDeployment获取deployment对象，基于ns和name重新获取deployment。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">dc</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DeploymentController</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">syncDeployment</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">ctx</span> <span style="color:#000">context</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Context</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">key</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic">// 拆分key获取ns和name
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">namespace</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">name</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cache</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SplitMetaNamespaceKey</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">key</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// 基于ns和name获取deployment对象
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">deployment</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">dc</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">dLister</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Deployments</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">namespace</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Get</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">name</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">errors</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">IsNotFound</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#000">logger</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">V</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">Info</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Deployment has been deleted&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;deployment&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">klog</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">KRef</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">namespace</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">name</span><span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#8f5902;font-style:italic">// deepcopy deployment对象
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>	<span style="color:#000">d</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">deployment</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">DeepCopy</span><span style="color:#000;font-weight:bold">()</span>
+</span></span></code></pre></div><blockquote>
+<p>待完善</p>
+</blockquote>
 
 </div>
 
@@ -11532,10 +11681,6 @@ if (!doNotTrack) {
     
 	
   
-
-    
-	
-  
     
     
 	
@@ -11543,60 +11688,214 @@ if (!doNotTrack) {
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-898ea575def35e9fb298d3ef43d4c620">6 - </h1>
+	<h1 id="pg-530d7df789771887e02908b769f6701c">5.7 - runc源码分析</h1>
     
-	<h1 id="kubernetes-源码分析笔记">Kubernetes 源码分析笔记</h1>
+	<h1 id="runc代码目录结构">runc代码目录结构</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>├── create.go  <span style="color:#8f5902;font-style:italic"># createCommand</span>
+</span></span><span style="display:flex;"><span>├── delete.go  <span style="color:#8f5902;font-style:italic"># deleteCommand</span>
+</span></span><span style="display:flex;"><span>├── events.go  <span style="color:#8f5902;font-style:italic"># eventsCommand</span>
+</span></span><span style="display:flex;"><span>├── exec.go    <span style="color:#8f5902;font-style:italic"># execCommand</span>
+</span></span><span style="display:flex;"><span>├── features.go  <span style="color:#8f5902;font-style:italic"># featuresCommand</span>
+</span></span><span style="display:flex;"><span>├── kill.go     <span style="color:#8f5902;font-style:italic"># killCommand</span>
+</span></span><span style="display:flex;"><span>├── libcontainer  <span style="color:#8f5902;font-style:italic"># 核心实现逻辑</span>
+</span></span><span style="display:flex;"><span>├── list.go  <span style="color:#8f5902;font-style:italic">#  listCommand</span>
+</span></span><span style="display:flex;"><span>├── main.go  <span style="color:#8f5902;font-style:italic"># main函数</span>
+</span></span><span style="display:flex;"><span>├── pause.go  <span style="color:#8f5902;font-style:italic"># pauseCommand</span>
+</span></span><span style="display:flex;"><span>├── ps.go  <span style="color:#8f5902;font-style:italic"># psCommand </span>
+</span></span><span style="display:flex;"><span>├── restore.go <span style="color:#8f5902;font-style:italic"># restoreCommand</span>
+</span></span><span style="display:flex;"><span>├── run.go <span style="color:#8f5902;font-style:italic"># runCommand</span>
+</span></span><span style="display:flex;"><span>├── spec.go <span style="color:#8f5902;font-style:italic"># specCommand</span>
+</span></span><span style="display:flex;"><span>├── start.go <span style="color:#8f5902;font-style:italic"># startCommand</span>
+</span></span><span style="display:flex;"><span>├── state.go <span style="color:#8f5902;font-style:italic"># stateCommand</span>
+</span></span><span style="display:flex;"><span>├── update.go <span style="color:#8f5902;font-style:italic"># updateCommand</span>
+</span></span><span style="display:flex;"><span>├── utils_linux.go <span style="color:#8f5902;font-style:italic"># startContainer</span>
+</span></span></code></pre></div><h2 id="libcontainer目录结构">libcontainer目录结构</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>libcontainer
+</span></span><span style="display:flex;"><span>├── apparmor
+</span></span><span style="display:flex;"><span>├── capabilities
+</span></span><span style="display:flex;"><span>├── cgroups
+</span></span><span style="display:flex;"><span>├── configs
+</span></span><span style="display:flex;"><span>├── console_linux.go
+</span></span><span style="display:flex;"><span>├── container.go
+</span></span><span style="display:flex;"><span>├── container_linux.go
+</span></span><span style="display:flex;"><span>├── container_linux_test.go
+</span></span><span style="display:flex;"><span>├── criu_opts_linux.go
+</span></span><span style="display:flex;"><span>├── devices
+</span></span><span style="display:flex;"><span>├── error.go
+</span></span><span style="display:flex;"><span>├── factory_linux.go
+</span></span><span style="display:flex;"><span>├── factory_linux_test.go
+</span></span><span style="display:flex;"><span>├── init_linux.go
+</span></span><span style="display:flex;"><span>├── integration
+</span></span><span style="display:flex;"><span>├── intelrdt
+</span></span><span style="display:flex;"><span>├── keys
+</span></span><span style="display:flex;"><span>├── logs
+</span></span><span style="display:flex;"><span>├── message_linux.go
+</span></span><span style="display:flex;"><span>├── mount_linux.go
+</span></span><span style="display:flex;"><span>├── network_linux.go
+</span></span><span style="display:flex;"><span>├── notify_linux.go
+</span></span><span style="display:flex;"><span>├── notify_linux_test.go
+</span></span><span style="display:flex;"><span>├── notify_v2_linux.go
+</span></span><span style="display:flex;"><span>├── nsenter
+</span></span><span style="display:flex;"><span>├── process.go
+</span></span><span style="display:flex;"><span>├── process_linux.go
+</span></span><span style="display:flex;"><span>├── restored_process.go
+</span></span><span style="display:flex;"><span>├── rootfs_linux.go
+</span></span><span style="display:flex;"><span>├── rootfs_linux_test.go
+</span></span><span style="display:flex;"><span>├── seccomp
+</span></span><span style="display:flex;"><span>├── setns_init_linux.go
+</span></span><span style="display:flex;"><span>├── specconv
+</span></span><span style="display:flex;"><span>├── standard_init_linux.go
+</span></span><span style="display:flex;"><span>├── state_linux.go
+</span></span><span style="display:flex;"><span>├── state_linux_test.go
+</span></span><span style="display:flex;"><span>├── stats_linux.go
+</span></span><span style="display:flex;"><span>├── sync.go
+</span></span><span style="display:flex;"><span>├── system
+</span></span><span style="display:flex;"><span>├── user
+</span></span><span style="display:flex;"><span>├── userns
+</span></span><span style="display:flex;"><span>└── utils
+</span></span></code></pre></div><h1 id="main函数">Main函数</h1>
+<p>runc的代码仓库主要使用了<a href="github.com/urfave/cli">github.com/urfave/cli</a>的命令框架（该框架与cobra命令框架类似）。添加了多个重要的子命令。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">main</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">app</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewApp</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">app</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Name</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;runc&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">app</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Usage</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">usage</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">app</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Commands</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Command</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">checkpointCommand</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">createCommand</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">deleteCommand</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">eventsCommand</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">execCommand</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">killCommand</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">listCommand</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">pauseCommand</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">psCommand</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">restoreCommand</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">resumeCommand</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">runCommand</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">specCommand</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">startCommand</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">stateCommand</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">updateCommand</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">featuresCommand</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="runcommand">runCommand</h1>
+<p>以<code>runCommand</code>为例分析子命令的调用流程。</p>
+<p><a href="github.com/urfave/cli">github.com/urfave/cli</a>命令框架代码格式：</p>
+<p>创建一个Command结构体，包含：</p>
+<ul>
+<li>
+<p>Name：命名名称</p>
+</li>
+<li>
+<p>Usage：使用说明</p>
+</li>
+<li>
+<p>Description：描述命令信息</p>
+</li>
+<li>
+<p>Flags：解析参数</p>
+</li>
+<li>
+<p>Action: command run的核心逻辑。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// default action is to start a container
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000">runCommand</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Command</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">Name</span><span style="color:#000;font-weight:bold">:</span>  <span style="color:#4e9a06">&#34;run&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">Usage</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#4e9a06">&#34;create and run a container&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 删除描述信息
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">ArgsUsage</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#4e9a06">``</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">Description</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#4e9a06">``</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">Flags</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Flag</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">StringFlag</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">Name</span><span style="color:#000;font-weight:bold">:</span>  <span style="color:#4e9a06">&#34;bundle, b&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">Value</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#4e9a06">&#34;&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">Usage</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#4e9a06">`path to the root of the bundle directory, defaults to the current directory`</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// 删除多余的FLAG代码
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">Action</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">context</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Context</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">checkArgs</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">context</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">exactArgs</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#8f5902;font-style:italic">// 核心代码，启动容器
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>        <span style="color:#000">status</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">startContainer</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">context</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">CT_ACT_RUN</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">nil</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#8f5902;font-style:italic">// exit with the container&#39;s exit status so any external supervisor is
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>            <span style="color:#8f5902;font-style:italic">// notified of the exit with the correct exit status.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>            <span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Exit</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">status</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Errorf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;runc run failed: %w&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="startcontainer">startContainer</h1>
+<p>启动容器的流程：</p>
+<ol>
+<li>
+<p>setup spec信息。</p>
+</li>
+<li>
+<p>基于spec信息创建container。</p>
+</li>
+<li>
+<p>通过runner启动进程。</p>
+</li>
+</ol>
 <blockquote>
-<p>本系列是 <a href="https://www.huweihuang.com/k8s-source-code-analysis/">Kubernetes 源码分析笔记</a></p>
-<p>更多的学习笔记请参考：</p>
-<ul>
-<li><a href="https://www.huweihuang.com/kubernetes-notes/">Kubernetes 学习笔记</a></li>
-<li><a href="https://www.huweihuang.com/golang-notes/">Golang 学习笔记</a></li>
-<li><a href="https://www.huweihuang.com/linux-notes/">Linux 学习笔记</a></li>
-<li><a href="https://www.huweihuang.com/data-structure-notes/">数据结构学习笔记</a></li>
-</ul>
-<p>个人博客：<a href="https://www.huweihuang.com/">www.huweihuang.com</a></p>
+<p>删除error处理代码</p>
 </blockquote>
-<h1 id="目录">目录</h1>
-<h2 id="前言">前言</h2>
-<ul>
-<li><a href="README.md">序言</a></li>
-</ul>
-<h2 id="kube-apiserver">kube-apiserver</h2>
-<ul>
-<li><a href="kube-apiserver/NewAPIServerCommand.md">NewAPIServerCommand</a></li>
-</ul>
-<h2 id="kube-controller-manager">kube-controller-manager</h2>
-<ul>
-<li><a href="kube-controller-manager/controller-manager-xmind.md">源码思维导图</a></li>
-<li><a href="kube-controller-manager/NewControllerManagerCommand.md">NewControllerManagerCommand</a></li>
-<li><a href="kube-controller-manager/deployment-controller.md">DeploymentController</a></li>
-<li><a href="kube-controller-manager/informer.md">Informer机制</a></li>
-</ul>
-<h2 id="kube-scheduler">kube-scheduler</h2>
-<ul>
-<li><a href="kube-scheduler/scheduler-xmind.md">源码思维导图</a></li>
-<li><a href="kube-scheduler/NewSchedulerCommand.md">NewSchedulerCommand</a></li>
-<li><a href="kube-scheduler/registerAlgorithmProvider.md">registerAlgorithmProvider</a></li>
-<li><a href="kube-scheduler/scheduleOne.md">scheduleOne</a></li>
-<li><a href="kube-scheduler/findNodesThatFit.md">findNodesThatFit</a></li>
-<li><a href="kube-scheduler/PrioritizeNodes.md">PrioritizeNodes</a></li>
-<li><a href="kube-scheduler/preempt.md">preempt</a></li>
-</ul>
-<h2 id="kubelet">kubelet</h2>
-<ul>
-<li><a href="kubelet/kubelet-xmind.md">源码思维导图</a></li>
-<li><a href="kubelet/NewKubeletCommand.md">NewKubeletCommand</a></li>
-<li><a href="kubelet/NewMainKubelet.md">NewMainKubelet</a></li>
-<li><a href="kubelet/startKubelet.md">startKubelet</a></li>
-<li><a href="kubelet/syncLoopIteration.md">syncLoopIteration</a></li>
-<li><a href="kubelet/syncPod.md">syncPod</a></li>
-</ul>
-<h1 id="赞赏">赞赏</h1>
-<blockquote>
-<p>如果觉得文章有帮助的话，可以打赏一下，谢谢！</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">startContainer</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">context</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Context</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">action</span> <span style="color:#000">CtAct</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">criuOpts</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">libcontainer</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">CriuOpts</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">int</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">revisePidFile</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">context</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#ce5c00;font-weight:bold">-</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">spec</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">setupSpec</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">context</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">id</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">context</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Args</span><span style="color:#000;font-weight:bold">().</span><span style="color:#000">First</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">notifySocket</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">newNotifySocket</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">context</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Getenv</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;NOTIFY_SOCKET&#34;</span><span style="color:#000;font-weight:bold">),</span> <span style="color:#000">id</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">notifySocket</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">notifySocket</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">setupSpec</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">spec</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">container</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">createContainer</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">context</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">id</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">spec</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">notifySocket</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">notifySocket</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">setupSocketDirectory</span><span style="color:#000;font-weight:bold">();</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#ce5c00;font-weight:bold">-</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">action</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#000">CT_ACT_RUN</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">notifySocket</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">bindSocket</span><span style="color:#000;font-weight:bold">();</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#ce5c00;font-weight:bold">-</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// Support on-demand socket activation by passing file descriptors into the container init process.
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">listenFDs</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">File</span><span style="color:#000;font-weight:bold">{}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Getenv</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;LISTEN_FDS&#34;</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#4e9a06">&#34;&#34;</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">listenFDs</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">activation</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Files</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">false</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">r</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">runner</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">enableSubreaper</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000;font-weight:bold">!</span><span style="color:#000">context</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Bool</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;no-subreaper&#34;</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">shouldDestroy</span><span style="color:#000;font-weight:bold">:</span>   <span style="color:#000;font-weight:bold">!</span><span style="color:#000">context</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Bool</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;keep&#34;</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">container</span><span style="color:#000;font-weight:bold">:</span>       <span style="color:#000">container</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">listenFDs</span><span style="color:#000;font-weight:bold">:</span>       <span style="color:#000">listenFDs</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">notifySocket</span><span style="color:#000;font-weight:bold">:</span>    <span style="color:#000">notifySocket</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">consoleSocket</span><span style="color:#000;font-weight:bold">:</span>   <span style="color:#000">context</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">String</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;console-socket&#34;</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">detach</span><span style="color:#000;font-weight:bold">:</span>          <span style="color:#000">context</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Bool</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;detach&#34;</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">pidFile</span><span style="color:#000;font-weight:bold">:</span>         <span style="color:#000">context</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">String</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;pid-file&#34;</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">preserveFDs</span><span style="color:#000;font-weight:bold">:</span>     <span style="color:#000">context</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Int</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;preserve-fds&#34;</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">action</span><span style="color:#000;font-weight:bold">:</span>          <span style="color:#000">action</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">criuOpts</span><span style="color:#000;font-weight:bold">:</span>        <span style="color:#000">criuOpts</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">init</span><span style="color:#000;font-weight:bold">:</span>            <span style="color:#204a87;font-weight:bold">true</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">r</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">run</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">spec</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Process</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><blockquote>
+<p>待完善</p>
 </blockquote>
-<img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1551599963/blog/donate.jpg" width="70%"/>
 
 </div>
 
@@ -11605,54 +11904,6 @@ if (!doNotTrack) {
     
 	
   
-    
-    
-	
-    
-
-<div class="td-content" style="page-break-before: always">
-    
-	<h1 id="pg-ed559570a2db89907b1f35218e4ce988">7 - </h1>
-    
-	<h1 id="summary">Summary</h1>
-<h2 id="前言">前言</h2>
-<ul>
-<li><a href="README.md">序言</a></li>
-</ul>
-<h2 id="kube-apiserver">kube-apiserver</h2>
-<ul>
-<li><a href="kube-apiserver/NewAPIServerCommand.md">NewAPIServerCommand</a></li>
-</ul>
-<h2 id="kube-controller-manager">kube-controller-manager</h2>
-<ul>
-<li><a href="kube-controller-manager/controller-manager-xmind.md">源码思维导图</a></li>
-<li><a href="kube-controller-manager/NewControllerManagerCommand.md">NewControllerManagerCommand</a></li>
-<li><a href="kube-controller-manager/deployment-controller.md">DeploymentController</a></li>
-<li><a href="kube-controller-manager/informer.md">Informer机制</a></li>
-</ul>
-<h2 id="kube-scheduler">kube-scheduler</h2>
-<ul>
-<li><a href="kube-scheduler/scheduler-xmind.md">源码思维导图</a></li>
-<li><a href="kube-scheduler/NewSchedulerCommand.md">NewSchedulerCommand</a></li>
-<li><a href="kube-scheduler/registerAlgorithmProvider.md">registerAlgorithmProvider</a></li>
-<li><a href="kube-scheduler/scheduleOne.md">scheduleOne</a></li>
-<li><a href="kube-scheduler/findNodesThatFit.md">findNodesThatFit</a></li>
-<li><a href="kube-scheduler/PrioritizeNodes.md">PrioritizeNodes</a></li>
-<li><a href="kube-scheduler/preempt.md">preempt</a></li>
-</ul>
-<h2 id="kubelet">kubelet</h2>
-<ul>
-<li><a href="kubelet/kubelet-xmind.md">源码思维导图</a></li>
-<li><a href="kubelet/NewKubeletCommand.md">NewKubeletCommand</a></li>
-<li><a href="kubelet/NewMainKubelet.md">NewMainKubelet</a></li>
-<li><a href="kubelet/startKubelet.md">startKubelet</a></li>
-<li><a href="kubelet/syncLoopIteration.md">syncLoopIteration</a></li>
-<li><a href="kubelet/syncPod.md">syncPod</a></li>
-</ul>
-
-</div>
-
-
 
     
 	
