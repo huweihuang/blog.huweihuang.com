@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.e0fb8b344902f4bc923ff68d661305f9.json"
+  data-offline-search-index-json-src="/offline-search-index.54c75383a35d3a3892a42f0b725ad2e6.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -189,6 +189,14 @@ if (!doNotTrack) {
     
 	
 <li>1: <a href="#pg-093f126ec9e750c4adca83e14d272d51">基于Ollama构建本地大模型</a></li>
+
+
+    
+  
+    
+    
+	
+<li>2: <a href="#pg-e44128ff477d39d7fb8644a3a4a27ea6">大模型相关概念</a></li>
 
 
     
@@ -491,6 +499,189 @@ if (!doNotTrack) {
 <li><a href="https://github.com/ollama/ollama/blob/main/docs/faq.md">https://github.com/ollama/ollama/blob/main/docs/faq.md</a></li>
 <li><a href="https://docs.openwebui.com/getting-started/quick-start">https://docs.openwebui.com/getting-started/quick-start</a></li>
 <li><a href="https://github.com/open-webui/open-webui#troubleshooting">https://github.com/open-webui/open-webui#troubleshooting</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-e44128ff477d39d7fb8644a3a4a27ea6">2 - 大模型相关概念</h1>
+    
+	<blockquote>
+<p>本文主要介绍大模型领域常用的名词概念等。</p>
+</blockquote>
+<h1 id="mcp">MCP</h1>
+<h2 id="mcp的概念">MCP的概念</h2>
+<p>MCP的全称是<code>Model Context Protocol</code>，即模型上下文协议。根据官网的解释，MCP 是一个开放协议，它规范了应用程序向 LLM 提供<code>上下文</code>的方式。MCP 就像 AI 应用程序的 <code>USB-C </code>端口一样。正如 USB-C 提供了一种标准化的方式将您的设备连接到各种外围设备和配件一样，MCP 也提供了一种标准化的方式将 AI 模型连接到不同的数据源和工具。</p>
+<p>简单理解<code>模型上下文协议</code>，可以把它拆成三个部分：</p>
+<ul>
+<li>
+<p><code>模型</code>：协议的使用方即大模型工具。</p>
+</li>
+<li>
+<p><code>上下文</code>：提供存储上下文的功能，类似于存储大模型历史交互的记忆。</p>
+</li>
+<li>
+<p><code>协议</code>：本质是一种标准，类比与TCP协议，http协议，而MCP可以类比于http之上的业务层协议。</p>
+</li>
+</ul>
+<p>它的目的是 <strong>定义模型上下文的结构、状态传递、缓存方式、状态更新机制等内容</strong>，以支持复杂推理任务中的“状态保持”和“多轮交互”。</p>
+<h2 id="为什么需要mcp">为什么需要MCP</h2>
+<p>在大模型推理中，尤其是以下场景：</p>
+<ul>
+<li>
+<p>多轮对话（如 ChatGPT）</p>
+</li>
+<li>
+<p>Streaming 推理</p>
+</li>
+<li>
+<p>长上下文处理（如 RAG、LLM agent）</p>
+</li>
+<li>
+<p>分布式推理流水线（分stage执行）</p>
+</li>
+</ul>
+<p>我们需要在模型之间、服务组件之间传递“上下文状态”（如 past key value、token buffer、history、session id）。这个时候，就需要一套 <strong>标准的协议</strong> 来描述和控制这些状态 —— MCP 就是为此而生。</p>
+<p>可以将 MCP 看作在 HTTP 或 gRPC 上层的“<strong>业务语义协议</strong>”：</p>
+<pre tabindex="0"><code>┌──────────────────────────────────────────────┐
+│                Application (LLM API)         │
+│     ┌─────────────┐                          │
+│     │   MCP 协议   │  &lt;-- 管理模型上下文状态   │
+│     └─────────────┘                          │
+│         ↑ 使用 protobuf / JSON               │
+│     ┌─────────────┐                          │
+│     │   HTTP/gRPC  │  &lt;-- 实际传输协议        │
+│     └─────────────┘                          │
+│         ↑ 使用 TCP/IP                        │
+└──────────────────────────────────────────────┘
+</code></pre><h2 id="类比">类比</h2>
+<p><strong>MCP 是“大脑助手的记忆本”</strong></p>
+<p>想象你在和一个 AI 助手（比如 ChatGPT）对话，它像一个演员在扮演各种角色。</p>
+<p><strong>如果没有 MCP：</strong></p>
+<p>助手每次都“失忆”，你要一遍遍重复之前的内容，它无法记得你是谁、想干嘛、聊过啥。</p>
+<p><strong>如果有 MCP：</strong></p>
+<p>就像它有了一本“<strong>记忆本</strong>”：</p>
+<ul>
+<li>
+<p>每次你对它说话，它都记下“对话历史”、“你正在聊的主题”、“你的偏好”</p>
+</li>
+<li>
+<p>它能从记忆本中取出之前你说的话，继续展开对话</p>
+</li>
+<li>
+<p>这个“记忆本”就由 <strong>MCP 协议定义结构、内容和传递方式</strong></p>
+</li>
+</ul>
+<p>🧠 <strong>形象理解</strong>：</p>
+<blockquote>
+<p>MCP 就像是 AI 模型的大脑助手，负责“记住你们聊过什么”，以及“接下来该怎么回复你”。</p>
+</blockquote>
+<h1 id="mcp-server">MCP server</h1>
+<p>MCP server是模型上下文协议（Model Context Protocol）中的一个组件，它扮演着AI模型与外部数据、工具和功能之间连接的桥梁。它就像一个工具箱，为AI模型提供各种功能，比如访问文件、调用API、执行计算等，可以实现更复杂的任务。﻿</p>
+<p>更详细地说，MCP server是一种轻量级服务程序，负责提供数据、工具和提示，帮助AI模型理解和执行任务。它通过标准化的接口和协议，将外部能力暴露给AI模型，让AI模型能够访问各种外部资源，例如数据库、API、文件等。</p>
+<p>mcp server 链接：</p>
+<ul>
+<li><a href="https://mcp.ad/">https://mcp.ad/</a></li>
+</ul>
+<h1 id="prompt">Prompt</h1>
+<blockquote>
+<p>Prompt 就是你给大模型的“指令 + 提示 +上下文”，用来引导它输出你想要的结果。</p>
+</blockquote>
+<p><strong>Prompt 是 MCP 协议中的核心内容之一</strong>，而 <strong>MCP 是管理 Prompt 的“协议和系统”</strong>，用来组织、封装、传输、复用 prompt（以及上下文）以便模型推理使用。</p>
+<p><strong>Prompt 是 MCP 协议中的核心内容之一</strong>，而 <strong>MCP 是管理 Prompt 的“协议和系统”</strong>，用来组织、封装、传输、复用 prompt（以及上下文）以便模型推理使用。</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Prompt</th>
+<th>MCP（Model Context Protocol）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>本质</td>
+<td>一段输入文本（或 token 序列）</td>
+<td>一种上下文协议，组织模型输入/状态/上下文的格式与流程</td>
+</tr>
+<tr>
+<td>作用</td>
+<td>引导模型生成内容</td>
+<td>管理 Prompt 和上下文的结构、状态、生命周期</td>
+</tr>
+<tr>
+<td>是否直接传给模型</td>
+<td>✅ 是模型输入的一部分</td>
+<td>✅ 会生成 prompt，并交给模型</td>
+</tr>
+<tr>
+<td>是谁的子集？</td>
+<td>Prompt 是 MCP 的<strong>一部分字段</strong></td>
+<td>MCP 是对 Prompt 及其上下文的<strong>结构化封装</strong></td>
+</tr>
+<tr>
+<td>类比关系</td>
+<td>你要说的一句话</td>
+<td>你整场对话的“聊天记录 + 状态 + 上下文管理系统”</td>
+</tr>
+</tbody>
+</table>
+<p>示例：</p>
+<p>Prompt：</p>
+<blockquote>
+<p>“你是一个翻译专家，请将下面这段话翻译为英文：‘我爱编程’”</p>
+</blockquote>
+<p>最终形成一个这样的 MCP payload：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">&#34;session_id&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#4e9a06">&#34;abc123&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">&#34;stage&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#4e9a06">&#34;prompt&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">&#34;inputs&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">&#34;prompt&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#4e9a06">&#34;你是一个翻译专家，请将下面这段话翻译为英文：‘我爱编程’&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">&#34;history&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000;font-weight:bold">[</span><span style="color:#a40000">...</span><span style="color:#000;font-weight:bold">],</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">&#34;role&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#4e9a06">&#34;user&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">&#34;generation_config&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">&#34;temperature&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#0000cf;font-weight:bold">0.8</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">&#34;top_p&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#0000cf;font-weight:bold">0.95</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000;font-weight:bold">},</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">&#34;kv_cache_refs&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000;font-weight:bold">[],</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">&#34;position&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#0000cf;font-weight:bold">128</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="token">Token</h1>
+<blockquote>
+<p><strong>Token 是大模型处理语言时的最小单位</strong>，相当于模型的“语言颗粒度”。它可能是一个词、一个子词、一个字符，甚至是一部分单词。</p>
+</blockquote>
+<p>人说话是用句子、单词，大模型不能直接理解这些自然语言，它必须先<strong>把文本切割成小块（token）</strong>，再转成数字（embedding）才能理解。</p>
+<p>比如下面这句话：<code>你好，世界！</code></p>
+<p>对人来说是 几 个字，但对模型来说，它可能被切分成 <strong>2~4 个 token</strong>，取决于使用的 tokenizer（分词器）。</p>
+<p><strong>为什么 token 很重要？</strong></p>
+<ul>
+<li>
+<p><strong>计费单位</strong>（OpenAI/Claude/其他 API）是按 token 收费的</p>
+</li>
+<li>
+<p><strong>上下文长度限制</strong> 是按 token 算的，不是按“字”算的</p>
+</li>
+<li>
+<p><strong>模型性能 &amp; 精度</strong> 和 token 分布、长度密切相关</p>
+</li>
+<li>
+<p><strong>Prompt 工程</strong> 就是用尽可能少的 token 实现更强的引导效果</p>
+</li>
+</ul>
+<p>参考：</p>
+<ul>
+<li><a href="https://modelcontextprotocol.io/introduction">Introduction - Model Context Protocol</a></li>
 </ul>
 
 </div>
