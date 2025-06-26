@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.f16eff18f381ba50353f05e08b21d1f7.json"
+  data-offline-search-index-json-src="/offline-search-index.631e111c3229dd44ec629a51228d8fdf.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -188,7 +188,7 @@ if (!doNotTrack) {
     
     
 	
-<li>1: <a href="#pg-12ead326c82e6173f626603c3a12ae76">nvidia-device-plugin介绍</a></li>
+<li>1: <a href="#pg-41b1f659b52618b5315b1ed044dd0ed1">k8s管理GPU容器</a></li>
 
 
     
@@ -219,9 +219,46 @@ if (!doNotTrack) {
 
 <div class="td-content" style="">
     
-	<h1 id="pg-12ead326c82e6173f626603c3a12ae76">1 - nvidia-device-plugin介绍</h1>
+	<h1 id="pg-41b1f659b52618b5315b1ed044dd0ed1">1 - k8s管理GPU容器</h1>
     
-	<h1 id="1-简介">1. 简介</h1>
+	<p>本文主要描述如何在k8s中管理GPU的节点和容器。</p>
+<p>Kubernetes（K8s）对 GPU 的支持，适合用于机器学习、深度学习、图像处理等高性能计算场景。</p>
+<h1 id="1-实现思路">1. 实现思路</h1>
+<p>K8s 本身不直接管理 GPU，而是通过 <strong>NVIDIA 的 GPU 设备插件（NVIDIA Device Plugin）</strong> 将 GPU 资源暴露给容器。整个流程如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>物理 GPU → 安装驱动 + 宿主机工具 → 容器 runtime（如 containerd）→ Kubernetes 通过 device plugin 管理 → Pod 使用 GPU
+</span></span></code></pre></div><h1 id="2-实现步骤">2. 实现步骤</h1>
+<h2 id="2-1-节点准备-仅-gpu-节点需要">2.1. 节点准备（仅 GPU 节点需要）</h2>
+<p>运行 NVIDIA 设备插件的先决条件如下：</p>
+<ul>
+<li>NVIDIA 驱动程序 ~= 384.81</li>
+<li>nvidia-docker &gt;= 2.0 || nvidia-container-toolkit &gt;= 1.7.0（&gt;= 1.11.0 在基于 Tegra 的系统上使用集成 GPU）</li>
+<li>nvidia-container-runtime 配置为默认低级运行时</li>
+<li>Kubernetes 版本 &gt;= 1.10</li>
+</ul>
+<p>安装 <strong>NVIDIA 官方驱动</strong>。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 示例安装命令（Ubuntu）</span>
+</span></span><span style="display:flex;"><span>sudo apt install nvidia-driver-525
+</span></span><span style="display:flex;"><span>nvidia-smi  <span style="color:#8f5902;font-style:italic"># 验证 GPU 可用</span>
+</span></span></code></pre></div><h2 id="2-2-安装容器运行时插件-containerd-支持">2.2. 安装容器运行时插件（containerd 支持）</h2>
+<p>安装 NVIDIA Container Toolkit，参考<a href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html">Installing the NVIDIA Container Toolkit</a></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey <span style="color:#000;font-weight:bold">|</span> sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>  <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list <span style="color:#000;font-weight:bold">|</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>    sed <span style="color:#4e9a06">&#39;s#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g&#39;</span> <span style="color:#000;font-weight:bold">|</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>sudo apt-get update
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">export</span> <span style="color:#000">NVIDIA_CONTAINER_TOOLKIT_VERSION</span><span style="color:#ce5c00;font-weight:bold">=</span>1.17.8-1
+</span></span><span style="display:flex;"><span>  sudo apt-get install -y <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>      nvidia-container-toolkit<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">NVIDIA_CONTAINER_TOOLKIT_VERSION</span><span style="color:#4e9a06">}</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>      nvidia-container-toolkit-base<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">NVIDIA_CONTAINER_TOOLKIT_VERSION</span><span style="color:#4e9a06">}</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>      libnvidia-container-tools<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">NVIDIA_CONTAINER_TOOLKIT_VERSION</span><span style="color:#4e9a06">}</span> <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>      libnvidia-container1<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">${</span><span style="color:#000">NVIDIA_CONTAINER_TOOLKIT_VERSION</span><span style="color:#4e9a06">}</span>
+</span></span></code></pre></div><p>配置containerd</p>
+<p>nvidia-ctk会修改containerd的配置使得containerd可以使用NVIDIA Container Runtime。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo nvidia-ctk runtime configure --runtime<span style="color:#ce5c00;font-weight:bold">=</span>containerd
+</span></span><span style="display:flex;"><span>sudo systemctl restart containerd
+</span></span></code></pre></div><h2 id="2-3-安装-nvidia-device-plugin-k8s-插件">2.3. 安装 NVIDIA Device Plugin（K8s 插件）</h2>
 <p>NVIDIA device plugin 通过k8s daemonset的方式部署到每个k8s的node节点上，实现了<a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/resource-management/device-plugin.md">Kubernetes device plugin</a>的接口。</p>
 <p>提供以下功能：</p>
 <ul>
@@ -229,50 +266,38 @@ if (!doNotTrack) {
 <li>跟踪GPU的健康情况</li>
 <li>使在k8s的节点可以运行GPU容器</li>
 </ul>
-<h1 id="2-要求">2. 要求</h1>
-<ul>
-<li>NVIDIA drivers ~= 384.81</li>
-<li>nvidia-docker version &gt; 2.0 (see how to <a href="https://github.com/NVIDIA/nvidia-docker">install</a> and it's <a href="https://github.com/nvidia/nvidia-docker/wiki/Installation-(version-2.0)#prerequisites">prerequisites</a>)</li>
-<li>docker configured with nvidia as the <a href="https://github.com/NVIDIA/nvidia-docker/wiki/Advanced-topics#default-runtime">default runtime</a>.</li>
-<li>Kubernetes version &gt;= 1.10</li>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl create -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.17.1/deployments/static/nvidia-device-plugin.yml
+</span></span></code></pre></div><ul>
+<li>
+<p>它会在每个 GPU 节点启动一个 <code>nvidia-device-plugin</code> DaemonSet。</p>
+</li>
+<li>
+<p>它会向节点注册一个 <code>nvidia.com/gpu</code> 资源。</p>
+</li>
 </ul>
-<h1 id="3-使用">3. 使用</h1>
-<h2 id="3-1-安装nvidia-drivers和nvidia-docker">3.1. 安装NVIDIA drivers和nvidia-docker</h2>
-<p>提供GPU节点的机器，准备工作如下</p>
-<ol>
-<li>安装NVIDIA drivers ~= 384.81</li>
-<li>安装nvidia-docker version &gt; 2.0</li>
-</ol>
-<h2 id="3-2-配置docker-runtime">3.2. 配置docker runtime</h2>
-<p>配置nvidia runtime作为GPU节点的默认runtime。</p>
-<p>修改文件/etc/docker/daemon.json，增加以下runtime内容。</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span><span style="color:#000;font-weight:bold">{</span>
-</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">&#34;default-runtime&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#4e9a06">&#34;nvidia&#34;</span><span style="color:#000;font-weight:bold">,</span>
-</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">&#34;runtimes&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000;font-weight:bold">{</span>
-</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">&#34;nvidia&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000;font-weight:bold">{</span>
-</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">&#34;path&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#4e9a06">&#34;/usr/bin/nvidia-container-runtime&#34;</span><span style="color:#000;font-weight:bold">,</span>
-</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">&#34;runtimeArgs&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000;font-weight:bold">[]</span>
-</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
-</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
-</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
-</span></span></code></pre></div><h2 id="3-3-部署nvidia-device-plugin">3.3. 部署nvidia-device-plugin</h2>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ kubectl create -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/1.0.0-beta4/nvidia-device-plugin.yml
-</span></span></code></pre></div><p>nvidia-device-plugin的daemonset yaml文件如下：</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># Copyright (c) 2019, NVIDIA CORPORATION.  All rights reserved.</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#8f5902;font-style:italic">#</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#8f5902;font-style:italic"># Licensed under the Apache License, Version 2.0 (the &#34;License&#34;);</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#8f5902;font-style:italic"># you may not use this file except in compliance with the License.</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#8f5902;font-style:italic"># You may obtain a copy of the License at</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#8f5902;font-style:italic">#</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#8f5902;font-style:italic">#     http://www.apache.org/licenses/LICENSE-2.0</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#8f5902;font-style:italic">#</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#8f5902;font-style:italic"># Unless required by applicable law or agreed to in writing, software</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#8f5902;font-style:italic"># distributed under the License is distributed on an &#34;AS IS&#34; BASIS,</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#8f5902;font-style:italic"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#8f5902;font-style:italic"># See the License for the specific language governing permissions and</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#8f5902;font-style:italic"># limitations under the License.</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">apps/v1</span><span style="color:#f8f8f8;text-decoration:underline">
+<h2 id="2-4-编写使用-gpu-的-pod-deployment">2.4. 编写使用 GPU 的 Pod/Deployment</h2>
+<p>部署守护进程后，容器现在可以使用以下<code>nvidia.com/gpu</code>资源类型请求 NVIDIA GPU：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#000">cat &lt;&lt;EOF | kubectl apply -f -</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Pod</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">gpu-pod</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">restartPolicy</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Never</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">cuda-container</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nvcr.io/nvidia/k8s/cuda-sample:vectoradd-cuda12.5.0</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">limits</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">nvidia.com/gpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># requesting 1 GPU</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">tolerations</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">key</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nvidia.com/gpu</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">operator</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Exists</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">effect</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">NoSchedule</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#000">EOF</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h1 id="3-nvidia-device-plugin内容">3. nvidia-device-plugin内容</h1>
+<p>nvidia-device-plugin的daemonset yaml文件如下，具体参考：<a href="https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.17.1/deployments/static/nvidia-device-plugin.yml">nvidia-device-plugin.yml</a></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">apps/v1</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">DaemonSet</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nvidia-device-plugin-daemonset</span><span style="color:#f8f8f8;text-decoration:underline">
@@ -285,18 +310,10 @@ if (!doNotTrack) {
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">type</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">RollingUpdate</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">template</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#8f5902;font-style:italic"># This annotation is deprecated. Kept here for backward compatibility</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#8f5902;font-style:italic"># See https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">annotations</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">scheduler.alpha.kubernetes.io/critical-pod</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">labels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nvidia-device-plugin-ds</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">tolerations</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#8f5902;font-style:italic"># This toleration is deprecated. Kept here for backward compatibility</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#8f5902;font-style:italic"># See https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">key</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">CriticalAddonsOnly</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">operator</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Exists</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">key</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nvidia.com/gpu</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">operator</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Exists</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">effect</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">NoSchedule</span><span style="color:#f8f8f8;text-decoration:underline">
@@ -306,37 +323,22 @@ if (!doNotTrack) {
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#8f5902;font-style:italic"># See https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">priorityClassName</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;system-node-critical&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nvidia/k8s-device-plugin:1.0.0-beta4</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nvcr.io/nvidia/k8s-device-plugin:v0.17.1</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nvidia-device-plugin-ctr</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">env</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">FAIL_ON_INIT_ERROR</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">            </span><span style="color:#204a87;font-weight:bold">value</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;false&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">securityContext</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">allowPrivilegeEscalation</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#204a87;font-weight:bold">false</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">capabilities</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">            </span><span style="color:#204a87;font-weight:bold">drop</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#34;ALL&#34;</span><span style="color:#000;font-weight:bold">]</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">volumeMounts</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">device-plugin</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">            </span><span style="color:#204a87;font-weight:bold">mountPath</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/var/lib/kubelet/device-plugins</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">volumes</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">device-plugin</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">hostPath</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">            </span><span style="color:#204a87;font-weight:bold">path</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/var/lib/kubelet/device-plugins</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span></code></pre></div><h2 id="3-4-运行gpu任务">3.4. 运行GPU任务</h2>
-<p>创建一个GPU的pod，pod的资源类型指定为<code>nvidia.com/gpu</code>。</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Pod</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">gpu-pod</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">cuda-container</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nvidia/cuda:9.0-devel</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">limits</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">nvidia.com/gpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># requesting 2 GPUs</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">digits-container</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nvidia/digits:6.0</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">limits</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
-</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">nvidia.com/gpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># requesting 2 GPUs</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">mountPath</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/var/lib/kubelet/device-plugins</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">volumes</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">device-plugin</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">hostPath</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">path</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/var/lib/kubelet/device-plugins</span><span style="color:#f8f8f8;text-decoration:underline">
 </span></span></span></code></pre></div><h1 id="4-构建和运行nvidia-device-plugin">4. 构建和运行nvidia-device-plugin</h1>
 <h2 id="4-1-docker方式">4.1. docker方式</h2>
 <h3 id="4-1-1-编译">4.1.1. 编译</h3>
@@ -370,9 +372,24 @@ if (!doNotTrack) {
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ ./k8s-device-plugin
 </span></span></code></pre></div><p>参考：</p>
 <ul>
-<li><a href="https://github.com/NVIDIA/k8s-device-plugin">https://github.com/NVIDIA/k8s-device-plugin</a></li>
-<li><a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/resource-management/device-plugin.md">k8s-device-plugin</a></li>
-<li><a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/resource-management/gpu-support.md">gpu-support</a></li>
+<li>
+<p><a href="https://github.com/NVIDIA/k8s-device-plugin">https://github.com/NVIDIA/k8s-device-plugin</a></p>
+</li>
+<li>
+<p><a href="https://kubernetes.io/zh-cn/docs/tasks/manage-gpus/scheduling-gpus/">调度 GPU | Kubernetes</a></p>
+</li>
+<li>
+<p><a href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html#configuring-containerd-for-kubernetes">configuring-containerd-for-kubernetes</a></p>
+</li>
+<li>
+<p><a href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html">Installing the NVIDIA Container Toolkit </a></p>
+</li>
+<li>
+<p><a href="https://github.com/kubernetes/design-proposals-archive/blob/main/resource-management/device-plugin.md">k8s-device-plugin</a></p>
+</li>
+<li>
+<p><a href="https://github.com/kubernetes/design-proposals-archive/blob/main/resource-management/gpu-support.md">gpu-support</a></p>
+</li>
 </ul>
 
 </div>
