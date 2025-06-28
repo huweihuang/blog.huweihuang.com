@@ -1,0 +1,1014 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<link rel="canonical" type="text/html" href="https://blog.huweihuang.com/kubernetes-notes/cluster-optimization/scheduler/">
+<link rel="alternate" type="application/rss&#43;xml" href="https://blog.huweihuang.com/kubernetes-notes/cluster-optimization/scheduler/index.xml">
+<meta name="robots" content="noindex, nofollow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>调度优化 | 胡伟煌</title>
+<meta name="description" content="">
+<meta property="og:title" content="调度优化" />
+<meta property="og:description" content="Kubernetes学习笔记" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://blog.huweihuang.com/kubernetes-notes/cluster-optimization/scheduler/" /><meta property="og:site_name" content="胡伟煌" />
+
+<meta itemprop="name" content="调度优化">
+<meta itemprop="description" content="Kubernetes学习笔记"><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="调度优化"/>
+<meta name="twitter:description" content="Kubernetes学习笔记"/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" as="style">
+<link href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-114718458-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-section">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">胡伟煌</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/kubernetes-notes/" ><span class="active">Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/k8s-source-code-analysis/" ><span>Kubernetes源码分析</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/golang-notes/" ><span>Golang学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/linux-notes/" ><span>Linux学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/about/" ><span>About</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.728161da729d505f546fca7612fd931d.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+
+
+
+
+<div class="td-content">
+<div class="pageinfo pageinfo-primary d-print-none">
+<p>
+这是本节的多页打印视图。
+<a href="#" onclick="print();return false;">点击此处打印</a>.
+</p><p>
+<a href="/kubernetes-notes/cluster-optimization/scheduler/">返回本页常规视图</a>.
+</p>
+</div>
+
+
+
+<h1 class="title">调度优化</h1>
+
+
+
+
+
+    <ul>
+    
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>1: <a href="#pg-5915a456a62124fa5780fd0ef5a22bb3">大规模Pod调度优化</a></li>
+
+
+    
+  
+    
+    
+	
+<li>2: <a href="#pg-9cd333b8af6c771a4800f7be314a253b">Volcano的使用</a></li>
+
+
+    
+  
+
+    </ul>
+
+
+<div class="content">
+      
+</div>
+</div>
+
+
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-5915a456a62124fa5780fd0ef5a22bb3">1 - 大规模Pod调度优化</h1>
+    
+	<p>假设在 Kubernetes 集群中一次性调度 1 万个 Pod， 这是一项极具挑战性的任务。如果管理不当，可能会导致调度器瓶颈、API Server 过载，甚至整个集群崩溃。</p>
+<p>本文将探讨优化大规模 Pod 调度的最佳实践与技术手段。</p>
+<hr>
+<h1 id="面临的挑战">🚀 面临的挑战</h1>
+<ul>
+<li><strong>调度器压力大</strong>：大量 Pod 同时进入 Pending 状态，调度器处理不过来。</li>
+<li><strong>API Server 压力大</strong>：高频的 CREATE/GET/LIST 请求可能触发限流。</li>
+<li><strong>etcd 延迟增加</strong>：写入及状态变化频繁，导致存储后端压力过大。</li>
+<li><strong>节点压力不均衡</strong>：调度不均可导致部分节点 CPU/内存/磁盘 IO 资源打爆。</li>
+<li><strong>网络插件瓶颈</strong>：CNI 插件无法处理大量并发的 IP 分配。</li>
+</ul>
+<hr>
+<h1 id="1-调度器优化">1. 调度器优化</h1>
+<h2 id="1-1-控制-pod-创建速率">🔧 1.1. 控制 Pod 创建速率</h2>
+<p>不要一次性启动 10,000 个 Pod，而是：</p>
+<ul>
+<li><strong>分批创建</strong>：例如每批创建 500–1000 个 Pod。</li>
+<li><strong>控制速率</strong>：通过脚本或 Job 控制器引入 <code>sleep</code> 等时间间隔。</li>
+</ul>
+<h3 id="示例-shell-脚本">示例 Shell 脚本：</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">for</span> file in batches/batch_*.yaml<span style="color:#000;font-weight:bold">;</span> <span style="color:#204a87;font-weight:bold">do</span>
+</span></span><span style="display:flex;"><span>  kubectl apply -f <span style="color:#4e9a06">&#34;</span><span style="color:#000">$file</span><span style="color:#4e9a06">&#34;</span>
+</span></span><span style="display:flex;"><span>  sleep <span style="color:#0000cf;font-weight:bold">10</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">done</span>
+</span></span></code></pre></div><h2 id="1-2-调优默认调度器">⚙️ 1.2. 调优默认调度器</h2>
+<p>默认调度器（<code>kube-scheduler</code>）在高并发场景下可能成为瓶颈。为了高效调度 1 万个以上的 Pod，可以从以下几个方面进行深入调优：</p>
+<h3 id="1-提高并发调度能力">✅ 1. 提高并发调度能力</h3>
+<p>Kubernetes v1.19+ 支持配置并行调度线程数：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">kubescheduler.config.k8s.io/v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">KubeSchedulerConfiguration</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">profiles</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span>- <span style="color:#204a87;font-weight:bold">schedulerName</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">default-scheduler</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">parallelism</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">64</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><blockquote>
+<p>推荐值为 CPU 核心数的 2~4 倍（视调度密集度而定）。<br>
+注意：并发过高可能导致内存激增或 etcd 压力过大，建议结合压测评估。</p>
+</blockquote>
+<h3 id="2-启用缓存调度器-scheduling-queue-优化">✅ 2. 启用缓存调度器（Scheduling Queue 优化）</h3>
+<p>调度器内部维护了 Pending Pod 的优先队列（<code>PriorityQueue</code>）与 Node 信息缓存。</p>
+<ul>
+<li>
+<p><strong>确保使用优先级调度</strong>（PodPriority）可帮助调度器优先处理重要任务。</p>
+</li>
+<li>
+<p>配置调度器时可启用 <code>permit</code> 插件阶段，在调度决策前提前控制调度流量。</p>
+</li>
+</ul>
+<h3 id="3-关闭或精简耗时插件">✅ 3. 关闭或精简耗时插件</h3>
+<p>某些默认启用的插件在调度高峰时会带来性能负担：</p>
+<table>
+<thead>
+<tr>
+<th>插件</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VolumeBinding</td>
+<td>Bind</td>
+<td>持久化卷绑定，需访问 API</td>
+</tr>
+<tr>
+<td>NodeResourcesFit</td>
+<td>Filter</td>
+<td>检查资源是否满足</td>
+</tr>
+<tr>
+<td>InterPodAffinity</td>
+<td>Filter</td>
+<td>Pod 之间亲和性计算复杂</td>
+</tr>
+</tbody>
+</table>
+<p>⚠️ <strong>优化建议</strong>：</p>
+<ul>
+<li>
+<p>无状态服务建议 <strong>关闭 VolumeBinding</strong> 插件。</p>
+</li>
+<li>
+<p>只使用必要的 Score 插件（如 <code>LeastAllocated</code>、<code>BalancedAllocation</code>）。</p>
+</li>
+</ul>
+<p>配置方式：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">plugins</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">score</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">disabled</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;NodeResourcesBalancedAllocation&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">enabled</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;NodeResourcesLeastAllocated&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h3 id="4-预选节点集范围-节点剪枝">✅ 4. 预选节点集范围（节点剪枝）</h3>
+<p>调度器默认会评估所有可调度节点，1 万 Pod × 1 千节点的组合极其耗时。</p>
+<p>优化方法：</p>
+<ul>
+<li>
+<p><strong>NodeAffinity</strong>：提前通过标签筛掉不符合的节点。</p>
+</li>
+<li>
+<p><strong>使用 preFilter 插件</strong> 自定义节点集合。</p>
+</li>
+</ul>
+<p>示例：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">affinity</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">nodeAffinity</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">requiredDuringSchedulingIgnoredDuringExecution</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">nodeSelectorTerms</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">matchExpressions</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span>- <span style="color:#204a87;font-weight:bold">key</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">node-role.kubernetes.io/worker</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">operator</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">In</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">values</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span>- <span style="color:#000">batch</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h3 id="5-启用拓扑感知与亲和性缓存">✅ 5. 启用拓扑感知与亲和性缓存</h3>
+<p>使用拓扑调度建议：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">topologySpreadConstraints</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span>- <span style="color:#204a87;font-weight:bold">maxSkew</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">topologyKey</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">topology.kubernetes.io/zone</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">whenUnsatisfiable</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">ScheduleAnyway</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h3 id="6-控制调度队列压力-backoff-retry">✅ 6. 控制调度队列压力（Backoff &amp; Retry）</h3>
+<p>Pod 多次调度失败会进入 backoff 队列，默认退避时间为：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">InitialBackoff</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#0000cf;font-weight:bold">1</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Second</span> 
+</span></span><span style="display:flex;"><span><span style="color:#000">MaxBackoff</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#0000cf;font-weight:bold">10</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#000">time</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Second</span>
+</span></span></code></pre></div><p>调大 <code>MaxBackoff</code> 可减缓高频重试对调度器的压力。</p>
+<h3 id="调优效果验证建议">🧪 调优效果验证建议：</h3>
+<ul>
+<li>
+<p>使用 <code>--v=5</code> 级别运行 <code>kube-scheduler</code>，输出调度详细日志。</p>
+</li>
+<li>
+<p>观察调度延迟指标（SchedulingLatencySeconds）：</p>
+<ul>
+<li>
+<p><code>framework_extension_point_duration_seconds</code></p>
+</li>
+<li>
+<p><code>scheduler_scheduling_duration_seconds_bucket</code></p>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="1-3-扩展调度器-scheduling-framework-插件">🧩 1.3. 扩展调度器（Scheduling Framework 插件）</h2>
+<p>Kubernetes 支持通过调度框架插件机制自定义调度逻辑。</p>
+<h3 id="示例-快速-filter-插件">✨ 示例：快速 Filter 插件</h3>
+<p>自定义过滤插件，可只评估部分节点，从而减少调度延迟：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">f</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">FastFilterPlugin</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Filter</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">framework</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Status</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">strings</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HasPrefix</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">node</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Name</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;compute-node-&#34;</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">framework</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewStatus</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">framework</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Success</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">framework</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewStatus</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">framework</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Unschedulable</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="1-4-使用多个调度器-调度器隔离">🧠 1.4. 使用多个调度器（调度器隔离）</h2>
+<p>并行部署多个调度器进程：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">schedulerName</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">batch-scheduler</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>每类工作负载使用不同调度器进行处理，实现并行调度和资源隔离。</p>
+<h2 id="1-5-使用高性能调度系统">🛠 1.5. 使用高性能调度系统</h2>
+<h3 id="koordinator">Koordinator</h3>
+<ul>
+<li>支持批量调度、NUMA 感知、QoS 资源分级</li>
+<li>与 Kubernetes 调度框架兼容，部署简单</li>
+</ul>
+<h3 id="volcano">Volcano</h3>
+<ul>
+<li>面向大规模批处理、AI/ML、HPC 任务调度</li>
+<li>支持抢占、任务优先级、依赖关系等</li>
+</ul>
+<h2 id="1-6-监控与验证建议">📊 1.6. 监控与验证建议</h2>
+<ul>
+<li>使用 <code>kubectl get pods -w</code> 实时观察 Pending 状态</li>
+<li>关注调度事件 <code>FailedScheduling</code></li>
+<li>跟踪 API Server 指标：QPS、延迟、内存占用</li>
+<li>部署 Prometheus + Grafana 进行系统监控与可视化</li>
+</ul>
+<h2 id="1-7-总结对比">✅ 1.7. 总结对比</h2>
+<table>
+<thead>
+<tr>
+<th>优化方式</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>控制 Pod 创建速率</td>
+<td>避免控制面组件过载</td>
+</tr>
+<tr>
+<td>提高调度器并发度</td>
+<td>提升每秒调度吞吐</td>
+</tr>
+<tr>
+<td>编写调度器插件</td>
+<td>降低单次调度复杂度</td>
+</tr>
+<tr>
+<td>多调度器架构</td>
+<td>实现任务隔离与并行调度</td>
+</tr>
+<tr>
+<td>使用 Koordinator/Volcano</td>
+<td>面向 AI/批处理等高负载场景</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h1 id="2-etcd优化">2. Etcd优化</h1>
+<p>etcd 是 Kubernetes 控制平面的核心存储引擎，一旦在大规模 Pod 创建、调度过程中出现 <strong>写入延迟增加</strong>，会直接影响 API Server 性能，进而拖慢调度器和控制器反应速度，甚至引发集群不可用。</p>
+<h2 id="2-1-基础配置优化">🔧 2.1. 基础配置优化</h2>
+<h3 id="1-启用自动压缩历史数据">✅ 1. 启用自动压缩历史数据</h3>
+<p>etcd 默认会保留历史版本，随着对象变化增多，存储膨胀，导致延迟升高。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>--auto-compaction-retention<span style="color:#ce5c00;font-weight:bold">=</span>1h   <span style="color:#8f5902;font-style:italic"># 每小时清理历史</span>
+</span></span><span style="display:flex;"><span>--snapshot-count<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">10000</span>           <span style="color:#8f5902;font-style:italic"># 控制何时触发快照</span>
+</span></span></code></pre></div><h3 id="2-启用-wal-压缩">✅ 2. 启用 WAL 压缩</h3>
+<p>压缩 Write-Ahead Log，减少磁盘 I/O 开销：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>--experimental-initial-corrupt-check<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87">true</span>
+</span></span><span style="display:flex;"><span>--experimental-compact-hash-check-enabled<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87">true</span>
+</span></span></code></pre></div><h2 id="2-2-硬件层优化-非常关键">💽 2.2. 硬件层优化（非常关键）</h2>
+<p>etcd 对 <strong>磁盘 IOPS 和延迟</strong> 敏感，推荐：</p>
+<ul>
+<li>
+<p><strong>使用 SSD</strong>（NVMe 最佳）</p>
+</li>
+<li>
+<p>etcd 独立磁盘，避免和 kubelet 或 container runtime 共用</p>
+</li>
+<li>
+<p>提升内存（建议 16G+）、CPU 性能（至少 4 核）</p>
+</li>
+<li>
+<p>开启 NUMA 亲和配置，减少跨核调度</p>
+</li>
+</ul>
+<h2 id="2-3-集群部署架构优化">🧱 2.3. 集群部署架构优化</h2>
+<h3 id="1-隔离部署-etcd">✅ 1. 隔离部署 etcd</h3>
+<p>etcd不要与 <code>kube-apiserver</code>、<code>controller-manager</code> 等组件共节点运行。</p>
+<p>1）<strong>etcd 对磁盘 IO、内存和 CPU 的性能非常敏感</strong>，特别是磁盘延迟对 etcd 性能和稳定性有显著影响。</p>
+<ul>
+<li>
+<p>kube-apiserver、controller-manager、scheduler 等组件也会频繁访问 etcd，产生较大 CPU 和内存负载。</p>
+</li>
+<li>
+<p>如果它们部署在同一节点，容易导致 <strong>资源竞争（尤其是 IO）</strong>，影响 etcd 的响应能力和稳定性，进而影响整个集群的控制面。</p>
+</li>
+</ul>
+<p>2） <strong>Kubernetes 通常运行在高速局域网内，访问 etcd 的延迟很小</strong></p>
+<ul>
+<li>
+<p>网络延迟在现代数据中心或云环境中通常是<strong>微秒到毫秒级别</strong>。</p>
+</li>
+<li>
+<p>只要保证 etcd 集群网络稳定，控制面组件即使不在同一个节点也能快速访问。</p>
+</li>
+</ul>
+<p>3） <strong>不在一个节点，可以避免“局部高负载”导致连锁影响</strong></p>
+<ul>
+<li>
+<p>如果 kube-apiserver 跟 etcd 同节点，一旦 kube-apiserver 突发流量（比如创建大量资源），会导致 <strong>etcd 所在节点资源被占满</strong>，从而影响 etcd 响应。</p>
+</li>
+<li>
+<p>反之亦然，etcd 的 GC 或 compaction 操作也可能影响 apiserver 的性能。</p>
+</li>
+</ul>
+<h3 id="2-多副本部署-3-5个节点">✅ 2. 多副本部署（3~5个节点）</h3>
+<p>避免单点瓶颈，并启用高可用。</p>
+<h1 id="3-kube-apiserver优化">3. kube-apiserver优化</h1>
+<p>在大量 Pod 同时调度时，<strong>API Server 压力大</strong> 是造成集群卡顿或异常的核心瓶颈之一，主要表现为：</p>
+<ul>
+<li>
+<p>创建、更新、查询 Pod 等请求响应变慢</p>
+</li>
+<li>
+<p>kubelet、controller-manager 与 API Server 通信超时</p>
+</li>
+<li>
+<p>etcd QPS 激增、延迟升高，甚至触发熔断</p>
+</li>
+</ul>
+<p>以下是具体的优化策略，从集群参数、限流、组件解耦等多个层面展开：</p>
+<h2 id="3-1-控制请求速率-限流">🧱 3.1. 控制请求速率（限流）</h2>
+<h3 id="1-控制客户端创建速率">✅ 1. 控制客户端创建速率</h3>
+<p>比如大量 Job/Deployment 控制器、脚本同时发出 <code>kubectl apply</code> 请求：</p>
+<p><strong>解决方法：</strong></p>
+<ul>
+<li>
+<p>采用 <code>kubectl --wait=false</code> 异步创建</p>
+</li>
+<li>
+<p>使用分批 apply 或 sleep 控制速率</p>
+</li>
+<li>
+<p>使用 controller（例如自定义 CRD + controller）分批分组管理 pod/job</p>
+</li>
+</ul>
+<h2 id="3-2-调优-api-server-参数">⚙️ 3.2. 调优 API Server 参数</h2>
+<p>在 kube-apiserver 启动参数中：</p>
+<h3 id="1-增加最大并发-qps">✅ 1. 增加最大并发 QPS</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>--max-requests-inflight<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">4000</span>              <span style="color:#8f5902;font-style:italic"># 默认 400，增加吞吐能力</span>
+</span></span><span style="display:flex;"><span>--max-mutating-requests-inflight<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">2000</span>     <span style="color:#8f5902;font-style:italic"># 默认 200，调大写请求容量</span>
+</span></span></code></pre></div><h3 id="2-增加缓存时间与响应窗口">✅ 2. 增加缓存时间与响应窗口</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>--request-timeout<span style="color:#ce5c00;font-weight:bold">=</span>1m
+</span></span><span style="display:flex;"><span>--min-request-timeout<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">300</span>
+</span></span></code></pre></div><h2 id="3-3-operator优化">3.3. operator优化</h2>
+<p>如果有开发自定义的operator，则需要对operator的逻辑进行优化。</p>
+<h3 id="1-使用-informer-缓存机制-client-go-默认支持">✅ 1. 使用 informer 缓存机制（client-go 默认支持）</h3>
+<p>自定义控制器或调度插件中应使用共享缓存，而非频繁 <code>GET</code>：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>informer :<span style="color:#ce5c00;font-weight:bold">=</span> factory.Core<span style="color:#ce5c00;font-weight:bold">()</span>.V1<span style="color:#ce5c00;font-weight:bold">()</span>.Pods<span style="color:#ce5c00;font-weight:bold">()</span>.Informer<span style="color:#ce5c00;font-weight:bold">()</span>
+</span></span></code></pre></div><h3 id="2-减少不必要的-watch-或频繁-list-请求">✅ 2. 减少不必要的 Watch 或频繁 List 请求</h3>
+<ul>
+<li>
+<p>调度器插件中不要频繁访问 Pod 列表</p>
+</li>
+<li>
+<p>减少 metrics 或审计日志系统对 API 的高频采集</p>
+</li>
+</ul>
+<h1 id="4-网络插件优化">4. 网络插件优化</h1>
+<p>Kubernetes 网络插件（CNI）在大规模部署或高并发场景下，若处理能力跟不上，会出现 <strong>调度成功但网络不通、服务连接慢、跨节点通信异常</strong> 等问题。</p>
+<h2 id="4-1-网络瓶颈表现">🧭 4.1. 网络瓶颈表现</h2>
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>可能原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pod 创建卡住在 <code>ContainerCreating</code></td>
+<td>CNI 插件调用超时，网络设备未初始化</td>
+</tr>
+<tr>
+<td>跨节点服务访问慢或超时</td>
+<td>网络插件转发路径性能不足，iptables/ebpf 累积</td>
+</tr>
+<tr>
+<td>集群中 ping 某些 Pod 慢</td>
+<td>某些节点流量瓶颈，或者 VXLAN 隧道高延迟</td>
+</tr>
+<tr>
+<td><code>kube-proxy</code> CPU 占满</td>
+<td>iptables 规则过多或频繁变更</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4-2-选型优化-选择高性能-cni-插件">✅ 4.2. 选型优化：选择高性能 CNI 插件</h2>
+<table>
+<thead>
+<tr>
+<th>插件</th>
+<th>性能特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://cilium.io">Cilium</a></td>
+<td>eBPF 驱动，无需 iptables，极高性能，支持大规模节点</td>
+</tr>
+<tr>
+<td>Calico (BPF 模式)</td>
+<td>支持 eBPF 模式，性能更好于传统 iptables</td>
+</tr>
+<tr>
+<td>Flannel</td>
+<td>适用于小规模集群，性能普通，不推荐大集群使用</td>
+</tr>
+<tr>
+<td>Multus</td>
+<td>支持多网卡/多 CNI，适合边缘场景但调试复杂</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 推荐使用 <strong>Cilium 或 Calico（eBPF 模式）</strong>，避免使用传统 Flannel/VXLAN。</p>
+</blockquote>
+<h2 id="4-3-网络插件参数调优">⚙️ 4.3. 网络插件参数调优</h2>
+<h3 id="cilium-示例">🔹 Cilium 示例</h3>
+<p>配置 <code>/etc/cilium/cilium-config</code>：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>enable-bpf-masquerade: <span style="color:#4e9a06">&#34;true&#34;</span>
+</span></span><span style="display:flex;"><span>enable-ipv4-masquerade: <span style="color:#4e9a06">&#34;false&#34;</span>
+</span></span><span style="display:flex;"><span>bpf-lb-map-max: <span style="color:#4e9a06">&#34;65536&#34;</span>
+</span></span><span style="display:flex;"><span>bpf-ct-global-tcp-max: <span style="color:#4e9a06">&#34;524288&#34;</span>
+</span></span><span style="display:flex;"><span>bpf-ct-global-any-max: <span style="color:#4e9a06">&#34;262144&#34;</span>
+</span></span></code></pre></div><p>并启用 kube-proxy 替代模式（kube-proxy-free）：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">kubeProxyReplacement</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;strict&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h2 id="4-4-跨节点通信优化">🔄 4.4. 跨节点通信优化</h2>
+<h3 id="1-减少-vxlan-封装-或改为-native-routing">✅ 1. 减少 VXLAN 封装（或改为 Native Routing）</h3>
+<ul>
+<li>
+<p>Flannel/Calico VXLAN 模式性能差</p>
+</li>
+<li>
+<p>推荐切换为 Calico 的 <strong>BGP 模式</strong>（路由直达，无封装）</p>
+</li>
+</ul>
+<h3 id="2-使用-direct-server-return-dsr-ecmp-路由">✅ 2. 使用 Direct Server Return（DSR）+ ECMP 路由</h3>
+<p>大流量服务部署时，避免中心化转发。</p>
+<h2 id="4-5-kube-proxy-优化">🔃 4.5. kube-proxy 优化</h2>
+<h3 id="1-使用-ipvs-模式代替-iptables">✅ 1. 使用 <code>ipvs</code> 模式代替 <code>iptables</code></h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>--proxy-mode<span style="color:#ce5c00;font-weight:bold">=</span>ipvs
+</span></span><span style="display:flex;"><span>--ipvs-scheduler<span style="color:#ce5c00;font-weight:bold">=</span>rr
+</span></span></code></pre></div><p>相比 <code>iptables</code>，<code>ipvs</code> 处理服务转发在大规模集群下 CPU 更省、延迟更低。</p>
+<h3 id="2-配合-ebpf-替代-kube-proxy-cilium-推荐">✅ 2. 配合 eBPF 替代 kube-proxy（Cilium 推荐）</h3>
+<p>Cilium 的 <code>kube-proxy-replacement=strict</code> 直接使用 BPF 加速服务调度。</p>
+<h2 id="4-6-节点系统参数优化">🔧 4.6. 节点系统参数优化</h2>
+<p>设置节点的内核参数，提升大流量下系统处理能力：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 提高 conntrack 表容量</span>
+</span></span><span style="display:flex;"><span>sysctl -w net.netfilter.nf_conntrack_max<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">262144</span>
+</span></span><span style="display:flex;"><span>sysctl -w net.netfilter.nf_conntrack_tcp_timeout_established<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">86400</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 允许更多文件描述符</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">ulimit</span> -n <span style="color:#0000cf;font-weight:bold">1048576</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 调高队列长度</span>
+</span></span><span style="display:flex;"><span>sysctl -w net.core.somaxconn<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1024</span>
+</span></span><span style="display:flex;"><span>sysctl -w net.core.netdev_max_backlog<span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">250000</span>
+</span></span></code></pre></div><h2 id="4-7-监控关键指标">📊 4.7. 监控关键指标</h2>
+<p>通过 Cilium/Calico 自带 metrics 或 Prometheus 采集：</p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cilium_forwarding_latency_seconds</code></td>
+<td>转发延迟</td>
+</tr>
+<tr>
+<td><code>cilium_drop_count_total</code></td>
+<td>数据包被丢弃的原因</td>
+</tr>
+<tr>
+<td><code>iptables_rule_count</code></td>
+<td>kube-proxy 中规则数量</td>
+</tr>
+<tr>
+<td><code>conntrack_entries</code></td>
+<td>当前连接跟踪表大小</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4-8-总结优化建议表">✅ 4.8. 总结优化建议表</h2>
+<table>
+<thead>
+<tr>
+<th>方向</th>
+<th>方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>插件选型</td>
+<td>使用 Cilium/Calico eBPF，避免 Flannel</td>
+</tr>
+<tr>
+<td>插件配置</td>
+<td>优化转发表、连接跟踪表大小</td>
+</tr>
+<tr>
+<td>网络架构</td>
+<td>BGP 替代 VXLAN，开启 kube-proxy-free</td>
+</tr>
+<tr>
+<td>系统内核</td>
+<td>调高 conntrack / backlog 等参数</td>
+</tr>
+<tr>
+<td>转发模式</td>
+<td>使用 ipvs 或 eBPF 加速 kube-proxy</td>
+</tr>
+<tr>
+<td>监控排查</td>
+<td>开启 drop 分析、BPF 路径追踪</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h1 id="5-总结">5. 总结</h1>
+<p>大规模 Pod 调度不仅仅是追求速度，更重要的是在高压下保持系统的稳定性与正确性。需要从各个方面进行集群优化才能承受大规模pod集群的性能压力。本文分别从以下几个方面进行优化：</p>
+<ul>
+<li>
+<p>调度器及扩展调度器</p>
+</li>
+<li>
+<p>ETCD优化</p>
+</li>
+<li>
+<p>kube-apiserver优化</p>
+</li>
+<li>
+<p>网络插件及节点优化</p>
+</li>
+</ul>
+<p>只要设计合理，Kubernetes 完全可以稳定高效地调度数万个 Pod。</p>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-9cd333b8af6c771a4800f7be314a253b">2 - Volcano的使用</h1>
+    
+	<blockquote>
+<p>本文主要介绍volcano的使用，内容由官网文档进行整理。</p>
+</blockquote>
+<h1 id="1-volcano介绍">1. Volcano介绍</h1>
+<p>Volcano作为一个通用批处理平台，Volcano与几乎所有的主流计算框 架无缝对接，如<a href="https://spark.apache.org/">Spark</a> 、<a href="https://tensorflow.google.cn/">TensorFlow</a> 、<a href="https://pytorch.org/">PyTorch</a> 、 <a href="https://flink.apache.org/">Flink</a> 、<a href="https://argoproj.github.io/">Argo</a> 、<a href="https://www.mindspore.cn/">MindSpore</a> 、 <a href="https://www.paddlepaddle.org.cn/">PaddlePaddle</a>，<a href="https://www.ray.io/">Ray</a>等。还提供了包括异构设备调度，网络拓扑感知调度，多集群调度，在离线混部调度等多种调度能力。</p>
+<h1 id="2-特性">2. 特性</h1>
+<h2 id="2-1-统一调度">2.1. 统一调度</h2>
+<ul>
+<li>支持Kubernetes原生负载调度</li>
+<li>支持使用VolcanoJob来进行PyTorch、TensorFlow、Spark、Flink、Ray等框架的一体化作业调度</li>
+<li>将在线微服务和离线批处理作业统一调度，提升集群资源利用率</li>
+</ul>
+<h2 id="2-2-丰富的调度策略">2.2. 丰富的调度策略</h2>
+<ul>
+<li><strong>Gang Scheduling</strong>：确保作业的所有任务同时启动，适用于分布式训练、大数据等场景。</li>
+<li><strong>Binpack Scheduling</strong>：通过任务紧凑分配优化资源利用率</li>
+<li><strong>Heterogeneous device scheduling</strong>：高效共享GPU异构资源，支持CUDA和MIG两种模式的GPU调度，支持NPU调度</li>
+<li><strong>Proportion/Capacity Scheduling</strong>：基于队列配额进行资源的共享/抢占/回收</li>
+<li><strong>NodeGroup Scheduling</strong>：支持节点分组亲和性调度，实现队列与节点组的绑定关系</li>
+<li><strong>DRF Scheduling</strong>：支持多维度资源的公平调度</li>
+<li><strong>SLA Scheduling</strong>：基于服务质量的调度保障</li>
+<li><strong>Task-topology Scheduling</strong>：支持任务拓扑感知调度，优化通信密集型应用性能</li>
+<li><strong>NUMA Aware Scheduling</strong>：支持NUMA架构的调度，优化任务在多核处理器上的资源分配，提升内存访问效率和计算性能</li>
+</ul>
+<h2 id="2-3-gpu支持">2.3. GPU支持</h2>
+<p>支持多种<a href="https://volcano.sh/zh/docs/gpu_virtualization/">GPU虚拟化</a>技术，提供灵活的GPU资源管理</p>
+<ul>
+<li><strong>动态MIG支持</strong>：支持NVIDIA Multi-Instance GPU(MIG)，通过硬件级隔离将单个GPU分割为多个独立的GPU实例</li>
+<li><strong>vCUDA虚拟化</strong>：通过软件层将物理GPU虚拟化为多个vGPU设备，实现资源共享和隔离</li>
+<li><strong>细粒度资源控制</strong>：为每个GPU实例提供独立的显存和算力分配</li>
+<li><strong>多容器共享</strong>：允许多个容器安全地共享同一个GPU资源，提升利用率</li>
+<li><strong>统一监控</strong>：提供对所有GPU实例的统一使用情况监控和指标收集</li>
+</ul>
+<h2 id="2-4-在离线混部">2.4. 在离线混部</h2>
+<ul>
+<li>支持在线和离线业务混合部署，通过统一调度，动态资源超卖，CPU Burst，资源隔离等能力，提升资源利用率的同时保障在线业务QoS</li>
+</ul>
+<h2 id="2-5-重调度">2.5. 重调度</h2>
+<ul>
+<li>支持动态重调度，优化集群负载分布，提升系统稳定性</li>
+</ul>
+<h1 id="3-架构介绍">3. 架构介绍</h1>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1751114745/article/kubernetes/scheduler/volcano_arch.png" alt=""></p>
+<p>Volcano由scheduler、controllermanager、admission和vcctl组成:</p>
+<ul>
+<li>
+<p>Scheduler Volcano scheduler通过一系列的action和plugin调度Job，并为它找到一个最适合的节点。与Kubernetes default-scheduler相比，Volcano与众不同的 地方是它支持针对Job的多种调度算法。</p>
+</li>
+<li>
+<p>Controllermanager Volcano controllermanager管理CRD资源的生命周期。它主要由<strong>Queue ControllerManager</strong>、 <strong>PodGroupControllerManager</strong>、 <strong>VCJob ControllerManager</strong>构成。</p>
+</li>
+<li>
+<p>Admission Volcano admission负责对CRD API资源进行校验。</p>
+</li>
+<li>
+<p>Vcctl 是Volcano的命令行客户端工具。</p>
+</li>
+</ul>
+<h1 id="4-部署">4. 部署</h1>
+<p>可以通过helm部署volcano。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>helm repo add volcano-sh https://volcano-sh.github.io/helm-charts
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>helm repo update
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>helm install volcano volcano-sh/volcano -n volcano-system --create-namespace
+</span></span></code></pre></div><p>查看volcano组件</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl get all -n volcano-system
+</span></span><span style="display:flex;"><span>NAME                                       READY   STATUS      RESTARTS   AGE
+</span></span><span style="display:flex;"><span>pod/volcano-admission-5bd5756f79-p89tx     1/1     Running     <span style="color:#0000cf;font-weight:bold">0</span>          6m10s
+</span></span><span style="display:flex;"><span>pod/volcano-admission-init-d4dns           0/1     Completed   <span style="color:#0000cf;font-weight:bold">0</span>          6m10s
+</span></span><span style="display:flex;"><span>pod/volcano-controllers-687948d9c8-bd28m   1/1     Running     <span style="color:#0000cf;font-weight:bold">0</span>          6m10s
+</span></span><span style="display:flex;"><span>pod/volcano-scheduler-94998fc64-9df5g      1/1     Running     <span style="color:#0000cf;font-weight:bold">0</span>          6m10s
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME                                TYPE        CLUSTER-IP     EXTERNAL-IP   PORT<span style="color:#ce5c00;font-weight:bold">(</span>S<span style="color:#ce5c00;font-weight:bold">)</span>   AGE
+</span></span><span style="display:flex;"><span>service/volcano-admission-service   ClusterIP   10.96.140.22   &lt;none&gt;        443/TCP   6m10s
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME                                  READY   UP-TO-DATE   AVAILABLE   AGE
+</span></span><span style="display:flex;"><span>deployment.apps/volcano-admission     1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           6m10s
+</span></span><span style="display:flex;"><span>deployment.apps/volcano-controllers   1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           6m10s
+</span></span><span style="display:flex;"><span>deployment.apps/volcano-scheduler     1/1     <span style="color:#0000cf;font-weight:bold">1</span>            <span style="color:#0000cf;font-weight:bold">1</span>           6m10s
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME                                             DESIRED   CURRENT   READY   AGE
+</span></span><span style="display:flex;"><span>replicaset.apps/volcano-admission-5bd5756f79     <span style="color:#0000cf;font-weight:bold">1</span>         <span style="color:#0000cf;font-weight:bold">1</span>         <span style="color:#0000cf;font-weight:bold">1</span>       6m10s
+</span></span><span style="display:flex;"><span>replicaset.apps/volcano-controllers-687948d9c8   <span style="color:#0000cf;font-weight:bold">1</span>         <span style="color:#0000cf;font-weight:bold">1</span>         <span style="color:#0000cf;font-weight:bold">1</span>       6m10s
+</span></span><span style="display:flex;"><span>replicaset.apps/volcano-scheduler-94998fc64      <span style="color:#0000cf;font-weight:bold">1</span>         <span style="color:#0000cf;font-weight:bold">1</span>         <span style="color:#0000cf;font-weight:bold">1</span>       6m10s
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME                               COMPLETIONS   DURATION   AGE
+</span></span><span style="display:flex;"><span>job.batch/volcano-admission-init   1/1           28s        6m10s
+</span></span></code></pre></div><h1 id="5-使用">5. 使用</h1>
+<p>我们以组调度为例（gang scheduling），通过成组调度，您可以指定一个最小数量的Pod，这些Pod必须能够作为一个组被同时调度，然后该工作负载的任何Pod才能启动。</p>
+<h2 id="5-1-创建带有-group-min-member-注解的deployment">5.1. 创建带有<code>group-min-member</code>注解的Deployment</h2>
+<p>让我们创建一个Deployment，它期望有3个副本，但要求至少有2个Pod能被Volcano作为一个组进行调度。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># deployment-with-minmember.yaml</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">apps/v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Deployment</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">my-app-deployment</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">annotations</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># 对成组调度至关重要：此注解告知Volcano将此Deployment视为一个组，</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># 要求至少2个Pod能够一起调度，然后才会启动任何Pod。</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">scheduling.volcano.sh/group-min-member</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;2&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># 可选：您也可以为此Deployment创建的PodGroup指定一个特定的Volcano队列。</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># scheduling.volcano.sh/queue-name: &#34;my-deployment-queue&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">labels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">app</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">my-app</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">replicas</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># 我们期望应用有3个副本</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">selector</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">matchLabels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">app</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">my-app</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">template</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">labels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">app</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">my-app</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">schedulerName</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">volcano</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># 关键：确保此Deployment的Pod使用Volcano调度器</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">my-container</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">busybox</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">command</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#34;sh&#34;</span><span style="color:#000;font-weight:bold">,</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;-c&#34;</span><span style="color:#000;font-weight:bold">,</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;echo &#39;Hello Volcano from Deployment&#39;; sleep 3600&#34;</span><span style="color:#000;font-weight:bold">]</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># 一个长时间运行的命令，用于演示</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">          </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">            </span><span style="color:#204a87;font-weight:bold">requests</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">              </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">            </span><span style="color:#204a87;font-weight:bold">limits</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">              </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h2 id="5-2-观察自动创建的podgroup和pod">5.2. 观察自动创建的PodGroup和Pod</h2>
+<p>当您应用带有<code>scheduling.volcano.sh/group-min-member</code>注解的Deployment（或StatefulSet）时，Volcano会自动创建一个PodGroup资源。此PodGroup负责为属于该工作负载的Pod强制执行成组调度约束。</p>
+<p>检查PodGroup的状态：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl get pg podgroup-<span style="color:#ce5c00;font-weight:bold">[</span>ReplicaSet的UID<span style="color:#ce5c00;font-weight:bold">]</span> -oyaml
+</span></span></code></pre></div><p>输出</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">scheduling.volcano.sh/v1beta1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">PodGroup</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#8f5902;font-style:italic"># ...</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">podgroup-09e95eb0-e520-4b50-a15c-c14cad844674</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">namespace</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">default</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">ownerReferences</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">apps/v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">blockOwnerDeletion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#204a87;font-weight:bold">true</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">controller</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#204a87;font-weight:bold">true</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">ReplicaSet</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">my-app-deployment-74644c8849</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">uid</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">09e95eb0-e520-4b50-a15c-c14cad844674</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#8f5902;font-style:italic"># ...</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">minMember</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">minResources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">count/pods</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;2&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;2&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">limits.cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;2&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">pods</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;2&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">requests.cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;2&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">queue</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">default</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">status</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">conditions</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">lastTransitionTime</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;2025-05-28T09:08:13Z&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">reason</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">tasks in gang are ready to be scheduled</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">status</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;True&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">transitionID</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">e0b1508e-4b77-4dea-836f-0b14f9ca58df</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">type</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Scheduled</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">phase</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Running</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">running</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">3</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>将观察到Volcano调度器会确保至少<code>minMember</code>（本例中为2）个Pod能够一起调度，然后才允许此Deployment中的任何Pod启动。如果资源不足以满足这些Pod的需求，它们将保持<code>Pending</code>状态。</p>
+<p>参考：</p>
+<ul>
+<li>
+<p><a href="https://volcano.sh/zh/docs/">介绍 | Volcano</a></p>
+</li>
+<li>
+<p><a href="https://volcano.sh/zh/docs/tutorials/">快速开始 | Volcano</a></p>
+</li>
+<li>
+<p><a href="https://github.com/volcano-sh/volcano">GitHub - volcano-sh/volcano: A Cloud Native Batch System </a></p>
+</li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/blog.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2025 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		<p class="mt-2"><a href="/about/">About</a></p>
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+  </body>
+</html>
