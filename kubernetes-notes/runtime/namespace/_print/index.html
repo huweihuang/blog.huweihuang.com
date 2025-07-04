@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<link rel="canonical" type="text/html" href="https://blog.huweihuang.com/kubernetes-notes/runtime/namespace/">
+<link rel="alternate" type="application/rss&#43;xml" href="https://blog.huweihuang.com/kubernetes-notes/runtime/namespace/index.xml">
+<meta name="robots" content="noindex, nofollow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>Namespace | 胡伟煌</title>
+<meta name="description" content="">
+<meta property="og:title" content="Namespace" />
+<meta property="og:description" content="Kubernetes学习笔记" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://blog.huweihuang.com/kubernetes-notes/runtime/namespace/" /><meta property="og:site_name" content="胡伟煌" />
+
+<meta itemprop="name" content="Namespace">
+<meta itemprop="description" content="Kubernetes学习笔记"><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Namespace"/>
+<meta name="twitter:description" content="Kubernetes学习笔记"/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" as="style">
+<link href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-114718458-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-section">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">胡伟煌</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/kubernetes-notes/" ><span class="active">Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/k8s-source-code-analysis/" ><span>Kubernetes源码分析</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/golang-notes/" ><span>Golang学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/linux-notes/" ><span>Linux学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/about/" ><span>About</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.e1ceba4eb56ee9643456f0123f0eb545.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+
+
+
+
+<div class="td-content">
+<div class="pageinfo pageinfo-primary d-print-none">
+<p>
+这是本节的多页打印视图。
+<a href="#" onclick="print();return false;">点击此处打印</a>.
+</p><p>
+<a href="/kubernetes-notes/runtime/namespace/">返回本页常规视图</a>.
+</p>
+</div>
+
+
+
+<h1 class="title">Namespace</h1>
+
+
+
+
+
+    <ul>
+    
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>1: <a href="#pg-f30820e37dc91d0bb65cbdfb0206e808">Namespace介绍</a></li>
+
+
+    
+  
+    
+    
+	
+<li>2: <a href="#pg-6e70537f41686582e35774dde0404723">Namespace命令介绍</a></li>
+
+
+    
+  
+
+    </ul>
+
+
+<div class="content">
+      
+</div>
+</div>
+
+
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-f30820e37dc91d0bb65cbdfb0206e808">1 - Namespace介绍</h1>
+    
+	<h1 id="1-namespace简介">1. Namespace简介</h1>
+<p>Namespace是内核的一个功能，用来给进程隔离一系列系统资源（视图隔离）。</p>
+<h1 id="2-类别">2. 类别</h1>
+<table>
+<thead>
+<tr>
+<th>namespace类别</th>
+<th>隔离资源</th>
+<th>系统调用参数</th>
+<th>内核版本</th>
+<th>Docker中的例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mount namespace</td>
+<td>挂载点</td>
+<td>CLONE_NEWNS</td>
+<td>2.4.19</td>
+<td>独立的挂载点</td>
+</tr>
+<tr>
+<td>UTS Namespace</td>
+<td>hostname和domainname</td>
+<td>CLONE_NEWUTS</td>
+<td>2.6.19</td>
+<td>独立的hostname</td>
+</tr>
+<tr>
+<td>IPC Namespace</td>
+<td>System V IPC, POSIX message queues</td>
+<td>CLONE_NEWIPC</td>
+<td>2.6.19</td>
+<td></td>
+</tr>
+<tr>
+<td>PID Namespace</td>
+<td>进程ID</td>
+<td>CLONE_NEWPID</td>
+<td>2.6.24</td>
+<td>容器进程PID为1</td>
+</tr>
+<tr>
+<td>Network Namespace</td>
+<td>网络设备，端口，网络栈</td>
+<td>CLONE_NEWNET</td>
+<td>2.6.24</td>
+<td>独立的网络和端口</td>
+</tr>
+<tr>
+<td>User Namespace</td>
+<td>用户ID，group ID</td>
+<td>CLONE_NEWUSER</td>
+<td>3.8</td>
+<td>独立的用户ID</td>
+</tr>
+</tbody>
+</table>
+<h1 id="3-namespace-api">3. Namespace API</h1>
+<table>
+<thead>
+<tr>
+<th>API</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>clone()</td>
+<td>基于某namespace创建新进程，他们的子进程也包含在该namespace中</td>
+</tr>
+<tr>
+<td>unshare()</td>
+<td>将进程移出某个namespace</td>
+</tr>
+<tr>
+<td>setns()</td>
+<td>将进程加入某个namespace</td>
+</tr>
+</tbody>
+</table>
+<h1 id="4-namespace细分">4. namespace细分</h1>
+<h2 id="4-1-mount-namespace">4.1. Mount Namespace</h2>
+<p>Mount Namespace可以用了隔离各个进程的挂载点视图。不同的namespace中文件系统层次不一样，在其中调用mount和umount仅影响当前namespace。</p>
+<h2 id="4-2-network-namespace">4.2. Network Namespace</h2>
+<p>Network Namespace用来隔离网络设备，IP地址端口等网络栈。容器内可以绑定自己的端口，在宿主机建立网桥，就可以实现容器之间的通信。</p>
+<p>ip netns 命令用来管理 network namespace。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ip netns help</span>
+</span></span><span style="display:flex;"><span>Usage: ip netns list
+</span></span><span style="display:flex;"><span>       ip netns add NAME
+</span></span><span style="display:flex;"><span>       ip netns <span style="color:#204a87">set</span> NAME NETNSID
+</span></span><span style="display:flex;"><span>       ip <span style="color:#ce5c00;font-weight:bold">[</span>-all<span style="color:#ce5c00;font-weight:bold">]</span> netns delete <span style="color:#ce5c00;font-weight:bold">[</span>NAME<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>       ip netns identify <span style="color:#ce5c00;font-weight:bold">[</span>PID<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>       ip netns pids NAME
+</span></span><span style="display:flex;"><span>       ip <span style="color:#ce5c00;font-weight:bold">[</span>-all<span style="color:#ce5c00;font-weight:bold">]</span> netns <span style="color:#204a87">exec</span> <span style="color:#ce5c00;font-weight:bold">[</span>NAME<span style="color:#ce5c00;font-weight:bold">]</span> cmd ...
+</span></span><span style="display:flex;"><span>       ip netns monitor
+</span></span><span style="display:flex;"><span>       ip netns list-id
+</span></span></code></pre></div><p>示例：</p>
+<p>模拟创建docker0及docker网络</p>
+<p>1、创建lxcbr0，相当于docker0</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 添加一个网桥lxcbr0,相当于docker0</span>
+</span></span><span style="display:flex;"><span>brctl addbr lxcbr0
+</span></span><span style="display:flex;"><span>brctl stp lxcbr0 off
+</span></span><span style="display:flex;"><span>ifconfig lxcbr0 192.168.10.1/24 up  <span style="color:#8f5902;font-style:italic"># 配置网桥IP地址</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看网桥</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ifconfig</span>
+</span></span><span style="display:flex;"><span>lxcbr0: <span style="color:#000">flags</span><span style="color:#ce5c00;font-weight:bold">=</span>4163&lt;UP,BROADCAST,RUNNING,MULTICAST&gt;  mtu <span style="color:#0000cf;font-weight:bold">1500</span>
+</span></span><span style="display:flex;"><span>        inet 192.168.10.1  netmask 255.255.255.0  broadcast 192.168.10.255
+</span></span><span style="display:flex;"><span>        inet6 fe80::94cb:eaff:fe48:cdd5  prefixlen <span style="color:#0000cf;font-weight:bold">64</span>  scopeid 0x20&lt;link&gt;
+</span></span><span style="display:flex;"><span>        ether 96:cb:ea:48:cd:d5  txqueuelen <span style="color:#0000cf;font-weight:bold">1000</span>  <span style="color:#ce5c00;font-weight:bold">(</span>Ethernet<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        RX packets <span style="color:#0000cf;font-weight:bold">0</span>  bytes <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#ce5c00;font-weight:bold">(</span>0.0 B<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        RX errors <span style="color:#0000cf;font-weight:bold">0</span>  dropped <span style="color:#0000cf;font-weight:bold">0</span>  overruns <span style="color:#0000cf;font-weight:bold">0</span>  frame <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>        TX packets <span style="color:#0000cf;font-weight:bold">5</span>  bytes <span style="color:#0000cf;font-weight:bold">426</span> <span style="color:#ce5c00;font-weight:bold">(</span>426.0 B<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        TX errors <span style="color:#0000cf;font-weight:bold">0</span>  dropped <span style="color:#0000cf;font-weight:bold">0</span> overruns <span style="color:#0000cf;font-weight:bold">0</span>  carrier <span style="color:#0000cf;font-weight:bold">0</span>  collisions <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span></code></pre></div><p>添加网络命名空间</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 添加网络命名空间ns1</span>
+</span></span><span style="display:flex;"><span>ip netns add ns1
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 激活namespace中的loopback，即127.0.0.1</span>
+</span></span><span style="display:flex;"><span>ip netns <span style="color:#204a87">exec</span> ns1   ip link <span style="color:#204a87">set</span> dev lo up 
+</span></span></code></pre></div><p>3、添加虚拟网卡</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 增加一个pair虚拟网卡，注意其中的veth类型，其中一个网卡要按进容器中</span>
+</span></span><span style="display:flex;"><span>ip link add veth-ns1 <span style="color:#204a87">type</span> veth peer name lxcbr0.1
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 把 veth-ns1 按到namespace ns1中，这样容器中就会有一个新的网卡了</span>
+</span></span><span style="display:flex;"><span>ip link <span style="color:#204a87">set</span> veth-ns1 netns ns1
+</span></span></code></pre></div><p>4、修改容器内网卡为eth0，并分配IP</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 把容器里的 veth-ns1改名为 eth0 （容器外会冲突，容器内就不会了）</span>
+</span></span><span style="display:flex;"><span>ip netns <span style="color:#204a87">exec</span> ns1  ip link <span style="color:#204a87">set</span> dev veth-ns1 name eth0 
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 为容器中的网卡分配一个IP地址，并激活它</span>
+</span></span><span style="display:flex;"><span>ip netns <span style="color:#204a87">exec</span> ns1 ifconfig eth0 192.168.10.11/24 up
+</span></span></code></pre></div><p>5、将lxcbr0.1添加上网桥</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 上面我们把veth-ns1这个网卡按到了容器中，然后我们要把lxcbr0.1添加上网桥上</span>
+</span></span><span style="display:flex;"><span>brctl addif lxcbr0 lxcbr0.1
+</span></span></code></pre></div><p>6、添加路由</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 为容器增加一个路由规则，让容器可以访问外面的网络</span>
+</span></span><span style="display:flex;"><span>ip netns <span style="color:#204a87">exec</span> ns1     ip route add default via 192.168.10.1
+</span></span></code></pre></div><p>7、添加nameserver</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 在/etc/netns下创建network namespce名称为ns1的目录，</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 然后为这个namespace设置resolv.conf，这样，容器内就可以访问域名了</span>
+</span></span><span style="display:flex;"><span>mkdir -p /etc/netns/ns1
+</span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> <span style="color:#4e9a06">&#34;nameserver 8.8.8.8&#34;</span> &gt; /etc/netns/ns1/resolv.conf
+</span></span></code></pre></div><p>8、查看网络空间内的网络配置</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 进入网络命名空间</span>
+</span></span><span style="display:flex;"><span>ip netns <span style="color:#204a87">exec</span> ns1 bash
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看网络配置</span>
+</span></span><span style="display:flex;"><span>ifconfig
+</span></span><span style="display:flex;"><span>eth0: <span style="color:#000">flags</span><span style="color:#ce5c00;font-weight:bold">=</span>4099&lt;UP,BROADCAST,MULTICAST&gt;  mtu <span style="color:#0000cf;font-weight:bold">1500</span>
+</span></span><span style="display:flex;"><span>        inet 192.168.10.11  netmask 255.255.255.0  broadcast 192.168.10.255
+</span></span><span style="display:flex;"><span>        ether 2a:0c:a8:b7:bc:32  txqueuelen <span style="color:#0000cf;font-weight:bold">1000</span>  <span style="color:#ce5c00;font-weight:bold">(</span>Ethernet<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        RX packets <span style="color:#0000cf;font-weight:bold">0</span>  bytes <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#ce5c00;font-weight:bold">(</span>0.0 B<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        RX errors <span style="color:#0000cf;font-weight:bold">0</span>  dropped <span style="color:#0000cf;font-weight:bold">0</span>  overruns <span style="color:#0000cf;font-weight:bold">0</span>  frame <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>        TX packets <span style="color:#0000cf;font-weight:bold">0</span>  bytes <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#ce5c00;font-weight:bold">(</span>0.0 B<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        TX errors <span style="color:#0000cf;font-weight:bold">0</span>  dropped <span style="color:#0000cf;font-weight:bold">0</span> overruns <span style="color:#0000cf;font-weight:bold">0</span>  carrier <span style="color:#0000cf;font-weight:bold">0</span>  collisions <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>lo: <span style="color:#000">flags</span><span style="color:#ce5c00;font-weight:bold">=</span>73&lt;UP,LOOPBACK,RUNNING&gt;  mtu <span style="color:#0000cf;font-weight:bold">65536</span>
+</span></span><span style="display:flex;"><span>        inet 127.0.0.1  netmask 255.0.0.0
+</span></span><span style="display:flex;"><span>        inet6 ::1  prefixlen <span style="color:#0000cf;font-weight:bold">128</span>  scopeid 0x10&lt;host&gt;
+</span></span><span style="display:flex;"><span>        loop  txqueuelen <span style="color:#0000cf;font-weight:bold">1000</span>  <span style="color:#ce5c00;font-weight:bold">(</span>Local Loopback<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        RX packets <span style="color:#0000cf;font-weight:bold">4</span>  bytes <span style="color:#0000cf;font-weight:bold">240</span> <span style="color:#ce5c00;font-weight:bold">(</span>240.0 B<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        RX errors <span style="color:#0000cf;font-weight:bold">0</span>  dropped <span style="color:#0000cf;font-weight:bold">0</span>  overruns <span style="color:#0000cf;font-weight:bold">0</span>  frame <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>        TX packets <span style="color:#0000cf;font-weight:bold">4</span>  bytes <span style="color:#0000cf;font-weight:bold">240</span> <span style="color:#ce5c00;font-weight:bold">(</span>240.0 B<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        TX errors <span style="color:#0000cf;font-weight:bold">0</span>  dropped <span style="color:#0000cf;font-weight:bold">0</span> overruns <span style="color:#0000cf;font-weight:bold">0</span>  carrier <span style="color:#0000cf;font-weight:bold">0</span>  collisions <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span></code></pre></div><p>9、进入现有docker容器的网络命名空间</p>
+<p>由于docker默认隐藏了<code>/var/run/netns</code>下的命名空间，因此需要做软链接，容器的1号进程的pid下的ns软链到<code>/var/run/netns</code>。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>ln -sf /proc/&lt;container-pid&gt;/ns/net <span style="color:#4e9a06">&#34;/var/run/netns/&lt;container-id&gt;&#34;</span>
+</span></span><span style="display:flex;"><span>ip netns <span style="color:#204a87">exec</span> &lt;container-id&gt; bash
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="https://lwn.net/Articles/531114/">https://lwn.net/Articles/531114/</a></li>
+<li><a href="https://coolshell.cn/articles/17010.html">https://coolshell.cn/articles/17010.html</a></li>
+<li><a href="https://coolshell.cn/articles/17029.html">https://coolshell.cn/articles/17029.html</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-6e70537f41686582e35774dde0404723">2 - Namespace命令介绍</h1>
+    
+	<h1 id="namespace相关命令">Namespace相关命令</h1>
+<h2 id="1-unshare">1. unshare</h2>
+<p>让进程进入一个新的namespace。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ unshare --help
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>用法：
+</span></span><span style="display:flex;"><span> unshare <span style="color:#ce5c00;font-weight:bold">[</span>options<span style="color:#ce5c00;font-weight:bold">]</span> &lt;program&gt; <span style="color:#ce5c00;font-weight:bold">[</span>&lt;argument&gt;...<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Run a program with some namespaces unshared from the parent.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>选项：
+</span></span><span style="display:flex;"><span> -m, --mount               unshare mounts namespace
+</span></span><span style="display:flex;"><span> -u, --uts                 unshare UTS namespace <span style="color:#ce5c00;font-weight:bold">(</span>hostname etc<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span> -i, --ipc                 unshare System V IPC namespace
+</span></span><span style="display:flex;"><span> -n, --net                 unshare network namespace
+</span></span><span style="display:flex;"><span> -p, --pid                 unshare pid namespace
+</span></span><span style="display:flex;"><span> -U, --user                unshare user namespace
+</span></span><span style="display:flex;"><span> -f, --fork                fork before launching &lt;program&gt;
+</span></span><span style="display:flex;"><span>     --mount-proc<span style="color:#ce5c00;font-weight:bold">[=</span>&lt;dir&gt;<span style="color:#ce5c00;font-weight:bold">]</span>  mount proc filesystem first <span style="color:#ce5c00;font-weight:bold">(</span>implies --mount<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span> -r, --map-root-user       map current user to root <span style="color:#ce5c00;font-weight:bold">(</span>implies --user<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>     --propagation &lt;slave<span style="color:#000;font-weight:bold">|</span>shared<span style="color:#000;font-weight:bold">|</span>private<span style="color:#000;font-weight:bold">|</span>unchanged&gt;
+</span></span><span style="display:flex;"><span>                           modify mount propagation in mount namespace
+</span></span><span style="display:flex;"><span> -s, --setgroups allow<span style="color:#000;font-weight:bold">|</span>deny  control the setgroups syscall in user namespaces
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span> -h, --help     显示此帮助并退出
+</span></span><span style="display:flex;"><span> -V, --version  输出版本信息并退出
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>更多信息请参阅 unshare<span style="color:#ce5c00;font-weight:bold">(</span>1<span style="color:#ce5c00;font-weight:bold">)</span>。
+</span></span></code></pre></div><p>示例：</p>
+<h2 id="2-nsenter">2. nsenter</h2>
+<p>进入某个namespace下运行某个进程。例如：docker exec -it &lt;container_id&gt; bash。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ nsenter --help
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>用法：
+</span></span><span style="display:flex;"><span> nsenter <span style="color:#ce5c00;font-weight:bold">[</span>options<span style="color:#ce5c00;font-weight:bold">]</span> &lt;program&gt; <span style="color:#ce5c00;font-weight:bold">[</span>&lt;argument&gt;...<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Run a program with namespaces of other processes.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>选项：
+</span></span><span style="display:flex;"><span> -t, --target &lt;pid&gt;     要获取名字空间的目标进程
+</span></span><span style="display:flex;"><span> -m, --mount<span style="color:#ce5c00;font-weight:bold">[=</span>&lt;file&gt;<span style="color:#ce5c00;font-weight:bold">]</span>   enter mount namespace
+</span></span><span style="display:flex;"><span> -u, --uts<span style="color:#ce5c00;font-weight:bold">[=</span>&lt;file&gt;<span style="color:#ce5c00;font-weight:bold">]</span>     enter UTS namespace <span style="color:#ce5c00;font-weight:bold">(</span>hostname etc<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span> -i, --ipc<span style="color:#ce5c00;font-weight:bold">[=</span>&lt;file&gt;<span style="color:#ce5c00;font-weight:bold">]</span>     enter System V IPC namespace
+</span></span><span style="display:flex;"><span> -n, --net<span style="color:#ce5c00;font-weight:bold">[=</span>&lt;file&gt;<span style="color:#ce5c00;font-weight:bold">]</span>     enter network namespace
+</span></span><span style="display:flex;"><span> -p, --pid<span style="color:#ce5c00;font-weight:bold">[=</span>&lt;file&gt;<span style="color:#ce5c00;font-weight:bold">]</span>     enter pid namespace
+</span></span><span style="display:flex;"><span> -U, --user<span style="color:#ce5c00;font-weight:bold">[=</span>&lt;file&gt;<span style="color:#ce5c00;font-weight:bold">]</span>    enter user namespace
+</span></span><span style="display:flex;"><span> -S, --setuid &lt;uid&gt;     <span style="color:#204a87">set</span> uid in entered namespace
+</span></span><span style="display:flex;"><span> -G, --setgid &lt;gid&gt;     <span style="color:#204a87">set</span> gid in entered namespace
+</span></span><span style="display:flex;"><span>     --preserve-credentials <span style="color:#204a87;font-weight:bold">do</span> not touch uids or gids
+</span></span><span style="display:flex;"><span> -r, --root<span style="color:#ce5c00;font-weight:bold">[=</span>&lt;dir&gt;<span style="color:#ce5c00;font-weight:bold">]</span>     <span style="color:#204a87">set</span> the root directory
+</span></span><span style="display:flex;"><span> -w, --wd<span style="color:#ce5c00;font-weight:bold">[=</span>&lt;dir&gt;<span style="color:#ce5c00;font-weight:bold">]</span>       <span style="color:#204a87">set</span> the working directory
+</span></span><span style="display:flex;"><span> -F, --no-fork          执行 &lt;程序&gt; 前不 fork
+</span></span><span style="display:flex;"><span> -Z, --follow-context   <span style="color:#204a87">set</span> SELinux context according to --target PID
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span> -h, --help     显示此帮助并退出
+</span></span><span style="display:flex;"><span> -V, --version  输出版本信息并退出
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>更多信息请参阅 nsenter<span style="color:#ce5c00;font-weight:bold">(</span>1<span style="color:#ce5c00;font-weight:bold">)</span>。
+</span></span></code></pre></div>
+</div>
+
+
+
+    
+	
+  
+
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/blog.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2025 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		<p class="mt-2"><a href="/about/">About</a></p>
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+  </body>
+</html>

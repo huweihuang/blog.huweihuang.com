@@ -1,0 +1,279 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>胡伟煌 – GPU</title>
+    <link>https://blog.huweihuang.com/kubernetes-notes/cluster-optimization/gpu/</link>
+    <description>Recent content in GPU on 胡伟煌</description>
+    <generator>Hugo -- gohugo.io</generator>
+    
+	  <atom:link href="https://blog.huweihuang.com/kubernetes-notes/cluster-optimization/gpu/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+      
+        
+      
+    
+    
+    <item>
+      <title>Kubernetes-Notes: k8s管理GPU容器</title>
+      <link>https://blog.huweihuang.com/kubernetes-notes/cluster-optimization/gpu/k8s-gpu-usage/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://blog.huweihuang.com/kubernetes-notes/cluster-optimization/gpu/k8s-gpu-usage/</guid>
+      <description>
+        
+        
+        &lt;p&gt;本文主要描述如何在k8s中管理GPU的节点和容器。&lt;/p&gt;
+&lt;p&gt;Kubernetes（K8s）对 GPU 的支持，适合用于机器学习、深度学习、图像处理等高性能计算场景。&lt;/p&gt;
+&lt;h1 id=&#34;1-实现思路&#34;&gt;1. 实现思路&lt;/h1&gt;
+&lt;p&gt;K8s 本身不直接管理 GPU，而是通过 &lt;strong&gt;NVIDIA 的 GPU 设备插件（NVIDIA Device Plugin）&lt;/strong&gt; 将 GPU 资源暴露给容器。整个流程如下：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;物理 GPU → 安装驱动 + 宿主机工具 → 容器 runtime（如 containerd）→ Kubernetes 通过 device plugin 管理 → Pod 使用 GPU
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;2-实现步骤&#34;&gt;2. 实现步骤&lt;/h1&gt;
+&lt;h2 id=&#34;2-1-节点准备-仅-gpu-节点需要&#34;&gt;2.1. 节点准备（仅 GPU 节点需要）&lt;/h2&gt;
+&lt;p&gt;运行 NVIDIA 设备插件的先决条件如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;NVIDIA 驱动程序 ~= 384.81&lt;/li&gt;
+&lt;li&gt;nvidia-docker &amp;gt;= 2.0 || nvidia-container-toolkit &amp;gt;= 1.7.0（&amp;gt;= 1.11.0 在基于 Tegra 的系统上使用集成 GPU）&lt;/li&gt;
+&lt;li&gt;nvidia-container-runtime 配置为默认低级运行时&lt;/li&gt;
+&lt;li&gt;Kubernetes 版本 &amp;gt;= 1.10&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;安装 &lt;strong&gt;NVIDIA 官方驱动&lt;/strong&gt;。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 示例安装命令（Ubuntu）&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;sudo apt install nvidia-driver-525
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;nvidia-smi  &lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 验证 GPU 可用&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;2-2-安装容器运行时插件-containerd-支持&#34;&gt;2.2. 安装容器运行时插件（containerd 支持）&lt;/h2&gt;
+&lt;p&gt;安装 NVIDIA Container Toolkit，参考&lt;a href=&#34;https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html&#34;&gt;Installing the NVIDIA Container Toolkit&lt;/a&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg &lt;span style=&#34;color:#4e9a06&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&lt;/span&gt;  &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&lt;/span&gt;    sed &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#39;s#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g&amp;#39;&lt;/span&gt; &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&lt;/span&gt;    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;sudo apt-get update
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87&#34;&gt;export&lt;/span&gt; &lt;span style=&#34;color:#000&#34;&gt;NVIDIA_CONTAINER_TOOLKIT_VERSION&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;1.17.8-1
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  sudo apt-get install -y &lt;span style=&#34;color:#4e9a06&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&lt;/span&gt;      nvidia-container-toolkit&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;${&lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;NVIDIA_CONTAINER_TOOLKIT_VERSION&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;}&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&lt;/span&gt;      nvidia-container-toolkit-base&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;${&lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;NVIDIA_CONTAINER_TOOLKIT_VERSION&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;}&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&lt;/span&gt;      libnvidia-container-tools&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;${&lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;NVIDIA_CONTAINER_TOOLKIT_VERSION&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;}&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&lt;/span&gt;      libnvidia-container1&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;${&lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;NVIDIA_CONTAINER_TOOLKIT_VERSION&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;配置containerd&lt;/p&gt;
+&lt;p&gt;nvidia-ctk会修改containerd的配置使得containerd可以使用NVIDIA Container Runtime。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;sudo nvidia-ctk runtime configure --runtime&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;containerd
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;sudo systemctl restart containerd
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;2-3-安装-nvidia-device-plugin-k8s-插件&#34;&gt;2.3. 安装 NVIDIA Device Plugin（K8s 插件）&lt;/h2&gt;
+&lt;p&gt;NVIDIA device plugin 通过k8s daemonset的方式部署到每个k8s的node节点上，实现了&lt;a href=&#34;https://github.com/kubernetes/community/blob/master/contributors/design-proposals/resource-management/device-plugin.md&#34;&gt;Kubernetes device plugin&lt;/a&gt;的接口。&lt;/p&gt;
+&lt;p&gt;提供以下功能：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;暴露每个节点的GPU数量给集群&lt;/li&gt;
+&lt;li&gt;跟踪GPU的健康情况&lt;/li&gt;
+&lt;li&gt;使在k8s的节点可以运行GPU容器&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl create -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.17.1/deployments/static/nvidia-device-plugin.yml
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;它会在每个 GPU 节点启动一个 &lt;code&gt;nvidia-device-plugin&lt;/code&gt; DaemonSet。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;它会向节点注册一个 &lt;code&gt;nvidia.com/gpu&lt;/code&gt; 资源。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;2-4-编写使用-gpu-的-pod-deployment&#34;&gt;2.4. 编写使用 GPU 的 Pod/Deployment&lt;/h2&gt;
+&lt;p&gt;部署守护进程后，容器现在可以使用以下&lt;code&gt;nvidia.com/gpu&lt;/code&gt;资源类型请求 NVIDIA GPU：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#000&#34;&gt;cat &amp;lt;&amp;lt;EOF | kubectl apply -f -&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;apiVersion&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;v1&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;kind&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;Pod&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;metadata&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;gpu-pod&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;spec&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;restartPolicy&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;Never&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;containers&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;cuda-container&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;image&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;nvcr.io/nvidia/k8s/cuda-sample:vectoradd-cuda12.5.0&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;resources&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;limits&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;          &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;nvidia.com/gpu&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# requesting 1 GPU&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;tolerations&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;key&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;nvidia.com/gpu&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;operator&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;Exists&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;effect&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;NoSchedule&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;EOF&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;3-nvidia-device-plugin内容&#34;&gt;3. nvidia-device-plugin内容&lt;/h1&gt;
+&lt;p&gt;nvidia-device-plugin的daemonset yaml文件如下，具体参考：&lt;a href=&#34;https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.17.1/deployments/static/nvidia-device-plugin.yml&#34;&gt;nvidia-device-plugin.yml&lt;/a&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;apiVersion&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;apps/v1&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;kind&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;DaemonSet&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;metadata&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;nvidia-device-plugin-daemonset&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;namespace&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;kube-system&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;spec&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;selector&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;matchLabels&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;nvidia-device-plugin-ds&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;updateStrategy&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;type&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;RollingUpdate&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;template&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;metadata&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;labels&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;nvidia-device-plugin-ds&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;spec&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;tolerations&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;key&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;nvidia.com/gpu&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;operator&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;Exists&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;effect&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;NoSchedule&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# Mark this pod as a critical add-on; when enabled, the critical add-on&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# scheduler reserves resources for critical add-on pods so that they can&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# be rescheduled after a failure.&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# See https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;priorityClassName&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;system-node-critical&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;containers&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;image&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;nvcr.io/nvidia/k8s-device-plugin:v0.17.1&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;nvidia-device-plugin-ctr&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;env&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;          &lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;FAIL_ON_INIT_ERROR&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;            &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;value&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;false&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;securityContext&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;          &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;allowPrivilegeEscalation&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;false&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;          &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;capabilities&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;            &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;drop&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;[&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;ALL&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;]&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;volumeMounts&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;device-plugin&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;          &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;mountPath&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;/var/lib/kubelet/device-plugins&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;volumes&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;device-plugin&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;hostPath&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;          &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;path&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;/var/lib/kubelet/device-plugins&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;4-构建和运行nvidia-device-plugin&#34;&gt;4. 构建和运行nvidia-device-plugin&lt;/h1&gt;
+&lt;h2 id=&#34;4-1-docker方式&#34;&gt;4.1. docker方式&lt;/h2&gt;
+&lt;h3 id=&#34;4-1-1-编译&#34;&gt;4.1.1. 编译&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;直接拉取dockerhub的镜像&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ docker pull nvidia/k8s-device-plugin:1.0.0-beta4
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;拉取代码构建镜像&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ docker build -t nvidia/k8s-device-plugin:1.0.0-beta4 https://github.com/NVIDIA/k8s-device-plugin.git#1.0.0-beta4
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;修改nvidia-device-plugin后构建镜像&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ git clone https://github.com/NVIDIA/k8s-device-plugin.git &lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span style=&#34;color:#204a87&#34;&gt;cd&lt;/span&gt; k8s-device-plugin
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ git checkout 1.0.0-beta4
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ docker build -t nvidia/k8s-device-plugin:1.0.0-beta4 .
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;4-1-2-运行&#34;&gt;4.1.2. 运行&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;docker本地运行&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ docker run --security-opt&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;no-new-privileges --cap-drop&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;ALL --network&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;none -it -v /var/lib/kubelet/device-plugins:/var/lib/kubelet/device-plugins nvidia/k8s-device-plugin:1.0.0-beta4
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;daemonset运行&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ kubectl create -f nvidia-device-plugin.yml
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;4-2-非docker方式&#34;&gt;4.2. 非docker方式&lt;/h2&gt;
+&lt;h3 id=&#34;4-2-1-编译&#34;&gt;4.2.1. 编译&lt;/h3&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ &lt;span style=&#34;color:#000&#34;&gt;C_INCLUDE_PATH&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;/usr/local/cuda/include &lt;span style=&#34;color:#000&#34;&gt;LIBRARY_PATH&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;/usr/local/cuda/lib64 go build
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;4-2-2-本地运行&#34;&gt;4.2.2. 本地运行&lt;/h3&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ ./k8s-device-plugin
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;参考：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/NVIDIA/k8s-device-plugin&#34;&gt;https://github.com/NVIDIA/k8s-device-plugin&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://kubernetes.io/zh-cn/docs/tasks/manage-gpus/scheduling-gpus/&#34;&gt;调度 GPU | Kubernetes&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html#configuring-containerd-for-kubernetes&#34;&gt;configuring-containerd-for-kubernetes&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html&#34;&gt;Installing the NVIDIA Container Toolkit &lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/kubernetes/design-proposals-archive/blob/main/resource-management/device-plugin.md&#34;&gt;k8s-device-plugin&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/kubernetes/design-proposals-archive/blob/main/resource-management/gpu-support.md&#34;&gt;gpu-support&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+
+      </description>
+    </item>
+    
+    <item>
+      <title>Kubernetes-Notes: </title>
+      <link>https://blog.huweihuang.com/kubernetes-notes/cluster-optimization/gpu/gpu-virtualization/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://blog.huweihuang.com/kubernetes-notes/cluster-optimization/gpu/gpu-virtualization/</guid>
+      <description>
+        
+        
+        &lt;blockquote&gt;
+&lt;p&gt;本文主要描述如何实现GPU资源的虚拟化。基于volcano官方文档整理。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h1 id=&#34;1-背景&#34;&gt;1. 背景&lt;/h1&gt;
+&lt;p&gt;随着大模型和AI的发展，GPU算力的需求越来越高，但是GPU成本高昂，对于小型工作负载，单个GPU可能造成资源浪费；而对于大型工作负载，单个GPU的算力又可能未被充分挖掘。因此需要通过GPU虚拟化的技术来提高GPU的利用率。&lt;/p&gt;
+&lt;h1 id=&#34;2-volcano虚拟化方式&#34;&gt;2. Volcano虚拟化方式&lt;/h1&gt;
+&lt;p&gt;Volcano主要支持硬件和软件两种GPU共享模式，用以实现vGPU调度并满足不同的硬件能力与性能需求：&lt;/p&gt;
+&lt;h2 id=&#34;2-1-hami-core-基于软件的vgpu&#34;&gt;2.1. HAMI-core（基于软件的vGPU）&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;描述&lt;/strong&gt;： 通过VCUDA (一种CUDA API劫持技术) 对GPU核心与显存的使用进行限制，从而实现软件层面的虚拟GPU切片。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;使用场景&lt;/strong&gt;： 适用于需要细粒度GPU共享的场景，&lt;code&gt;兼容所有类型的GPU&lt;/code&gt;。&lt;/p&gt;
+&lt;h2 id=&#34;2-2-dynamic-mig-硬件级gpu切片&#34;&gt;2.2. Dynamic MIG（硬件级GPU切片）&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;描述&lt;/strong&gt;： 采用&lt;code&gt;NVIDIA的MIG (Multi-Instance GPU)&lt;/code&gt;技术，可将单个物理GPU分割为多个具备硬件级性能保障的隔离实例。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;使用场景&lt;/strong&gt;： 尤其适用于对性能敏感的工作负载，&lt;code&gt;要求GPU支持MIG特性&lt;/code&gt;（如A100、H100系列）。&lt;/p&gt;
+&lt;h2 id=&#34;2-3-对比&#34;&gt;2.3. 对比&lt;/h2&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;模式&lt;/th&gt;
+&lt;th&gt;隔离级别&lt;/th&gt;
+&lt;th&gt;是否依赖MIG GPU&lt;/th&gt;
+&lt;th&gt;需注解指定模式&lt;/th&gt;
+&lt;th&gt;核心/显存控制方式&lt;/th&gt;
+&lt;th&gt;推荐应用场景&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;HAMI-core&lt;/td&gt;
+&lt;td&gt;软件 (VCUDA)&lt;/td&gt;
+&lt;td&gt;否&lt;/td&gt;
+&lt;td&gt;否&lt;/td&gt;
+&lt;td&gt;用户自定义 (核心/显存)&lt;/td&gt;
+&lt;td&gt;通用型工作负载&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Dynamic MIG&lt;/td&gt;
+&lt;td&gt;硬件 (MIG)&lt;/td&gt;
+&lt;td&gt;是&lt;/td&gt;
+&lt;td&gt;是&lt;/td&gt;
+&lt;td&gt;MIG实例规格决定&lt;/td&gt;
+&lt;td&gt;对性能敏感的工作负载&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h1 id=&#34;3-部署&#34;&gt;3. 部署&lt;/h1&gt;
+&lt;p&gt;1、 部署volcano，参考：&lt;a href=&#34;https://blog.huweihuang.com/kubernetes-notes/cluster-optimization/scheduler/volcano-usage/#4-%E9%83%A8%E7%BD%B2&#34;&gt;Volcano的使用&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;2、 部署&lt;a href=&#34;https://github.com/Project-HAMi/volcano-vgpu-device-plugin&#34;&gt;&lt;code&gt;volcano-vgpu-device-plugin&lt;/code&gt;&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;该组件是一个DaemonSet。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;wget https://raw.githubusercontent.com/Project-HAMi/volcano-vgpu-device-plugin/refs/heads/main/volcano-vgpu-device-plugin.yml
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl apply -f volcano-vgpu-device-plugin.yml
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;4-使用&#34;&gt;4. 使用&lt;/h1&gt;
+&lt;p&gt;参考：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://volcano.sh/zh/docs/gpu_virtualization/&#34;&gt;GPU虚拟化 | Volcano&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/tkestack/gpu-manager&#34;&gt;https://github.com/tkestack/gpu-manager&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://github.com/Project-HAMi/volcano-vgpu-device-plugin&#34;&gt;volcano-vgpu-device-plugin: Device-plugin for volcano vgpu which support hard resource isolation&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://support.huaweicloud.com/usermanual-cce/cce_10_0646.html&#34;&gt;使用GPU虚拟化 云容器引擎 CCE-华为云&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+
+      </description>
+    </item>
+    
+  </channel>
+</rss>

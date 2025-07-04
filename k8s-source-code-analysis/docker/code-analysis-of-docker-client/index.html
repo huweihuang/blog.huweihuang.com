@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<meta name="robots" content="index, follow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>Docker源码分析（一）之 Docker Client | 胡伟煌</title>
+<meta name="description" content="1. 创建Docker Client
+​Docker是一个client/server的架构，通过二进制文件docker创建Docker客户端将请求类型与参数发送给Docker Server，Docker Server具体执行命令调用。
+Docker Client运行流程图如下：
+
+说明：本文分析的代 …">
+<meta property="og:title" content="Docker源码分析（一）之 Docker Client" />
+<meta property="og:description" content="1. 创建Docker Client ​Docker是一个client/server的架构，通过二进制文件docker创建Docker客户端将请求类型与参数发送给Docker Server，Docker Server具体执行命令调用。 Docker Client运行流程图如下： 说明：本文分析的代码为Docker 1.2.0版本。
+1.1. Docker命令flag参数解析 Docker Server与Docker Client由可执行文件docker命令创建并启动。
+Docker Server的启动：docker -d或docker --daemon=true Docker Client的启动：docker --daemon=false ps等 docker参数分为两类：
+命令行参数（flag参数）:--daemon=true,-d 实际请求参数:ps ,images, pull, push等 /docker/docker.go
+func main() { if reexec.Init() { return } flag.Parse() // FIXME: validate daemon flags here ...... } reexec.Init()作用：协调execdriver与容器创建时dockerinit的关系。如果返回值为真则直接退出运行，否则继续执行。判断reexec.Init()之后，调用flag.Parse()解析命令行中的flag参数。
+/docker/flag.go
+var ( flVersion = flag.Bool([]string{&#34;v&#34;, &#34;-version&#34;}, false, &#34;Print version information and quit&#34;) flDaemon = flag.Bool([]string{&#34;d&#34;, &#34;-daemon&#34;}, false, &#34;Enable daemon mode&#34;) flDebug = flag." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.huweihuang.com/k8s-source-code-analysis/docker/code-analysis-of-docker-client/" /><meta property="article:section" content="k8s-source-code-analysis" />
+
+<meta property="og:site_name" content="胡伟煌" />
+
+<meta itemprop="name" content="Docker源码分析（一）之 Docker Client">
+<meta itemprop="description" content="1. 创建Docker Client ​Docker是一个client/server的架构，通过二进制文件docker创建Docker客户端将请求类型与参数发送给Docker Server，Docker Server具体执行命令调用。 Docker Client运行流程图如下： 说明：本文分析的代码为Docker 1.2.0版本。
+1.1. Docker命令flag参数解析 Docker Server与Docker Client由可执行文件docker命令创建并启动。
+Docker Server的启动：docker -d或docker --daemon=true Docker Client的启动：docker --daemon=false ps等 docker参数分为两类：
+命令行参数（flag参数）:--daemon=true,-d 实际请求参数:ps ,images, pull, push等 /docker/docker.go
+func main() { if reexec.Init() { return } flag.Parse() // FIXME: validate daemon flags here ...... } reexec.Init()作用：协调execdriver与容器创建时dockerinit的关系。如果返回值为真则直接退出运行，否则继续执行。判断reexec.Init()之后，调用flag.Parse()解析命令行中的flag参数。
+/docker/flag.go
+var ( flVersion = flag.Bool([]string{&#34;v&#34;, &#34;-version&#34;}, false, &#34;Print version information and quit&#34;) flDaemon = flag.Bool([]string{&#34;d&#34;, &#34;-daemon&#34;}, false, &#34;Enable daemon mode&#34;) flDebug = flag.">
+
+<meta itemprop="wordCount" content="858">
+<meta itemprop="keywords" content="源码分析," /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Docker源码分析（一）之 Docker Client"/>
+<meta name="twitter:description" content="1. 创建Docker Client ​Docker是一个client/server的架构，通过二进制文件docker创建Docker客户端将请求类型与参数发送给Docker Server，Docker Server具体执行命令调用。 Docker Client运行流程图如下： 说明：本文分析的代码为Docker 1.2.0版本。
+1.1. Docker命令flag参数解析 Docker Server与Docker Client由可执行文件docker命令创建并启动。
+Docker Server的启动：docker -d或docker --daemon=true Docker Client的启动：docker --daemon=false ps等 docker参数分为两类：
+命令行参数（flag参数）:--daemon=true,-d 实际请求参数:ps ,images, pull, push等 /docker/docker.go
+func main() { if reexec.Init() { return } flag.Parse() // FIXME: validate daemon flags here ...... } reexec.Init()作用：协调execdriver与容器创建时dockerinit的关系。如果返回值为真则直接退出运行，否则继续执行。判断reexec.Init()之后，调用flag.Parse()解析命令行中的flag参数。
+/docker/flag.go
+var ( flVersion = flag.Bool([]string{&#34;v&#34;, &#34;-version&#34;}, false, &#34;Print version information and quit&#34;) flDaemon = flag.Bool([]string{&#34;d&#34;, &#34;-daemon&#34;}, false, &#34;Enable daemon mode&#34;) flDebug = flag."/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" as="style">
+<link href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-114718458-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-page">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">胡伟煌</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/kubernetes-notes/" ><span>Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/k8s-source-code-analysis/" ><span class="active">Kubernetes源码分析</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/golang-notes/" ><span>Golang学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/linux-notes/" ><span>Linux学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/about/" ><span>About</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.e1ceba4eb56ee9643456f0123f0eb545.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <aside class="col-12 col-md-3 col-xl-2 td-sidebar d-print-none">
+            
+<div id="td-sidebar-menu" class="td-sidebar__inner">
+  <form class="td-sidebar__search d-flex align-items-center">
+    <input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.e1ceba4eb56ee9643456f0123f0eb545.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+
+    <button class="btn btn-link td-sidebar__toggle d-md-none p-0 ml-3 fas fa-bars" type="button" data-toggle="collapse" data-target="#td-section-nav" aria-controls="td-docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    </button>
+  </form>
+  <nav class="collapse td-sidebar-nav foldable-nav" id="td-section-nav">
+    <ul class="td-sidebar-nav__section pr-md-3 ul-0">
+      <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-k8s-source-code-analysis-li">
+  <a href="/k8s-source-code-analysis/" class="align-left pl-0 td-sidebar-link td-sidebar-link__section tree-root" id="m-k8s-source-code-analysis"><span class="">Kubernetes源码分析</span></a>
+  <ul class="ul-1">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-k8s-source-code-analysis-summary-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-summary-check"/>
+  <label for="m-k8s-source-code-analysis-summary-check"><a href="/k8s-source-code-analysis/summary/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-k8s-source-code-analysis-summary"><span class="">summary</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-summary-resource-object-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-summary-resource-object-check"/>
+  <label for="m-k8s-source-code-analysis-summary-resource-object-check"><a href="/k8s-source-code-analysis/summary/resource-object/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-summary-resource-object"><span class="">k8s核心数据结构分析</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-summary-etcd-storage-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-summary-etcd-storage-check"/>
+  <label for="m-k8s-source-code-analysis-summary-etcd-storage-check"><a href="/k8s-source-code-analysis/summary/etcd-storage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-summary-etcd-storage"><span class="">k8s中Etcd存储的实现</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-k8s-source-code-analysis-kube-apiserver-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-apiserver-check"/>
+  <label for="m-k8s-source-code-analysis-kube-apiserver-check"><a href="/k8s-source-code-analysis/kube-apiserver/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-k8s-source-code-analysis-kube-apiserver"><span class="">kube-apiserver</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand-check"/>
+  <label for="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand-check"><a href="/k8s-source-code-analysis/kube-apiserver/newapiservercommand/" title="kube-apiserver源码分析（一）之 NewAPIServerCommand" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-apiserver-newapiservercommand"><span class="">NewAPIServerCommand</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-k8s-source-code-analysis-kube-controller-manager-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-check"><a href="/k8s-source-code-analysis/kube-controller-manager/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-k8s-source-code-analysis-kube-controller-manager"><span class="">kube-controller-manager</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind-check"><a href="/k8s-source-code-analysis/kube-controller-manager/controller-manager-xmind/" title="controller-manager 源码思维导图" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-controller-manager-xmind"><span class="">源码思维导图</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand-check"><a href="/k8s-source-code-analysis/kube-controller-manager/newcontrollermanagercommand/" title="kube-controller-manager源码分析（一）之 NewControllerManagerCommand" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-newcontrollermanagercommand"><span class="">NewControllerManager</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller-check"><a href="/k8s-source-code-analysis/kube-controller-manager/deployment-controller/" title="kube-controller-manager源码分析（二）之 DeploymentController" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-deployment-controller"><span class="">DeploymentController</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-informer-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-informer-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-informer-check"><a href="/k8s-source-code-analysis/kube-controller-manager/informer/" title="kube-controller-manager源码分析（三）之 Informer机制" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-informer"><span class="">Informer机制</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-replicaset-controller-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-replicaset-controller-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-replicaset-controller-check"><a href="/k8s-source-code-analysis/kube-controller-manager/replicaset-controller/" title="kube-controller-manager源码分析（四）之 ReplicaSetController" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-replicaset-controller"><span class="">ReplicaSetController</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-daemonset-controller-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-daemonset-controller-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-daemonset-controller-check"><a href="/k8s-source-code-analysis/kube-controller-manager/daemonset-controller/" title="kube-controller-manager源码分析（五）之 DaemonSetController" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-daemonset-controller"><span class="">DaemonSetController</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-controller-runtime-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-controller-runtime-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-controller-runtime-check"><a href="/k8s-source-code-analysis/kube-controller-manager/controller-runtime/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-controller-runtime"><span class="">controller-runtime源码分析</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-controller-manager-workqueue-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-controller-manager-workqueue-check"/>
+  <label for="m-k8s-source-code-analysis-kube-controller-manager-workqueue-check"><a href="/k8s-source-code-analysis/kube-controller-manager/workqueue/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-controller-manager-workqueue"><span class="">workqueue源码分析</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-k8s-source-code-analysis-kube-scheduler-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-check"><a href="/k8s-source-code-analysis/kube-scheduler/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-k8s-source-code-analysis-kube-scheduler"><span class="">kube-scheduler</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind-check"><a href="/k8s-source-code-analysis/kube-scheduler/scheduler-xmind/" title="kube-scheduler 源码思维导图" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-scheduler-xmind"><span class="">源码思维导图</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand-check"><a href="/k8s-source-code-analysis/kube-scheduler/newschedulercommand/" title="kube-scheduler源码分析（一）之 NewSchedulerCommand" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-newschedulercommand"><span class="">NewSchedulerCommand</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider-check"><a href="/k8s-source-code-analysis/kube-scheduler/registeralgorithmprovider/" title="kube-scheduler源码分析（二）之 调度算法" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-registeralgorithmprovider"><span class="">调度算法</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-scheduleone-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-scheduleone-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-scheduleone-check"><a href="/k8s-source-code-analysis/kube-scheduler/scheduleone/" title="kube-scheduler源码分析（三）之 调度流程" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-scheduleone"><span class="">调度流程</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit-check"><a href="/k8s-source-code-analysis/kube-scheduler/findnodesthatfit/" title="kube-scheduler源码分析（四）之 预选策略" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-findnodesthatfit"><span class="">预选策略</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes-check"><a href="/k8s-source-code-analysis/kube-scheduler/prioritizenodes/" title="kube-scheduler源码分析（五）之 优选策略" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-prioritizenodes"><span class="">优选策略</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kube-scheduler-preempt-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kube-scheduler-preempt-check"/>
+  <label for="m-k8s-source-code-analysis-kube-scheduler-preempt-check"><a href="/k8s-source-code-analysis/kube-scheduler/preempt/" title="kube-scheduler源码分析（六）之 抢占逻辑" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kube-scheduler-preempt"><span class="">抢占逻辑</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-k8s-source-code-analysis-kubelet-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-check"><a href="/k8s-source-code-analysis/kubelet/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-k8s-source-code-analysis-kubelet"><span class="">kubelet</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-kubelet-xmind-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-kubelet-xmind-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-kubelet-xmind-check"><a href="/k8s-source-code-analysis/kubelet/kubelet-xmind/" title="kubelet 源码思维导图" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-kubelet-xmind"><span class="">源码思维导图</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-newkubeletcommand-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-newkubeletcommand-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-newkubeletcommand-check"><a href="/k8s-source-code-analysis/kubelet/newkubeletcommand/" title="kubelet源码分析（一）之 NewKubeletCommand" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-newkubeletcommand"><span class="">NewKubeletCommand</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-newmainkubelet-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-newmainkubelet-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-newmainkubelet-check"><a href="/k8s-source-code-analysis/kubelet/newmainkubelet/" title="kubelet源码分析（二）之 NewMainKubelet" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-newmainkubelet"><span class="">NewMainKubelet</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-startkubelet-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-startkubelet-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-startkubelet-check"><a href="/k8s-source-code-analysis/kubelet/startkubelet/" title="kubelet源码分析（三）之 RunKubelet" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-startkubelet"><span class="">startKubelet</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-syncloopiteration-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-syncloopiteration-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-syncloopiteration-check"><a href="/k8s-source-code-analysis/kubelet/syncloopiteration/" title="kubelet源码分析（四）之 syncLoopIteration" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-syncloopiteration"><span class="">syncLoopIteration</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-syncpod-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-syncpod-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-syncpod-check"><a href="/k8s-source-code-analysis/kubelet/syncpod/" title="kubelet源码分析（五）之 syncPod" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-syncpod"><span class="">syncPod</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-kubelet-runc-code-analysis-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-kubelet-runc-code-analysis-check"/>
+  <label for="m-k8s-source-code-analysis-kubelet-runc-code-analysis-check"><a href="/k8s-source-code-analysis/kubelet/runc-code-analysis/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-kubelet-runc-code-analysis"><span class="">runc源码分析</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-k8s-source-code-analysis-docker-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-docker-check" checked/>
+  <label for="m-k8s-source-code-analysis-docker-check"><a href="/k8s-source-code-analysis/docker/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-k8s-source-code-analysis-docker"><span class="">docker</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-docker-code-analysis-of-docker-client-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-docker-code-analysis-of-docker-client-check"/>
+  <label for="m-k8s-source-code-analysis-docker-code-analysis-of-docker-client-check"><a href="/k8s-source-code-analysis/docker/code-analysis-of-docker-client/" title="Docker源码分析（一）之 Docker Client" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-docker-code-analysis-of-docker-client"><span class="td-sidebar-nav-active-item">Docker Client</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-docker-code-analysis-of-docker-daemon-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-docker-code-analysis-of-docker-daemon-check"/>
+  <label for="m-k8s-source-code-analysis-docker-code-analysis-of-docker-daemon-check"><a href="/k8s-source-code-analysis/docker/code-analysis-of-docker-daemon/" title="Docker源码分析（二）之 Docker Daemon" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-docker-code-analysis-of-docker-daemon"><span class="">Docker Daemon</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-k8s-source-code-analysis-docker-code-analysis-of-docker-server-li">
+  <input type="checkbox" id="m-k8s-source-code-analysis-docker-code-analysis-of-docker-server-check"/>
+  <label for="m-k8s-source-code-analysis-docker-code-analysis-of-docker-server-check"><a href="/k8s-source-code-analysis/docker/code-analysis-of-docker-server/" title="Docker源码分析（二）之 Docker Server" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-k8s-source-code-analysis-docker-code-analysis-of-docker-server"><span class="">Docker Server</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li>
+    </ul>
+  </nav>
+</div>
+
+          </aside>
+          <aside class="d-none d-xl-block col-xl-2 td-sidebar-toc d-print-none">
+            
+<div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
+<a href="https://github.com/huweihuang/blog.huweihuang.com/tree/master/content/zh-cn/k8s-source-code-analysis/docker/code-analysis-of-docker-client.md" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa fa-file-alt fa-fw"></i> 查看页面源码</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/edit/master/content/zh-cn/k8s-source-code-analysis/docker/code-analysis-of-docker-client.md" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 编辑此页</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/new/master/content/zh-cn/k8s-source-code-analysis/docker/code-analysis-of-docker-client.md?filename=change-me.md&amp;value=---%0Atitle%3A&#43;%22Long&#43;Page&#43;Title%22%0AlinkTitle%3A&#43;%22Short&#43;Nav&#43;Title%22%0Aweight%3A&#43;100%0Adescription%3A&#43;%3E-%0A&#43;&#43;&#43;&#43;&#43;Page&#43;description&#43;for&#43;heading&#43;and&#43;indexes.%0A---%0A%0A%23%23&#43;Heading%0A%0AEdit&#43;this&#43;template&#43;to&#43;create&#43;your&#43;new&#43;page.%0A%0A%2A&#43;Give&#43;it&#43;a&#43;good&#43;name%2C&#43;ending&#43;in&#43;%60.md%60&#43;-&#43;e.g.&#43;%60getting-started.md%60%0A%2A&#43;Edit&#43;the&#43;%22front&#43;matter%22&#43;section&#43;at&#43;the&#43;top&#43;of&#43;the&#43;page&#43;%28weight&#43;controls&#43;how&#43;its&#43;ordered&#43;amongst&#43;other&#43;pages&#43;in&#43;the&#43;same&#43;directory%3B&#43;lowest&#43;number&#43;first%29.%0A%2A&#43;Add&#43;a&#43;good&#43;commit&#43;message&#43;at&#43;the&#43;bottom&#43;of&#43;the&#43;page&#43;%28%3C80&#43;characters%3B&#43;use&#43;the&#43;extended&#43;description&#43;field&#43;for&#43;more&#43;detail%29.%0A%2A&#43;Create&#43;a&#43;new&#43;branch&#43;so&#43;you&#43;can&#43;preview&#43;your&#43;new&#43;file&#43;and&#43;request&#43;a&#43;review&#43;via&#43;Pull&#43;Request.%0A" class="td-page-meta--child" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 添加子页面</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new?title=Docker%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90%ef%bc%88%e4%b8%80%ef%bc%89%e4%b9%8b%20Docker%20Client" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new" class="td-page-meta--project-issue" target="_blank" rel="noopener"><i class="fas fa-tasks fa-fw"></i> 提交项目问题</a>
+  <a id="print" href="https://blog.huweihuang.com/k8s-source-code-analysis/docker/_print/"><i class="fa fa-print fa-fw"></i> 整节打印</a>
+
+</div>
+
+            
+
+
+<div class="td-toc"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-创建docker-client">1. 创建Docker Client</a>
+      <ul>
+        <li><a href="#1-1-docker命令flag参数解析">1.1. Docker命令flag参数解析</a></li>
+        <li><a href="#1-2-处理flag参数并收集docker-client的配置信息">1.2. 处理flag参数并收集Docker Client的配置信息</a></li>
+        <li><a href="#1-3-如何创建docker-client">1.3. 如何创建Docker Client</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-docke命令执行">2. Docke命令执行</a>
+      <ul>
+        <li><a href="#2-1-docker-client解析请求命令">2.1. Docker Client解析请求命令</a></li>
+        <li><a href="#2-2-docker-client执行请求命令">2.2. Docker Client执行请求命令</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></div>
+
+
+
+            
+
+	
+		
+			
+				
+			
+			
+
+
+
+  
+  
+    <div class="taxonomy taxonomy-terms-cloud taxo-tags">
+      
+        <h5 class="taxonomy-title">Tags</h5>
+      
+      <ul class="taxonomy-terms">
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/apisix/" data-taxonomy-term="apisix"><span class="taxonomy-label">ApiSix</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/blog/" data-taxonomy-term="blog"><span class="taxonomy-label">Blog</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/cni/" data-taxonomy-term="cni"><span class="taxonomy-label">CNI</span><span class="taxonomy-count">7</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/containerd/" data-taxonomy-term="containerd"><span class="taxonomy-label">Containerd</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/csi/" data-taxonomy-term="csi"><span class="taxonomy-label">CSI</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/disk/" data-taxonomy-term="disk"><span class="taxonomy-label">disk</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/docker/" data-taxonomy-term="docker"><span class="taxonomy-label">Docker</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/etcd/" data-taxonomy-term="etcd"><span class="taxonomy-label">Etcd</span><span class="taxonomy-count">8</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/git/" data-taxonomy-term="git"><span class="taxonomy-label">Git</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/golang/" data-taxonomy-term="golang"><span class="taxonomy-label">Golang</span><span class="taxonomy-count">39</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/gpu/" data-taxonomy-term="gpu"><span class="taxonomy-label">GPU</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/ide/" data-taxonomy-term="ide"><span class="taxonomy-label">IDE</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/iptables/" data-taxonomy-term="iptables"><span class="taxonomy-label">iptables</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/karmada/" data-taxonomy-term="karmada"><span class="taxonomy-label">Karmada</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/keepalived/" data-taxonomy-term="keepalived"><span class="taxonomy-label">Keepalived</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubeadm/" data-taxonomy-term="kubeadm"><span class="taxonomy-label">kubeadm</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubeedge/" data-taxonomy-term="kubeedge"><span class="taxonomy-label">Kubeedge</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubernetes/" data-taxonomy-term="kubernetes"><span class="taxonomy-label">Kubernetes</span><span class="taxonomy-count">66</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubevirt/" data-taxonomy-term="kubevirt"><span class="taxonomy-label">KubeVirt</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/linux/" data-taxonomy-term="linux"><span class="taxonomy-label">Linux</span><span class="taxonomy-count">11</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/memcached/" data-taxonomy-term="memcached"><span class="taxonomy-label">Memcached</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/monitor/" data-taxonomy-term="monitor"><span class="taxonomy-label">Monitor</span><span class="taxonomy-count">6</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/mysql/" data-taxonomy-term="mysql"><span class="taxonomy-label">Mysql</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/network/" data-taxonomy-term="network"><span class="taxonomy-label">Network</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/nginx/" data-taxonomy-term="nginx"><span class="taxonomy-label">Nginx</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/openyurt/" data-taxonomy-term="openyurt"><span class="taxonomy-label">OpenYurt</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/operator/" data-taxonomy-term="operator"><span class="taxonomy-label">Operator</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/pod/" data-taxonomy-term="pod"><span class="taxonomy-label">Pod</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/redis/" data-taxonomy-term="redis"><span class="taxonomy-label">Redis</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/runtime/" data-taxonomy-term="runtime"><span class="taxonomy-label">Runtime</span><span class="taxonomy-count">8</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/scheduler/" data-taxonomy-term="scheduler"><span class="taxonomy-label">Scheduler</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/serverless/" data-taxonomy-term="serverless"><span class="taxonomy-label">Serverless</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/shell/" data-taxonomy-term="shell"><span class="taxonomy-label">Shell</span><span class="taxonomy-count">9</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/tcpip/" data-taxonomy-term="tcpip"><span class="taxonomy-label">TCPIP</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/vim/" data-taxonomy-term="vim"><span class="taxonomy-label">VIM</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/virtualkubelet/" data-taxonomy-term="virtualkubelet"><span class="taxonomy-label">VirtualKubelet</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%A4%9A%E9%9B%86%E7%BE%A4/" data-taxonomy-term="%E5%A4%9A%E9%9B%86%E7%BE%A4"><span class="taxonomy-label">多集群</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%A4%A7%E6%A8%A1%E5%9E%8B/" data-taxonomy-term="%E5%A4%A7%E6%A8%A1%E5%9E%8B"><span class="taxonomy-label">大模型</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%BF%AB%E6%8D%B7%E9%94%AE/" data-taxonomy-term="%E5%BF%AB%E6%8D%B7%E9%94%AE"><span class="taxonomy-label">快捷键</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-taxonomy-term="%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="taxonomy-label">源码分析</span><span class="taxonomy-count">28</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E8%A3%B8%E9%87%91%E5%B1%9E/" data-taxonomy-term="%E8%A3%B8%E9%87%91%E5%B1%9E"><span class="taxonomy-label">裸金属</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/" data-taxonomy-term="%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5"><span class="taxonomy-label">问题排查</span><span class="taxonomy-count">9</span></a></li>
+        
+      </ul>
+    </div>
+  
+
+		
+			
+				
+			
+			
+
+
+
+  
+  
+
+		
+	
+
+          </aside>
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+  
+
+            <nav aria-label="breadcrumb" class="td-breadcrumbs">
+  <ol class="breadcrumb">
+  <li class="breadcrumb-item">
+    <a href="https://blog.huweihuang.com/k8s-source-code-analysis/">Kubernetes源码分析</a>
+  </li>
+  <li class="breadcrumb-item">
+    <a href="https://blog.huweihuang.com/k8s-source-code-analysis/docker/">docker</a>
+  </li>
+  <li class="breadcrumb-item active" aria-current="page">
+    <a href="https://blog.huweihuang.com/k8s-source-code-analysis/docker/code-analysis-of-docker-client/">Docker Client</a>
+  </li>
+  </ol>
+</nav>
+            
+<div class="td-content">
+	<h1>Docker源码分析（一）之 Docker Client</h1>
+	
+	<header class="article-meta">
+		
+
+  
+    
+      
+
+
+<div class="taxonomy taxonomy-terms-article taxo-tags">
+  <h5 class="taxonomy-title">Tags:</h5>
+  <ul class="taxonomy-terms">
+    
+      <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-taxonomy-term="%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="taxonomy-label">源码分析</span></a></li>
+    
+  </ul>
+</div>
+
+    
+      
+
+
+    
+  
+
+		
+	</header>    
+	<h1 id="1-创建docker-client">1. 创建Docker Client</h1>
+<p>​Docker是一个client/server的架构，通过二进制文件docker创建Docker客户端将请求类型与参数发送给Docker Server，Docker Server具体执行命令调用。
+Docker Client运行流程图如下：
+<img src="http://res.cloudinary.com/dqxtn0ick/image/upload/v1510578124/article/docker/dockerClient/docker-client-flow.jpg" width="60%"/></p>
+<p>说明：本文分析的代码为Docker 1.2.0版本。</p>
+<h2 id="1-1-docker命令flag参数解析">1.1. Docker命令flag参数解析</h2>
+<p>Docker Server与Docker Client由可执行文件docker命令创建并启动。</p>
+<ul>
+<li>Docker Server的启动：docker -d或docker --daemon=true</li>
+<li>Docker Client的启动：docker --daemon=false ps等</li>
+</ul>
+<p>docker参数分为两类：</p>
+<ul>
+<li>命令行参数（flag参数）:--daemon=true,-d</li>
+<li>实际请求参数:ps ,images, pull, push等</li>
+</ul>
+<p><strong>/docker/docker.go</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">main</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>       <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">reexec</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Init</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>           <span style="color:#204a87;font-weight:bold">return</span>
+</span></span><span style="display:flex;"><span>       <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>       <span style="color:#000">flag</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Parse</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>       <span style="color:#8f5902;font-style:italic">// FIXME: validate daemon flags here
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>       <span style="color:#ce5c00;font-weight:bold">......</span>
+</span></span><span style="display:flex;"><span>   <span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>reexec.Init()作用：协调execdriver与容器创建时dockerinit的关系。如果返回值为真则直接退出运行，否则继续执行。判断reexec.Init()之后，调用flag.Parse()解析命令行中的flag参数。</p>
+<p><strong>/docker/flag.go</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">flVersion</span>     <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">flag</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Bool</span><span style="color:#000;font-weight:bold">([]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span><span style="color:#4e9a06">&#34;v&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;-version&#34;</span><span style="color:#000;font-weight:bold">},</span> <span style="color:#204a87;font-weight:bold">false</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;Print version information and quit&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">flDaemon</span>      <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">flag</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Bool</span><span style="color:#000;font-weight:bold">([]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span><span style="color:#4e9a06">&#34;d&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;-daemon&#34;</span><span style="color:#000;font-weight:bold">},</span> <span style="color:#204a87;font-weight:bold">false</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;Enable daemon mode&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">flDebug</span>       <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">flag</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Bool</span><span style="color:#000;font-weight:bold">([]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span><span style="color:#4e9a06">&#34;D&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;-debug&#34;</span><span style="color:#000;font-weight:bold">},</span> <span style="color:#204a87;font-weight:bold">false</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;Enable debug mode&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">flSocketGroup</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">flag</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">String</span><span style="color:#000;font-weight:bold">([]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span><span style="color:#4e9a06">&#34;G&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;-group&#34;</span><span style="color:#000;font-weight:bold">},</span> <span style="color:#4e9a06">&#34;docker&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;Group to assign the unix socket specified by -H when running in daemon mode/nuse &#39;&#39; (the empty string) to disable setting of a group&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">flEnableCors</span>  <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">flag</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Bool</span><span style="color:#000;font-weight:bold">([]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span><span style="color:#4e9a06">&#34;#api-enable-cors&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;-api-enable-cors&#34;</span><span style="color:#000;font-weight:bold">},</span> <span style="color:#204a87;font-weight:bold">false</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;Enable CORS headers in the remote API&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">flTls</span>         <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">flag</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Bool</span><span style="color:#000;font-weight:bold">([]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span><span style="color:#4e9a06">&#34;-tls&#34;</span><span style="color:#000;font-weight:bold">},</span> <span style="color:#204a87;font-weight:bold">false</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;Use TLS; implied by tls-verify flags&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">flTlsVerify</span>   <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">flag</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Bool</span><span style="color:#000;font-weight:bold">([]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span><span style="color:#4e9a06">&#34;-tlsverify&#34;</span><span style="color:#000;font-weight:bold">},</span> <span style="color:#204a87;font-weight:bold">false</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;Use TLS and verify the remote (daemon: verify client, client: verify daemon)&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>      <span style="color:#8f5902;font-style:italic">// these are initialized in init() below since their default values depend on dockerCertPath which isn&#39;t fully initialized until init() runs
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>      <span style="color:#000">flCa</span>    <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">flCert</span>  <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">flKey</span>   <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">flHosts</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">init</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">flCa</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">flag</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">String</span><span style="color:#000;font-weight:bold">([]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span><span style="color:#4e9a06">&#34;-tlscacert&#34;</span><span style="color:#000;font-weight:bold">},</span> <span style="color:#000">filepath</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Join</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">dockerCertPath</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">defaultCaFile</span><span style="color:#000;font-weight:bold">),</span> <span style="color:#4e9a06">&#34;Trust only remotes providing a certificate signed by the CA given here&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">flCert</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">flag</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">String</span><span style="color:#000;font-weight:bold">([]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span><span style="color:#4e9a06">&#34;-tlscert&#34;</span><span style="color:#000;font-weight:bold">},</span> <span style="color:#000">filepath</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Join</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">dockerCertPath</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">defaultCertFile</span><span style="color:#000;font-weight:bold">),</span> <span style="color:#4e9a06">&#34;Path to TLS certificate file&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">flKey</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">flag</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">String</span><span style="color:#000;font-weight:bold">([]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span><span style="color:#4e9a06">&#34;-tlskey&#34;</span><span style="color:#000;font-weight:bold">},</span> <span style="color:#000">filepath</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Join</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">dockerCertPath</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">defaultKeyFile</span><span style="color:#000;font-weight:bold">),</span> <span style="color:#4e9a06">&#34;Path to TLS key file&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">opts</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">HostListVar</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">flHosts</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span><span style="color:#4e9a06">&#34;H&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;-host&#34;</span><span style="color:#000;font-weight:bold">},</span> <span style="color:#4e9a06">&#34;The socket(s) to bind to in daemon mode/nspecified using one or more tcp://host:port, unix:///path/to/socket, fd://* or fd://socketfd.&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>flag.go定义了flag参数，并执行了init的初始化。</p>
+<p>Go中的init函数</p>
+<ol>
+<li>用于程序执行前包的初始化工作，比如初始化变量</li>
+<li>每个包或源文件可以包含多个init函数</li>
+<li>init函数不能被调用，而是在mian函数调用前自动被调用</li>
+<li>不同init函数的执行顺序，按照包导入的顺序执行</li>
+</ol>
+<p>当解析到第一个非flag参数时，flag解析工作就结束。例如docker --daemon=flase --version=false ps</p>
+<ul>
+<li>完成flag的解析，--daemon=false</li>
+<li>遇到第一个非flag参数ps，则将ps及其后的参数存入flag.Args()，以便执行之后的具体请求。</li>
+</ul>
+<h2 id="1-2-处理flag参数并收集docker-client的配置信息">1.2. 处理flag参数并收集Docker Client的配置信息</h2>
+<p>处理的flag参数有flVersion,flDebug,flDaemon,flTlsVerify以及flTls。</p>
+<p><strong>/docker/docker.go</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">main</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">......</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">flHosts</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">defaultHost</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Getenv</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;DOCKER_HOST&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">defaultHost</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#4e9a06">&#34;&#34;</span> <span style="color:#ce5c00;font-weight:bold">||</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">flDaemon</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#8f5902;font-style:italic">// If we do not have a host, default to unix socket
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>            <span style="color:#000">defaultHost</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Sprintf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;unix://%s&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">api</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">DEFAULTUNIXSOCKET</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">api</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ValidateHost</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">defaultHost</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">log</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Fatal</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">flHosts</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87">append</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">flHosts</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">defaultHost</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">......</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>flHosts的作用是为Docker Client提供所要连接的host对象，也就是为Docker Server提供所要监听的对象。
+当flHosts为空，默认取环境变量DOCKER_HOST，若仍为空或flDaemon为真，则设置为unix socket，值为<a href="">unix:///var/run/docker.sock。取自/api/common.go中的常量DEFAULTUNIXSOCKET。</a></p>
+<p><strong>/docker/docker.go</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">main</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>  
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">...</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">flDaemon</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">mainDaemon</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">...</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>若flDaemon为真，表示启动Docker Daemon，调用/docker/daemon.go中的func mainDaemon()。</p>
+<p><strong>/docker/docker.go</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">flHosts</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#0000cf;font-weight:bold">1</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">log</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Fatal</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Please specify only one -H&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">protoAddrParts</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">strings</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">SplitN</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">flHosts</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">],</span> <span style="color:#4e9a06">&#34;://&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><p>protoAddrParts的作用是解析出Docker Client 与Docker Server建立通信的协议与地址，通过strings.SplitN函数分割存储。flHosts[0]的值可以是<a href="">tcp://0.0.0.0.2375或者unix:///var/run/docker.sock等。</a></p>
+<p><strong>/docker/docker.go</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">cli</span>       <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">client</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">DockerCli</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">tlsConfig</span> <span style="color:#000">tls</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Config</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">tlsConfig</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">InsecureSkipVerify</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87;font-weight:bold">true</span>
+</span></span></code></pre></div><p>tlsConfig对象的创建是为了保障cli在传输数据的时候遵循安全传输层协议（TLS）。flTlsVerity参数为真，则说明Docker Client 需Docker Server一起验证连接的安全性，如果flTls和flTlsVerity两个参数中有一个为真，则说明需要加载并发送客户端的证书。</p>
+<p><strong>/docker/flags.go</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">flTls</span>         <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">flag</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Bool</span><span style="color:#000;font-weight:bold">([]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span><span style="color:#4e9a06">&#34;-tls&#34;</span><span style="color:#000;font-weight:bold">},</span> <span style="color:#204a87;font-weight:bold">false</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;Use TLS; implied by tls-verify flags&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">flTlsVerify</span>   <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">flag</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Bool</span><span style="color:#000;font-weight:bold">([]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span><span style="color:#4e9a06">&#34;-tlsverify&#34;</span><span style="color:#000;font-weight:bold">},</span> <span style="color:#204a87;font-weight:bold">false</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;Use TLS and verify the remote (daemon: verify client, client: verify daemon)&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><h2 id="1-3-如何创建docker-client">1.3. 如何创建Docker Client</h2>
+<p><strong>/docker/docker.go</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">flTls</span> <span style="color:#ce5c00;font-weight:bold">||</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">flTlsVerify</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">cli</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">client</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewDockerCli</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Stdin</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Stdout</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Stderr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">protoAddrParts</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">],</span> <span style="color:#000">protoAddrParts</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">],</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">tlsConfig</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span> <span style="color:#204a87;font-weight:bold">else</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">cli</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">client</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">NewDockerCli</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Stdin</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Stdout</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Stderr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">protoAddrParts</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">],</span> <span style="color:#000">protoAddrParts</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">],</span> <span style="color:#204a87;font-weight:bold">nil</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>在已有配置参数的情况下，通过/api/client/cli.go中的NewDockerCli方法创建Docker Client实例cli。</p>
+<p><strong>/api/client/cli.go</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">type</span> <span style="color:#000">DockerCli</span> <span style="color:#204a87;font-weight:bold">struct</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">proto</span>      <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">addr</span>       <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">configFile</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">registry</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ConfigFile</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">in</span>         <span style="color:#000">io</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ReadCloser</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">out</span>        <span style="color:#000">io</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Writer</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">err</span>        <span style="color:#000">io</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Writer</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">isTerminal</span> <span style="color:#204a87;font-weight:bold">bool</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">terminalFd</span> <span style="color:#204a87;font-weight:bold">uintptr</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">tlsConfig</span>  <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">tls</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Config</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">scheme</span>     <span style="color:#204a87;font-weight:bold">string</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000">NewDockerCli</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">in</span> <span style="color:#000">io</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ReadCloser</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">out</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#000">io</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Writer</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">proto</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">addr</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">tlsConfig</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">tls</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Config</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DockerCli</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">isTerminal</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#204a87;font-weight:bold">false</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">terminalFd</span> <span style="color:#204a87;font-weight:bold">uintptr</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">scheme</span>     <span style="color:#000;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;http&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">tlsConfig</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">scheme</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;https&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">in</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">file</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">ok</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">out</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">File</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#000">ok</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">terminalFd</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">file</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Fd</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">isTerminal</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">term</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">IsTerminal</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">terminalFd</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">err</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">out</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">DockerCli</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">proto</span><span style="color:#000;font-weight:bold">:</span>      <span style="color:#000">proto</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">addr</span><span style="color:#000;font-weight:bold">:</span>       <span style="color:#000">addr</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">in</span><span style="color:#000;font-weight:bold">:</span>         <span style="color:#000">in</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">out</span><span style="color:#000;font-weight:bold">:</span>        <span style="color:#000">out</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">err</span><span style="color:#000;font-weight:bold">:</span>        <span style="color:#000">err</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">isTerminal</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">isTerminal</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">terminalFd</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">terminalFd</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">tlsConfig</span><span style="color:#000;font-weight:bold">:</span>  <span style="color:#000">tlsConfig</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">scheme</span><span style="color:#000;font-weight:bold">:</span>     <span style="color:#000">scheme</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="2-docke命令执行">2. Docke命令执行</h1>
+<h2 id="2-1-docker-client解析请求命令">2.1. Docker Client解析请求命令</h2>
+<p>创建Docker Client，docker命令中的请求参数（例如ps，经flag解析后放入flag.Args()），分析请求参数及请求的类型，转义为Docker Server可识别的请求后发给Docker Server。</p>
+<p><strong>/docker/docker.go</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Cmd</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">flag</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Args</span><span style="color:#000;font-weight:bold">()</span><span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">sterr</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">ok</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">err</span><span style="color:#000;font-weight:bold">.(</span><span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">utils</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">StatusError</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#000">ok</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">sterr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Status</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#4e9a06">&#34;&#34;</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">log</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">sterr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Status</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">os</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Exit</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">sterr</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">StatusCode</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">log</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Fatal</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>解析flag.Args()的具体请求参数，执行cli.Cmd函数。代码在/api/client/cli.go</p>
+<p><strong>/api/client/cli.go</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic">// Cmd executes the specified command
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">cli</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DockerCli</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">Cmd</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">args</span> <span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">args</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">&gt;</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000">method</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">exists</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">getMethod</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">args</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">])</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">!</span><span style="color:#000">exists</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Println</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;Error: Command not found:&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">args</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">])</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">CmdHelp</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">args</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">:]</span><span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">method</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">args</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">:]</span><span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">CmdHelp</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">args</span><span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span><span style="color:#000">method</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">exists</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">getMethod</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">args</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">])</span><span style="color:#000">获取请求参数</span><span style="color:#a40000">，</span><span style="color:#000">例如docker</span> <span style="color:#000">pull</span> <span style="color:#000">ImageName</span><span style="color:#a40000">，</span><span style="color:#000">args</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">]</span><span style="color:#000">等于pull</span><span style="color:#a40000">。</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">cli</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DockerCli</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">getMethod</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">name</span> <span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">bool</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#204a87">len</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">name</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">false</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">methodName</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#4e9a06">&#34;Cmd&#34;</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#000">strings</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ToUpper</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">name</span><span style="color:#000;font-weight:bold">[:</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">])</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#000">strings</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ToLower</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">name</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">:])</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">method</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">reflect</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ValueOf</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cli</span><span style="color:#000;font-weight:bold">).</span><span style="color:#000">MethodByName</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">methodName</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">!</span><span style="color:#000">method</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">IsValid</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">false</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">method</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Interface</span><span style="color:#000;font-weight:bold">().(</span><span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span><span style="color:#000;font-weight:bold">),</span> <span style="color:#204a87;font-weight:bold">true</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>在getMethod中，返回method值为“CmdPull”。最后执行method(args[1:]...)，即CmdPull(args[1:]...)。</p>
+<h2 id="2-2-docker-client执行请求命令">2.2. Docker Client执行请求命令</h2>
+<p>docker pull ImageName中，即执行CmdPull(args[1:]...)，args[1:]即为ImageName。命令代码在/api/client/command.go。</p>
+<p><strong>/api/client/commands.go</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">func</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">cli</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">DockerCli</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000">CmdPull</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">args</span> <span style="color:#ce5c00;font-weight:bold">...</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">cmd</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Subcmd</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;pull&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;NAME[:TAG]&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;Pull an image or a repository from the registry&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">tag</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cmd</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">String</span><span style="color:#000;font-weight:bold">([]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span><span style="color:#4e9a06">&#34;#t&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;#-tag&#34;</span><span style="color:#000;font-weight:bold">},</span> <span style="color:#4e9a06">&#34;&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;Download tagged image in a repository&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cmd</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Parse</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">args</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">...</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>将args参数进行第二次flag参数解析，解析过程中先提取是否有符合tag这个flag的参数，若有赋值给tag参数，其余存入cmd.NArg()，若没有则所有的参数存入cmd.NArg()中。</p>
+<p><strong>/api/client/commands.go</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">var</span> <span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>     <span style="color:#000">v</span>      <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">url</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Values</span><span style="color:#000;font-weight:bold">{}</span>
+</span></span><span style="display:flex;"><span>     <span style="color:#000">remote</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">cmd</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Arg</span><span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span> <span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span> <span style="color:#000">v</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Set</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;fromImage&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">remote</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span> <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">tag</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#4e9a06">&#34;&#34;</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>     <span style="color:#000">v</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Set</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;tag&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#ce5c00;font-weight:bold">*</span><span style="color:#000">tag</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span> <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span> <span style="color:#000">remote</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">_</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#000">parsers</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ParseRepositoryTag</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">remote</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span> <span style="color:#8f5902;font-style:italic">// Resolve the Repository name from fqn to hostname + name
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span> <span style="color:#000">hostname</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">_</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">registry</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ResolveRepositoryName</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">remote</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span> <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>     <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span> <span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>通过remote变量先得到镜像的repository名称，并赋值给remote自身，随后解析改变后的remote，得出镜像所在的host地址，即Docker Registry的地址。若没有指定默认为Docker Hub地址<a href="">https://index.docker.io/v1/。</a></p>
+<p><strong>/api/client/commands.go</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">LoadConfigFile</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">// Resolve the Auth config relevant for this server
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"></span><span style="color:#000">authConfig</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">configFile</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ResolveAuthConfig</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">hostname</span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><p>通过cli对象获取与Docker Server的认证配置信息。</p>
+<p><strong>/api/client/commands.go</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#000">pull</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#204a87;font-weight:bold">func</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">authConfig</span> <span style="color:#000">registry</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">AuthConfig</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">error</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">buf</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">json</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Marshal</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">authConfig</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">registryAuthHeader</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000;font-weight:bold">[]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">base64</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">URLEncoding</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">EncodeToString</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">buf</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">stream</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;POST&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;/images/create?&#34;</span><span style="color:#ce5c00;font-weight:bold">+</span><span style="color:#000">v</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Encode</span><span style="color:#000;font-weight:bold">(),</span> <span style="color:#204a87;font-weight:bold">nil</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">out</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">map</span><span style="color:#000;font-weight:bold">[</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">][]</span><span style="color:#204a87;font-weight:bold">string</span><span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#4e9a06">&#34;X-Registry-Auth&#34;</span><span style="color:#000;font-weight:bold">:</span> <span style="color:#000">registryAuthHeader</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">})</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span></code></pre></div><p>定义pull函数：cli.stream(&quot;POST&quot;, &quot;/images/create?&quot;+v.Encode(),...)像Docker Server发送POST请求，请求url为“&quot;/images/create?&quot;+v.Encode()”，请求的认证信息为：map[string][]string{&quot;X-Registry-Auth&quot;: registryAuthHeader,}</p>
+<p><strong>/api/client/commands.go</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">pull</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">authConfig</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">strings</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Contains</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">err</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Error</span><span style="color:#000;font-weight:bold">(),</span> <span style="color:#4e9a06">&#34;Status 401&#34;</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">fmt</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">Fprintln</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">out</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#34;/nPlease login prior to pull:&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">CmdLogin</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">hostname</span><span style="color:#000;font-weight:bold">);</span> <span style="color:#000">err</span> <span style="color:#ce5c00;font-weight:bold">!=</span> <span style="color:#204a87;font-weight:bold">nil</span> <span style="color:#000;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">authConfig</span> <span style="color:#ce5c00;font-weight:bold">:=</span> <span style="color:#000">cli</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">configFile</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">ResolveAuthConfig</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">hostname</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">pull</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">authConfig</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">err</span>
+</span></span><span style="display:flex;"><span><span style="color:#000;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span> 
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">nil</span>
+</span></span></code></pre></div><p>调用pull函数，实现下载请求发送。后续有Docker Server接收到请求后具体实现。</p>
+<p>参考：</p>
+<ul>
+<li>《Docker源码分析》</li>
+</ul>
+
+	
+		<style>
+  .feedback--answer {
+    display: inline-block;
+  }
+  .feedback--answer-no {
+    margin-left: 1em;
+  }
+  .feedback--response {
+    display: none;
+    margin-top: 1em;
+  }
+  .feedback--response__visible {
+    display: block;
+  }
+</style>
+<div class="d-print-none">
+<h2 class="feedback--title">Feedback</h2>
+<p class="feedback--question">Was this page helpful?</p>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-yes">Yes</button>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-no">No</button>
+<p class="feedback--response feedback--response-yes">
+  Glad to hear it! Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+<p class="feedback--response feedback--response-no">
+  Sorry to hear that. Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+</div>
+<script>
+  const yesButton = document.querySelector('.feedback--answer-yes');
+  const noButton = document.querySelector('.feedback--answer-no');
+  const yesResponse = document.querySelector('.feedback--response-yes');
+  const noResponse = document.querySelector('.feedback--response-no');
+  const disableButtons = () => {
+    yesButton.disabled = true;
+    noButton.disabled = true;
+  };
+  const sendFeedback = (value) => {
+    if (typeof ga !== 'function') return;
+    const args = {
+      command: 'send',
+      hitType: 'event',
+      category: 'Helpful',
+      action: 'click',
+      label: window.location.pathname,
+      value: value
+    };
+    ga(args.command, args.hitType, args.category, args.action, args.label, args.value);
+  };
+  yesButton.addEventListener('click', () => {
+    yesResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(1);
+  });
+  noButton.addEventListener('click', () => {
+    noResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(0);
+  });
+</script>
+
+		<br />
+	
+	
+	
+</div>
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/blog.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2025 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		<p class="mt-2"><a href="/about/">About</a></p>
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+  </body>
+</html>

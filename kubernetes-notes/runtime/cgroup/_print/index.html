@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<link rel="canonical" type="text/html" href="https://blog.huweihuang.com/kubernetes-notes/runtime/cgroup/">
+<link rel="alternate" type="application/rss&#43;xml" href="https://blog.huweihuang.com/kubernetes-notes/runtime/cgroup/index.xml">
+<meta name="robots" content="noindex, nofollow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>Cgroup | 胡伟煌</title>
+<meta name="description" content="">
+<meta property="og:title" content="Cgroup" />
+<meta property="og:description" content="Kubernetes学习笔记" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://blog.huweihuang.com/kubernetes-notes/runtime/cgroup/" /><meta property="og:site_name" content="胡伟煌" />
+
+<meta itemprop="name" content="Cgroup">
+<meta itemprop="description" content="Kubernetes学习笔记"><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Cgroup"/>
+<meta name="twitter:description" content="Kubernetes学习笔记"/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" as="style">
+<link href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-114718458-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-section">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">胡伟煌</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/kubernetes-notes/" ><span class="active">Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/k8s-source-code-analysis/" ><span>Kubernetes源码分析</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/golang-notes/" ><span>Golang学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/linux-notes/" ><span>Linux学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/about/" ><span>About</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.e1ceba4eb56ee9643456f0123f0eb545.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+
+
+
+
+<div class="td-content">
+<div class="pageinfo pageinfo-primary d-print-none">
+<p>
+这是本节的多页打印视图。
+<a href="#" onclick="print();return false;">点击此处打印</a>.
+</p><p>
+<a href="/kubernetes-notes/runtime/cgroup/">返回本页常规视图</a>.
+</p>
+</div>
+
+
+
+<h1 class="title">Cgroup</h1>
+
+
+
+
+
+    <ul>
+    
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>1: <a href="#pg-64b1d177adceb6d6d3c07970bfb25e24">Cgroup介绍</a></li>
+
+
+    
+  
+    
+    
+	
+<li>2: <a href="#pg-799a39dab63abb841c922ae8dc350e16">Cgroup命令介绍</a></li>
+
+
+    
+  
+    
+    
+	
+<li>3: <a href="#pg-dc0d8d74b183194b76a3a8ab764ac9e8">Cgroup目录</a></li>
+
+
+    
+  
+
+    </ul>
+
+
+<div class="content">
+      
+</div>
+</div>
+
+
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-64b1d177adceb6d6d3c07970bfb25e24">1 - Cgroup介绍</h1>
+    
+	<h1 id="1-cgroup简介">1. cgroup简介</h1>
+<p>Linux Cgroup提供了对一组进程及将来子进程的资源限制的能力。资源包括：CPU、内存、存储、网络等。通过Cgroup可以限制某个进程的资源占用，并监控进程的统计信息。</p>
+<h1 id="2-cgroup示例">2. cgroup示例</h1>
+<p>1、创建一个hierarchy（cgroup树）</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建一个 hierarchy 挂载点</span>
+</span></span><span style="display:flex;"><span>mkdir cgroup-test 
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 挂载hierarchy 挂载点</span>
+</span></span><span style="display:flex;"><span>mount -t cgroup -o none,name<span style="color:#ce5c00;font-weight:bold">=</span>cgroup-test cgroup-test ./cgroup-test
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看生成的默认文件</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ll</span>
+</span></span><span style="display:flex;"><span>总用量 <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">5</span> 19:13 cgroup.clone_children
+</span></span><span style="display:flex;"><span>--w--w--w- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">5</span> 19:13 cgroup.event_control
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">5</span> 19:13 cgroup.procs
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">5</span> 19:13 cgroup.sane_behavior
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">5</span> 19:13 notify_on_release
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">5</span> 19:13 release_agent
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">5</span> 19:13 tasks
+</span></span></code></pre></div><p>2、在根cgroup创建2个子cgroup</p>
+<p>在cgroup目录下创建目录，子cgroup会继承父cgroup的属性。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>mkdir cgroup-1
+</span></span><span style="display:flex;"><span>mkdir cgroup-2
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># tree</span>
+</span></span><span style="display:flex;"><span>.
+</span></span><span style="display:flex;"><span>├── cgroup-1
+</span></span><span style="display:flex;"><span>│   ├── cgroup.clone_children
+</span></span><span style="display:flex;"><span>│   ├── cgroup.event_control
+</span></span><span style="display:flex;"><span>│   ├── cgroup.procs
+</span></span><span style="display:flex;"><span>│   ├── notify_on_release
+</span></span><span style="display:flex;"><span>│   └── tasks
+</span></span><span style="display:flex;"><span>├── cgroup-2
+</span></span><span style="display:flex;"><span>│   ├── cgroup.clone_children
+</span></span><span style="display:flex;"><span>│   ├── cgroup.event_control
+</span></span><span style="display:flex;"><span>│   ├── cgroup.procs
+</span></span><span style="display:flex;"><span>│   ├── notify_on_release
+</span></span><span style="display:flex;"><span>│   └── tasks
+</span></span><span style="display:flex;"><span>├── cgroup.clone_children
+</span></span><span style="display:flex;"><span>├── cgroup.event_control
+</span></span><span style="display:flex;"><span>├── cgroup.procs
+</span></span><span style="display:flex;"><span>├── cgroup.sane_behavior
+</span></span><span style="display:flex;"><span>├── notify_on_release
+</span></span><span style="display:flex;"><span>├── release_agent
+</span></span><span style="display:flex;"><span>└── tasks
+</span></span></code></pre></div><p>3、在cgroup中添加和移动进程。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#204a87">echo</span> <span style="color:#000">$$</span> &gt; tasks
+</span></span></code></pre></div><p>4、通过subsystem限制cgroup中进程的资源。</p>
+<p>系统为每个subsystem创建了一个默认的hierarchy。</p>
+<h1 id="3-cgroup限制cpu">3. cgroup限制CPU</h1>
+<p>1、启动进程，将cpu打到100%</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 启动进程，将cpu打到100%</span>
+</span></span><span style="display:flex;"><span>stress-ng -c <span style="color:#0000cf;font-weight:bold">1</span> --cpu-load <span style="color:#0000cf;font-weight:bold">100</span> <span style="color:#000;font-weight:bold">&amp;</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看cpu占用</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#ps auxw|grep stress</span>
+</span></span><span style="display:flex;"><span>root      <span style="color:#0000cf;font-weight:bold">7607</span>  0.0  0.0  <span style="color:#0000cf;font-weight:bold">56320</span>  <span style="color:#0000cf;font-weight:bold">3620</span> pts/1    SL   10:35   0:00 stress-ng -c <span style="color:#0000cf;font-weight:bold">1</span> --cpu-load <span style="color:#0000cf;font-weight:bold">100</span>
+</span></span><span style="display:flex;"><span>root      <span style="color:#0000cf;font-weight:bold">7608</span>  <span style="color:#0000cf;font-weight:bold">100</span>  0.0  <span style="color:#0000cf;font-weight:bold">56964</span>  <span style="color:#0000cf;font-weight:bold">4076</span> pts/1    R    10:35   0:14 stress-ng -c <span style="color:#0000cf;font-weight:bold">1</span> --cpu-load <span style="color:#0000cf;font-weight:bold">100</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># top</span>
+</span></span><span style="display:flex;"><span>  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+</span></span><span style="display:flex;"><span> <span style="color:#0000cf;font-weight:bold">7608</span> root      <span style="color:#0000cf;font-weight:bold">20</span>   <span style="color:#0000cf;font-weight:bold">0</span>   <span style="color:#0000cf;font-weight:bold">56964</span>   <span style="color:#0000cf;font-weight:bold">4076</span>   <span style="color:#0000cf;font-weight:bold">1192</span> R 100.0  0.0   0:37.70 stress-ng-cpu
+</span></span></code></pre></div><p>2、在<code>/sys/fs/cgroup/cpu</code>下创建子cgroup</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建子目录</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">cd</span> /sys/fs/cgroup/cpu <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> mkdir cgroup-test
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 生成cgroup文件</span>
+</span></span><span style="display:flex;"><span>/sys/fs/cgroup/cpu/cgroup-test#ll
+</span></span><span style="display:flex;"><span>总用量 <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 cgroup.clone_children
+</span></span><span style="display:flex;"><span>--w--w--w- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 cgroup.event_control
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 cgroup.procs
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 cpuacct.bt_stat
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 cpuacct.bt_usage
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 cpuacct.bt_usage_percpu
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 cpuacct.stat
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 cpuacct.uptime
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 cpuacct.usage
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 cpuacct.usage_percpu
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 cpu.bt_shares
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:34 cpu.cfs_period_us
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:29 cpu.cfs_quota_us
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 cpu.cfs_relax_thresh_sec
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 cpu.offline
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 cpu.rt_period_us
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 cpu.rt_runtime_us
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 cpu.shares
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 cpu.stat
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月   <span style="color:#0000cf;font-weight:bold">9</span> 20:28 notify_on_release
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:32 tasks
+</span></span></code></pre></div><p>3、限制进程的cpu</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 限制cpu比例为 cpu.cfs_quota_us/cpu.cfs_period_us,默认cpu.cfs_period_us为100000</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">cd</span> /sys/fs/cgroup/cpu/cgroup-test
+</span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> <span style="color:#0000cf;font-weight:bold">50000</span> &gt; cpu.cfs_quota_us  <span style="color:#8f5902;font-style:italic"># 限制cpu使用率为50%</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 将进程号写入tasks</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> <span style="color:#0000cf;font-weight:bold">7608</span> &gt; tasks
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看cpu使用率，可以看出cpu限制在50%</span>
+</span></span><span style="display:flex;"><span> PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+</span></span><span style="display:flex;"><span> <span style="color:#0000cf;font-weight:bold">7608</span> root      <span style="color:#0000cf;font-weight:bold">20</span>   <span style="color:#0000cf;font-weight:bold">0</span>   <span style="color:#0000cf;font-weight:bold">56964</span>   <span style="color:#0000cf;font-weight:bold">4076</span>   <span style="color:#0000cf;font-weight:bold">1192</span> R  50.2  0.0   9:08.24 stress-ng-cpu
+</span></span></code></pre></div><h1 id="4-cgroup限制内存">4. cgroup限制内存</h1>
+<p>1、进入<code>/sys/fs/cgroup/memory</code>创建子cgroup</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#204a87">cd</span> /sys/fs/cgroup/memory
+</span></span><span style="display:flex;"><span>mkdir cgroup-test
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看子cgroup生成内容</span>
+</span></span><span style="display:flex;"><span>/sys/fs/cgroup/memory/cgroup-test#ll
+</span></span><span style="display:flex;"><span>总用量 <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 cgroup.clone_children
+</span></span><span style="display:flex;"><span>--w--w--w- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 cgroup.event_control
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 cgroup.procs
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.failcnt
+</span></span><span style="display:flex;"><span>--w------- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.force_empty
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.kmem.failcnt
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.kmem.limit_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.kmem.max_usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.kmem.slabinfo
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.kmem.tcp.failcnt
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.kmem.tcp.limit_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.kmem.tcp.max_usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.kmem.tcp.usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.kmem.usage_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.limit_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.max_usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.meminfo
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.memsw.failcnt
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.memsw.limit_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.memsw.max_usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.memsw.usage_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.move_charge_at_immigrate
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.numa_stat
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.oom_control
+</span></span><span style="display:flex;"><span>---------- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.pressure_level
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.soft_limit_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.stat
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.swappiness
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.usage_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.use_hierarchy
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 memory.vmstat
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 notify_on_release
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 3月  <span style="color:#0000cf;font-weight:bold">10</span> 10:51 tasks
+</span></span></code></pre></div><p>2、限制进程内存为100M</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 设置当前cgroup限制进程内存100M</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">cd</span> /sys/fs/cgroup/memory/cgroup-tes
+</span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> 100m &gt; memory.limit_in_bytes
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看文件内容</span>
+</span></span><span style="display:flex;"><span>/sys/fs/cgroup/memory/cgroup-test#cat memory.limit_in_bytes
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">104857600</span>
+</span></span></code></pre></div><p>3、启动测试进程</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 把当前的bash进程加入tasks</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">echo</span> <span style="color:#000">$$</span> &gt; tasks
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#cat tasks</span>
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">7125</span>
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">11980</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ps auxw|grep 7125</span>
+</span></span><span style="display:flex;"><span>root      <span style="color:#0000cf;font-weight:bold">7125</span>  0.0  0.0 <span style="color:#0000cf;font-weight:bold">115116</span>  <span style="color:#0000cf;font-weight:bold">2588</span> pts/1    Ss   10:35   0:00 -bash
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 启动50M的进程</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">cd</span> /sys/fs/cgroup/memory/cgroup-test
+</span></span><span style="display:flex;"><span>stress-ng --vm-bytes 50m --vm-keep -m <span style="color:#0000cf;font-weight:bold">1</span> <span style="color:#000;font-weight:bold">&amp;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 进程内存占用为50M，可正常运行</span>
+</span></span><span style="display:flex;"><span>ps auxw<span style="color:#000;font-weight:bold">|</span>grep stress
+</span></span><span style="display:flex;"><span>root     <span style="color:#0000cf;font-weight:bold">20021</span>  <span style="color:#0000cf;font-weight:bold">100</span>  0.0 <span style="color:#0000cf;font-weight:bold">113932</span> <span style="color:#0000cf;font-weight:bold">58188</span> pts/1    R    10:58   2:13 stress-ng --vm-bytes 50m --vm-keep -m <span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 改用启动200M的测试进程</span>
+</span></span><span style="display:flex;"><span>stress-ng --vm-bytes 200m --vm-keep -m <span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ps auxw|grep stress</span>
+</span></span><span style="display:flex;"><span>root     <span style="color:#0000cf;font-weight:bold">29937</span>  0.0  0.0  <span style="color:#0000cf;font-weight:bold">56320</span>  <span style="color:#0000cf;font-weight:bold">3644</span> pts/1    SL   11:16   0:00 stress-ng --vm-bytes 200m --vm-keep -m <span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span>root     <span style="color:#0000cf;font-weight:bold">29938</span>  0.1  0.0  <span style="color:#0000cf;font-weight:bold">56324</span>   <span style="color:#0000cf;font-weight:bold">976</span> pts/1    S    11:16   0:00 stress-ng --vm-bytes 200m --vm-keep -m <span style="color:#0000cf;font-weight:bold">1</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># cat tasks</span>
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">7125</span>
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">29937</span>
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">29938</span>
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">32247</span>
+</span></span><span style="display:flex;"><span><span style="color:#0000cf;font-weight:bold">32248</span>
+</span></span></code></pre></div><p>4、进程OOM</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>tailf /var/log/messages
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># OOM日志</span>
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: stress-ng-vm invoked oom-killer: <span style="color:#000">gfp_mask</span><span style="color:#ce5c00;font-weight:bold">=</span>0xd0, <span style="color:#000">order</span><span style="color:#ce5c00;font-weight:bold">=</span>0, <span style="color:#000">oom_score_adj</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1000</span>
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: stress-ng-vm <span style="color:#000">cpuset</span><span style="color:#ce5c00;font-weight:bold">=</span>/ <span style="color:#000">mems_allowed</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: CPU: <span style="color:#0000cf;font-weight:bold">11</span> PID: <span style="color:#0000cf;font-weight:bold">3691</span> Comm: stress-ng-vm Not tainted 3.10.107-1-tlinux2-0051 <span style="color:#8f5902;font-style:italic">#1</span>
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: Hardware name: Inspur SA5212M4/Shuyu, BIOS 4.1.13 01/24/2018
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: ffff880f5d92cd70 0000000094b48ef1 ffff880f2cee3c90 ffffffff819d9165
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: ffff880f2cee3cd0 ffffffff819d4957 000000002d514000 ffff880f5d92cd70
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#0000cf;font-weight:bold">0000000000000786</span> 00000000000000d0 ffffffff81d73d78 <span style="color:#0000cf;font-weight:bold">0000000000006400</span>
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: Call Trace:
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#ce5c00;font-weight:bold">[</span>&lt;ffffffff819d9165&gt;<span style="color:#ce5c00;font-weight:bold">]</span> dump_stack+0x19/0x1b
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#ce5c00;font-weight:bold">[</span>&lt;ffffffff819d4957&gt;<span style="color:#ce5c00;font-weight:bold">]</span> dump_header+0x79/0xb5
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#ce5c00;font-weight:bold">[</span>&lt;ffffffff81120aee&gt;<span style="color:#ce5c00;font-weight:bold">]</span> oom_kill_process+0x24e/0x3a0
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#ce5c00;font-weight:bold">[</span>&lt;ffffffff8117b2f9&gt;<span style="color:#ce5c00;font-weight:bold">]</span> mem_cgroup_oom_synchronize+0x4e9/0x510
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#ce5c00;font-weight:bold">[</span>&lt;ffffffff8117a330&gt;<span style="color:#ce5c00;font-weight:bold">]</span> ? mem_cgroup_charge_common+0xc0/0xc0
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#ce5c00;font-weight:bold">[</span>&lt;ffffffff81121764&gt;<span style="color:#ce5c00;font-weight:bold">]</span> pagefault_out_of_memory+0x14/0x90
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#ce5c00;font-weight:bold">[</span>&lt;ffffffff819d32dd&gt;<span style="color:#ce5c00;font-weight:bold">]</span> mm_fault_error+0x67/0x140
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#ce5c00;font-weight:bold">[</span>&lt;ffffffff819e7ae6&gt;<span style="color:#ce5c00;font-weight:bold">]</span> __do_page_fault+0x396/0x550
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#ce5c00;font-weight:bold">[</span>&lt;ffffffff8108335f&gt;<span style="color:#ce5c00;font-weight:bold">]</span> ? set_next_entity+0x5f/0x80
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#ce5c00;font-weight:bold">[</span>&lt;ffffffff81084e63&gt;<span style="color:#ce5c00;font-weight:bold">]</span> ? pick_next_task_fair+0x1c3/0x2d0
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#ce5c00;font-weight:bold">[</span>&lt;ffffffff819e7cae&gt;<span style="color:#ce5c00;font-weight:bold">]</span> do_page_fault+0xe/0x10
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#ce5c00;font-weight:bold">[</span>&lt;ffffffff819e4422&gt;<span style="color:#ce5c00;font-weight:bold">]</span> page_fault+0x22/0x30
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: Task in /cgroup-test killed as a result of limit of /cgroup-test
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: memory: usage 102400kB, limit 102400kB, failcnt <span style="color:#0000cf;font-weight:bold">252574</span>
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: memory+swap: usage 102400kB, limit 18014398509481983kB, failcnt <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: kmem: usage 0kB, limit 18014398509481983kB, failcnt <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: Memory cgroup stats <span style="color:#204a87;font-weight:bold">for</span> /cgroup-test: cache:101728KB rss:672KB rss_huge:0KB mapped_file:101728KB swap:0KB inactive_anon:101712KB active_anon:600KB inactive_file:0KB active_file:0KB unevictable:16KB
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#ce5c00;font-weight:bold">[</span> pid <span style="color:#ce5c00;font-weight:bold">]</span>   uid  tgid total_vm      rss nr_ptes swapents oom_score_adj name
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#ce5c00;font-weight:bold">[</span> 7125<span style="color:#ce5c00;font-weight:bold">]</span>     <span style="color:#0000cf;font-weight:bold">0</span>  <span style="color:#0000cf;font-weight:bold">7125</span>    <span style="color:#0000cf;font-weight:bold">28779</span>      <span style="color:#0000cf;font-weight:bold">650</span>      <span style="color:#0000cf;font-weight:bold">15</span>        <span style="color:#0000cf;font-weight:bold">0</span>             <span style="color:#0000cf;font-weight:bold">0</span> bash
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#ce5c00;font-weight:bold">[</span>29937<span style="color:#ce5c00;font-weight:bold">]</span>     <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#0000cf;font-weight:bold">29937</span>    <span style="color:#0000cf;font-weight:bold">14080</span>      <span style="color:#0000cf;font-weight:bold">911</span>      <span style="color:#0000cf;font-weight:bold">23</span>        <span style="color:#0000cf;font-weight:bold">0</span>         -1000 stress-ng
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#ce5c00;font-weight:bold">[</span>29938<span style="color:#ce5c00;font-weight:bold">]</span>     <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#0000cf;font-weight:bold">29938</span>    <span style="color:#0000cf;font-weight:bold">14081</span>      <span style="color:#0000cf;font-weight:bold">244</span>      <span style="color:#0000cf;font-weight:bold">23</span>        <span style="color:#0000cf;font-weight:bold">0</span>         -1000 stress-ng-vm
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: <span style="color:#ce5c00;font-weight:bold">[</span> 3691<span style="color:#ce5c00;font-weight:bold">]</span>     <span style="color:#0000cf;font-weight:bold">0</span>  <span style="color:#0000cf;font-weight:bold">3691</span>    <span style="color:#0000cf;font-weight:bold">65281</span>    <span style="color:#0000cf;font-weight:bold">24993</span>      <span style="color:#0000cf;font-weight:bold">73</span>        <span style="color:#0000cf;font-weight:bold">0</span>          <span style="color:#0000cf;font-weight:bold">1000</span> stress-ng-vm
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: Memory cgroup out of memory: Kill process <span style="color:#0000cf;font-weight:bold">3691</span> <span style="color:#ce5c00;font-weight:bold">(</span>stress-ng-vm<span style="color:#ce5c00;font-weight:bold">)</span> score <span style="color:#0000cf;font-weight:bold">1926</span> or sacrifice child
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  kernel: Killed process <span style="color:#0000cf;font-weight:bold">3691</span> <span style="color:#ce5c00;font-weight:bold">(</span>stress-ng-vm<span style="color:#ce5c00;font-weight:bold">)</span> total-vm:261124kB, anon-rss:292kB, file-rss:99680kB
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  cadvisor: I0310 11:19:17.952314    <span style="color:#0000cf;font-weight:bold">3143</span> manager.go:1178<span style="color:#ce5c00;font-weight:bold">]</span> Created an OOM event in container <span style="color:#4e9a06">&#34;/cgroup-test&#34;</span> at 2021-03-10 11:21:19.308776449 +0800 CST <span style="color:#000">m</span><span style="color:#ce5c00;font-weight:bold">=</span>+150332.715342256
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:17  stress-ng: memory <span style="color:#ce5c00;font-weight:bold">(</span>MB<span style="color:#ce5c00;font-weight:bold">)</span>: total 63979.26, free 58262.03, shared 0.00, buffer 481.01, swap 0.00, free swap 0.00
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:18  kernel: Memory cgroup out of memory: Kill process <span style="color:#0000cf;font-weight:bold">3692</span> <span style="color:#ce5c00;font-weight:bold">(</span>stress-ng-vm<span style="color:#ce5c00;font-weight:bold">)</span> score <span style="color:#0000cf;font-weight:bold">1926</span> or sacrifice child
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:18  kernel: Killed process <span style="color:#0000cf;font-weight:bold">3692</span> <span style="color:#ce5c00;font-weight:bold">(</span>stress-ng-vm<span style="color:#ce5c00;font-weight:bold">)</span> total-vm:261124kB, anon-rss:292kB, file-rss:99680kB
+</span></span><span style="display:flex;"><span>Mar <span style="color:#0000cf;font-weight:bold">10</span> 11:19:18  stress-ng: memory <span style="color:#ce5c00;font-weight:bold">(</span>MB<span style="color:#ce5c00;font-weight:bold">)</span>: total 63979.26, free 58262.15, shared 0.00, buffer 481.01, swap 0.00, free swap 0.00
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="https://www.kernel.org/doc/Documentation/cgroup-v1/cgroups.txt">https://www.kernel.org/doc/Documentation/cgroup-v1/cgroups.txt</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-799a39dab63abb841c922ae8dc350e16">2 - Cgroup命令介绍</h1>
+    
+	<h1 id="cgroup常用命令">cgroup常用命令</h1>
+<h1 id="1-cgcreate">1. cgcreate</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ cgcreate --help
+</span></span><span style="display:flex;"><span>Usage: cgcreate <span style="color:#ce5c00;font-weight:bold">[</span>-h<span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">[</span>-f mode<span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">[</span>-d mode<span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">[</span>-s mode<span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">[</span>-t &lt;tuid&gt;:&lt;tgid&gt;<span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">[</span>-a &lt;agid&gt;:&lt;auid&gt;<span style="color:#ce5c00;font-weight:bold">]</span> -g &lt;controllers&gt;:&lt;path&gt; <span style="color:#ce5c00;font-weight:bold">[</span>-g ...<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>Create control group<span style="color:#ce5c00;font-weight:bold">(</span>s<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  -a &lt;tuid&gt;:&lt;tgid&gt;		Owner of the group and all its files
+</span></span><span style="display:flex;"><span>  -d, --dperm<span style="color:#ce5c00;font-weight:bold">=</span>mode		Group directory permissions
+</span></span><span style="display:flex;"><span>  -f, --fperm<span style="color:#ce5c00;font-weight:bold">=</span>mode		Group file permissions
+</span></span><span style="display:flex;"><span>  -g &lt;controllers&gt;:&lt;path&gt;	Control group which should be added
+</span></span><span style="display:flex;"><span>  -h, --help			Display this <span style="color:#204a87">help</span>
+</span></span><span style="display:flex;"><span>  -s, --tperm<span style="color:#ce5c00;font-weight:bold">=</span>mode		Tasks file permissions
+</span></span><span style="display:flex;"><span>  -t &lt;tuid&gt;:&lt;tgid&gt;		Owner of the tasks file
+</span></span></code></pre></div><p>示例：</p>
+<p>cpu</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># cgcreate -g cpu:cgrouptest</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ll /sys/fs/cgroup/cpu/cgrouptest</span>
+</span></span><span style="display:flex;"><span>总用量 <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:14 cgroup.clone_children
+</span></span><span style="display:flex;"><span>--w--w---- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:14 cgroup.event_control
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:14 cgroup.procs
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:14 cpuacct.stat
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:14 cpuacct.uptime
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:14 cpuacct.usage
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:14 cpuacct.usage_percpu
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:14 cpu.cfs_period_us
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:14 cpu.cfs_quota_us
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:14 cpu.cfs_relax_thresh_sec
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:14 cpu.rt_period_us
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:14 cpu.rt_runtime_us
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:14 cpu.shares
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:14 cpu.stat
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:14 notify_on_release
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:14 tasks
+</span></span></code></pre></div><p>memory</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># cgcreate -g memory:cgrouptest</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ll /sys/fs/cgroup/memory/cgrouptest</span>
+</span></span><span style="display:flex;"><span>总用量 <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 cgroup.clone_children
+</span></span><span style="display:flex;"><span>--w--w---- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 cgroup.event_control
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 cgroup.procs
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.failcnt
+</span></span><span style="display:flex;"><span>--w--w---- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.force_empty
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.kmem.failcnt
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.kmem.limit_in_bytes
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.kmem.max_usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.kmem.slabinfo
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.kmem.tcp.failcnt
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.kmem.tcp.limit_in_bytes
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.kmem.tcp.max_usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.kmem.tcp.usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.kmem.usage_in_bytes
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.limit_in_bytes
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.max_usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.meminfo
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.memsw.failcnt
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.memsw.limit_in_bytes
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.memsw.max_usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.memsw.usage_in_bytes
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.move_charge_at_immigrate
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.numa_stat
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.oom_control
+</span></span><span style="display:flex;"><span>---------- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.pressure_level
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.soft_limit_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.stat
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.swappiness
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.usage_in_bytes
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.use_hierarchy
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 memory.vmstat
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 notify_on_release
+</span></span><span style="display:flex;"><span>-rw-rw-r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">15</span> 20:16 tasks
+</span></span></code></pre></div><h1 id="2-cgdelete">2. cgdelete</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#cgdelete --help</span>
+</span></span><span style="display:flex;"><span>Usage: cgdelete <span style="color:#ce5c00;font-weight:bold">[</span>-h<span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">[</span>-r<span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">[[</span>-g<span style="color:#ce5c00;font-weight:bold">]</span> &lt;controllers&gt;:&lt;path&gt;<span style="color:#ce5c00;font-weight:bold">]</span> ...
+</span></span><span style="display:flex;"><span>Remove control group<span style="color:#ce5c00;font-weight:bold">(</span>s<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  -g &lt;controllers&gt;:&lt;path&gt;	Control group to be removed <span style="color:#ce5c00;font-weight:bold">(</span>-g is optional<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>  -h, --help			Display this <span style="color:#204a87">help</span>
+</span></span><span style="display:flex;"><span>  -r, --recursive		Recursively remove all subgroups
+</span></span></code></pre></div><p>示例</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>cgdelete -g memory:/cgrouptest
+</span></span><span style="display:flex;"><span>cgdelete -g cpu:/cgrouptest
+</span></span></code></pre></div><h1 id="3-cgclassify">3. cgclassify</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ cgclassify --help
+</span></span><span style="display:flex;"><span>Usage: cgclassify <span style="color:#ce5c00;font-weight:bold">[[</span>-g<span style="color:#ce5c00;font-weight:bold">]</span> &lt;controllers&gt;:&lt;path&gt;<span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">[</span>--sticky <span style="color:#000;font-weight:bold">|</span> --cancel-sticky<span style="color:#ce5c00;font-weight:bold">]</span> &lt;list of pids&gt;
+</span></span><span style="display:flex;"><span>Move running task<span style="color:#ce5c00;font-weight:bold">(</span>s<span style="color:#ce5c00;font-weight:bold">)</span> to given cgroups
+</span></span><span style="display:flex;"><span>  -h, --help			Display this <span style="color:#204a87">help</span>
+</span></span><span style="display:flex;"><span>  -g &lt;controllers&gt;:&lt;path&gt;	Control group to be used as target
+</span></span><span style="display:flex;"><span>  --cancel-sticky		cgred daemon change pidlist and children tasks
+</span></span><span style="display:flex;"><span>  --sticky			cgred daemon does not change pidlist and children tasks
+</span></span></code></pre></div>
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-dc0d8d74b183194b76a3a8ab764ac9e8">3 - Cgroup目录</h1>
+    
+	<h1 id="1-cgroup的目录">1. cgroup的目录</h1>
+<p><code>/sys/fs/cgroup/</code></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ ll /sys/fs/cgroup/
+</span></span><span style="display:flex;"><span>总用量 <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>drwxr-xr-x <span style="color:#0000cf;font-weight:bold">6</span> root root  <span style="color:#0000cf;font-weight:bold">0</span> 2月  <span style="color:#0000cf;font-weight:bold">18</span> 14:31 blkio
+</span></span><span style="display:flex;"><span>lrwxrwxrwx <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">11</span> 2月  <span style="color:#0000cf;font-weight:bold">18</span> 14:25 cpu -&gt; cpu,cpuacct
+</span></span><span style="display:flex;"><span>lrwxrwxrwx <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">11</span> 2月  <span style="color:#0000cf;font-weight:bold">18</span> 14:25 cpuacct -&gt; cpu,cpuacct
+</span></span><span style="display:flex;"><span>drwxr-xr-x <span style="color:#0000cf;font-weight:bold">6</span> root root  <span style="color:#0000cf;font-weight:bold">0</span> 2月  <span style="color:#0000cf;font-weight:bold">18</span> 14:31 cpu,cpuacct
+</span></span><span style="display:flex;"><span>drwxr-xr-x <span style="color:#0000cf;font-weight:bold">4</span> root root  <span style="color:#0000cf;font-weight:bold">0</span> 2月  <span style="color:#0000cf;font-weight:bold">18</span> 14:25 cpuset
+</span></span><span style="display:flex;"><span>drwxr-xr-x <span style="color:#0000cf;font-weight:bold">6</span> root root  <span style="color:#0000cf;font-weight:bold">0</span> 2月  <span style="color:#0000cf;font-weight:bold">18</span> 14:31 devices
+</span></span><span style="display:flex;"><span>drwxr-xr-x <span style="color:#0000cf;font-weight:bold">4</span> root root  <span style="color:#0000cf;font-weight:bold">0</span> 2月  <span style="color:#0000cf;font-weight:bold">18</span> 14:25 freezer
+</span></span><span style="display:flex;"><span>drwxr-xr-x <span style="color:#0000cf;font-weight:bold">4</span> root root  <span style="color:#0000cf;font-weight:bold">0</span> 2月  <span style="color:#0000cf;font-weight:bold">18</span> 14:25 hugetlb
+</span></span><span style="display:flex;"><span>drwxr-xr-x <span style="color:#0000cf;font-weight:bold">6</span> root root  <span style="color:#0000cf;font-weight:bold">0</span> 2月  <span style="color:#0000cf;font-weight:bold">18</span> 14:31 memory
+</span></span><span style="display:flex;"><span>drwxr-xr-x <span style="color:#0000cf;font-weight:bold">4</span> root root  <span style="color:#0000cf;font-weight:bold">0</span> 2月  <span style="color:#0000cf;font-weight:bold">18</span> 14:25 net_cls
+</span></span><span style="display:flex;"><span>drwxr-xr-x <span style="color:#0000cf;font-weight:bold">2</span> root root  <span style="color:#0000cf;font-weight:bold">0</span> 2月  <span style="color:#0000cf;font-weight:bold">18</span> 14:25 oom
+</span></span><span style="display:flex;"><span>drwxr-xr-x <span style="color:#0000cf;font-weight:bold">4</span> root root  <span style="color:#0000cf;font-weight:bold">0</span> 2月  <span style="color:#0000cf;font-weight:bold">18</span> 14:25 perf_event
+</span></span><span style="display:flex;"><span>drwxr-xr-x <span style="color:#0000cf;font-weight:bold">6</span> root root  <span style="color:#0000cf;font-weight:bold">0</span> 2月  <span style="color:#0000cf;font-weight:bold">18</span> 14:31 pids
+</span></span><span style="display:flex;"><span>drwxr-xr-x <span style="color:#0000cf;font-weight:bold">6</span> root root  <span style="color:#0000cf;font-weight:bold">0</span> 2月  <span style="color:#0000cf;font-weight:bold">18</span> 14:25 systemd
+</span></span></code></pre></div><h1 id="2-docker中cgroup目录">2. docker中cgroup目录</h1>
+<h2 id="2-1-cpu">2.1. cpu</h2>
+<p><code>/sys/fs/cgroup/cpu/docker/32a294d870965072acbf544da0c93a1692660d908bd72de43d1da48852083094</code></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ll /sys/fs/cgroup/cpu/docker/32a294d870965072acbf544da0c93a1692660d908bd72de43d1da48852083094</span>
+</span></span><span style="display:flex;"><span>总用量 <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 cgroup.clone_children
+</span></span><span style="display:flex;"><span>--w--w--w- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 cgroup.event_control
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 cgroup.procs
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 cpuacct.stat
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 cpuacct.uptime
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 cpuacct.usage
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 cpuacct.usage_percpu
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 cpu.cfs_period_us
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 cpu.cfs_quota_us
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 cpu.cfs_relax_thresh_sec
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 cpu.rt_period_us
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 cpu.rt_runtime_us
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 cpu.shares
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 cpu.stat
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 notify_on_release
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 tasks
+</span></span></code></pre></div><h2 id="2-2-memory">2.2. memory</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># ll /sys/fs/cgroup/memory/docker/32a294d870965072acbf544da0c93a1692660d908bd72de43d1da48852083094</span>
+</span></span><span style="display:flex;"><span>总用量 <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 cgroup.clone_children
+</span></span><span style="display:flex;"><span>--w--w--w- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 cgroup.event_control
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 cgroup.procs
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.failcnt
+</span></span><span style="display:flex;"><span>--w------- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.force_empty
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.kmem.failcnt
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.kmem.limit_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.kmem.max_usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.kmem.slabinfo
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.kmem.tcp.failcnt
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.kmem.tcp.limit_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.kmem.tcp.max_usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.kmem.tcp.usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.kmem.usage_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.limit_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.max_usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.meminfo
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.memsw.failcnt
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.memsw.limit_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.memsw.max_usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.memsw.usage_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.move_charge_at_immigrate
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.numa_stat
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.oom_control
+</span></span><span style="display:flex;"><span>---------- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.pressure_level
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.soft_limit_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.stat
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.swappiness
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.usage_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.use_hierarchy
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 memory.vmstat
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 notify_on_release
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 7月   <span style="color:#0000cf;font-weight:bold">8</span> 17:04 tasks
+</span></span></code></pre></div><h1 id="3-pod中cgroup目录">3. pod中cgroup目录</h1>
+<h2 id="3-1-cpu">3.1. cpu</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#ll /sys/fs/cgroup/cpu/kubepods/burstable/pode90435b5-4673-4bc2-9892-1f4825af5039/f62fb0f76b5b48cf903680296a1ba2abc314fdbf51e023886d06f8470d5ca90d</span>
+</span></span><span style="display:flex;"><span>总用量 <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 cgroup.clone_children
+</span></span><span style="display:flex;"><span>--w--w--w- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 cgroup.event_control
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 cgroup.procs
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 cpuacct.stat
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 cpuacct.uptime
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 cpuacct.usage
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 cpuacct.usage_percpu
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 cpu.cfs_period_us  <span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 cpu.cfs_quota_us   <span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 cpu.cfs_relax_thresh_sec
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 cpu.rt_period_us
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 cpu.rt_runtime_us
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 cpu.shares   <span style="color:#8f5902;font-style:italic">#</span>
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 cpu.stat
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 notify_on_release
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 tasks
+</span></span></code></pre></div><h2 id="3-2-memory">3.2. memory</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#ll /sys/fs/cgroup/memory/kubepods/burstable/pode90435b5-4673-4bc2-9892-1f4825af5039/f62fb0f76b5b48cf903680296a1ba2abc314fdbf51e023886d06f8470d5ca90d</span>
+</span></span><span style="display:flex;"><span>总用量 <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 cgroup.clone_children
+</span></span><span style="display:flex;"><span>--w--w--w- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 cgroup.event_control
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 cgroup.procs
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.failcnt
+</span></span><span style="display:flex;"><span>--w------- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.force_empty
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.kmem.failcnt
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.kmem.limit_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.kmem.max_usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.kmem.slabinfo
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.kmem.tcp.failcnt
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.kmem.tcp.limit_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.kmem.tcp.max_usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.kmem.tcp.usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.kmem.usage_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.limit_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.max_usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.meminfo
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.memsw.failcnt
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.memsw.limit_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.memsw.max_usage_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.memsw.usage_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.move_charge_at_immigrate
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.numa_stat
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.oom_control
+</span></span><span style="display:flex;"><span>---------- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.pressure_level
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.soft_limit_in_bytes
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.stat
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.swappiness
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.usage_in_bytes
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.use_hierarchy
+</span></span><span style="display:flex;"><span>-r--r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 memory.vmstat
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 notify_on_release
+</span></span><span style="display:flex;"><span>-rw-r--r-- <span style="color:#0000cf;font-weight:bold">1</span> root root <span style="color:#0000cf;font-weight:bold">0</span> 8月  <span style="color:#0000cf;font-weight:bold">14</span> 15:33 tasks
+</span></span></code></pre></div>
+</div>
+
+
+
+    
+	
+  
+
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/blog.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2025 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		<p class="mt-2"><a href="/about/">About</a></p>
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+  </body>
+</html>
