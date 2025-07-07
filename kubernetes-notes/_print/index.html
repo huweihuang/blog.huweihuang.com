@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.e1ceba4eb56ee9643456f0123f0eb545.json"
+  data-offline-search-index-json-src="/offline-search-index.1a3d56fd81ed8a9e99639253c4c303da.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -2375,7 +2375,7 @@ if (!doNotTrack) {
     
     
 	
-<li>18.2.2: <a href="#pg-7507cfe791f1e4ab5b58d24c24ace6fb"></a></li>
+<li>18.2.2: <a href="#pg-7507cfe791f1e4ab5b58d24c24ace6fb">Volcano GPU虚拟化</a></li>
 
 
     
@@ -2386,14 +2386,6 @@ if (!doNotTrack) {
   
 
     </ul>
-    
-  
-    
-    
-	
-<li>19: <a href="#pg-0b0757037fa2d97bf46505f9dd60576d"></a></li>
-
-
     
   
 
@@ -23574,12 +23566,12 @@ CMD [&#34;/run.sh&#34;]
 </li>
 <li>
 <p>编写dockerfile，例如：</p>
-<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-dockerfile" data-lang="dockerfile"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">FROM</span><span style="color:#4e9a06"> scratch</span><span style="color:#a40000">
-</span></span></span><span style="display:flex;"><span><span style="color:#a40000">
-</span></span></span><span style="display:flex;"><span><span style="color:#a40000"></span><span style="color:#204a87;font-weight:bold">COPY</span> hello.wasm /<span style="color:#a40000">
-</span></span></span><span style="display:flex;"><span><span style="color:#a40000">
-</span></span></span><span style="display:flex;"><span><span style="color:#a40000"></span><span style="color:#204a87;font-weight:bold">CMD</span> <span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#34;/hello.wasm&#34;</span><span style="color:#000;font-weight:bold">]</span><span style="color:#a40000">
-</span></span></span></code></pre></div></li>
+<pre tabindex="0"><code>FROM scratch
+
+COPY hello.wasm /
+
+CMD [&#34;/hello.wasm&#34;]
+</code></pre></li>
 <li>
 <p>使用buildah构建和发布镜像。</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>buildah build --annotation <span style="color:#4e9a06">&#34;module.wasm.image/variant=compat-smart&#34;</span> -t wasm-hello .
@@ -30978,10 +30970,10 @@ withfields： 使用InfluxDB fields(默认：false)。</p>
 
 <div class="td-content" style="page-break-before: always">
     
-	<h1 id="pg-7507cfe791f1e4ab5b58d24c24ace6fb">18.2.2 - </h1>
+	<h1 id="pg-7507cfe791f1e4ab5b58d24c24ace6fb">18.2.2 - Volcano GPU虚拟化</h1>
     
 	<blockquote>
-<p>本文主要描述如何实现GPU资源的虚拟化。基于volcano官方文档整理。</p>
+<p>本文主要描述如何通过volcano实现GPU资源的虚拟化。基于volcano官方文档整理。</p>
 </blockquote>
 <h1 id="1-背景">1. 背景</h1>
 <p>随着大模型和AI的发展，GPU算力的需求越来越高，但是GPU成本高昂，对于小型工作负载，单个GPU可能造成资源浪费；而对于大型工作负载，单个GPU的算力又可能未被充分挖掘。因此需要通过GPU虚拟化的技术来提高GPU的利用率。</p>
@@ -31030,7 +31022,75 @@ withfields： 使用InfluxDB fields(默认：false)。</p>
 <p>该组件是一个DaemonSet。</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>wget https://raw.githubusercontent.com/Project-HAMi/volcano-vgpu-device-plugin/refs/heads/main/volcano-vgpu-device-plugin.yml
 </span></span><span style="display:flex;"><span>kubectl apply -f volcano-vgpu-device-plugin.yml
+</span></span></code></pre></div><p>更改调度器配置:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">ConfigMap</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">volcano-scheduler-configmap</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">namespace</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">volcano-system</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">data</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">volcano-scheduler.conf</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000;font-weight:bold">|</span><span style="color:#8f5902;font-style:italic">
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    actions: &#34;enqueue, allocate, backfill&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    tiers:
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">    - plugins:
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      - name: predicates
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">      - name: deviceshare
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">        arguments:
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">          deviceshare.VGPUEnable: true   # 启用vgpu插件
+</span></span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">          deviceshare.SchedulePolicy: binpack  # 调度策略：binpack / spread</span><span style="color:#f8f8f8;text-decoration:underline">    
+</span></span></span></code></pre></div><p>验证部署</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kubectl get node {node-name} -o yaml</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 查看是否有上报GPU资源</span>
+</span></span><span style="display:flex;"><span>volcano.sh/vgpu-memory: <span style="color:#4e9a06">&#34;89424&#34;</span>
+</span></span><span style="display:flex;"><span>volcano.sh/vgpu-number: <span style="color:#4e9a06">&#34;8&#34;</span>
 </span></span></code></pre></div><h1 id="4-使用">4. 使用</h1>
+<p>通过<code>volcano.sh/vgpu-mode: &quot;hami-core&quot;</code>来选择使用哪种虚拟化方式。</p>
+<h2 id="4-1-hami-core使用方法">4.1. HAMI-core使用方法</h2>
+<p>pod yaml</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Pod</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">hami-pod</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">annotations</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">volcano.sh/vgpu-mode</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;hami-core&#34;</span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#8f5902;font-style:italic"># 指定模式</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">schedulerName</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">volcano</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">cuda-container</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nvidia/cuda:9.0-devel</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">limits</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">volcano.sh/vgpu-number</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># 请求1张GPU卡</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">volcano.sh/vgpu-cores</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">50</span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#8f5902;font-style:italic"># (可选)每个vGPU使用50%核心</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">volcano.sh/vgpu-memory</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">3000</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#8f5902;font-style:italic"># (可选)每个vGPU使用3G显存</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><h2 id="4-2-dynamic-mig使用方法">4.2. Dynamic MIG使用方法</h2>
+<p>若需启用MIG (Multi-Instance GPU)模式，请在目标GPU节点上执行以下命令：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo nvidia-smi -mig <span style="color:#0000cf;font-weight:bold">1</span>
+</span></span></code></pre></div><ul>
+<li><strong>MIG实例规格配置（可选）</strong>：</li>
+</ul>
+<p><code>volcano-vgpu-device-plugin</code>会自动生成一套初始MIG配置，并存储于<code>kube-system</code>命名空间下的<code>volcano-vgpu-device-config</code> ConfigMap中。用户可按需自定义此配置。更多详情请参阅<a href="https://github.com/Project-HAMi/volcano-vgpu-device-plugin/blob/main/volcano-vgpu-device-plugin.yml">vgpu设备插件YAML文件</a>。</p>
+<ul>
+<li><strong>带MIG注解的Pod配置示例</strong>：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">Pod</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">mig-pod</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">annotations</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">volcano.sh/vgpu-mode</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;mig&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">schedulerName</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">volcano</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">cuda-container</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">nvidia/cuda:9.0-devel</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">limits</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">volcano.sh/vgpu-number</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">volcano.sh/vgpu-memory</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">3000</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><blockquote>
+<p>注意：实际分配的显存大小取决于最匹配的MIG实例规格（例如：请求3GB显存，可能会分配到规格为5GB的MIG实例）。</p>
+</blockquote>
 <p>参考：</p>
 <ul>
 <li>
@@ -31058,349 +31118,6 @@ withfields： 使用InfluxDB fields(默认：false)。</p>
     
 	
   
-
-    
-	
-  
-    
-    
-	
-    
-
-<div class="td-content" style="page-break-before: always">
-    
-	<h1 id="pg-0b0757037fa2d97bf46505f9dd60576d">19 - </h1>
-    
-	<h1 id="summary">Summary</h1>
-<h2 id="目录-a-id-introduction-a">目录 <a id="introduction"></a></h2>
-<ul>
-<li><a href="README.md">序言</a></li>
-</ul>
-<h2 id="云原生体系-a-id-paas-a">云原生体系 <a id="paas"></a></h2>
-<ul>
-<li><a href="paas/12-factor.md">12-Factor</a></li>
-<li><a href="paas/k8s.md">K8S知识体系</a></li>
-</ul>
-<h2 id="安装与配置-a-id-setup-a">安装与配置 <a id="setup"></a></h2>
-<ul>
-<li><a href="setup/installer/_index.md">部署k8s集群</a>
-<ul>
-<li><a href="setup/installer/install-k8s-by-kubeadm.md">使用kubeadm安装生产环境kubernetes</a></li>
-<li><a href="setup/installer/install-k8s-by-kubespray.md">使用kubespray安装kubernetes</a></li>
-<li><a href="setup/installer/install-k8s-by-minikube.md">使用minikube安装kubernetes</a></li>
-<li><a href="setup/installer/install-k8s-by-kind.md">使用kind安装kubernetes</a></li>
-<li><a href="setup/installer/install-dashboard.md">安装k8s dashboard</a></li>
-</ul>
-</li>
-<li><a href="setup/kubeadm-upgrade.md">kubeadm升级k8s集群</a></li>
-<li><a href="setup/kubeadm-certs.md">kubeadm管理证书</a></li>
-<li><a href="setup/k8s-cert.md">k8s证书及秘钥</a></li>
-<li><a href="setup/k8s-version-release.md">k8s版本说明</a></li>
-<li><a href="setup/k8s-changelog.md">k8s版本记录</a></li>
-</ul>
-<h2 id="基本概念-a-id-concepts-a">基本概念 <a id="concepts"></a></h2>
-<ul>
-<li><a href="concepts/architecture/_index.md">kubernetes架构</a>
-<ul>
-<li><a href="concepts/architecture/kubernetes-architecture.md">Kubernetes总架构图</a></li>
-<li><a href="concepts/architecture/paas-based-on-docker-and-kubernetes.md">基于Docker及Kubernetes技术构建容器云（PaaS）平台概述</a></li>
-</ul>
-</li>
-<li><a href="concepts/object/_index.md">kubernetes对象</a>
-<ul>
-<li><a href="concepts/object/understanding-kubernetes-objects.md">理解kubernetes对象</a></li>
-<li><a href="concepts/object/kubernetes-basic-concepts.md">kubernetes常用对象说明</a></li>
-</ul>
-</li>
-<li><a href="concepts/pod/_index.md">Pod</a>
-<ul>
-<li><a href="concepts/pod/pod.md">Pod介绍</a></li>
-<li><a href="concepts/pod/pod-definition.md">Pod定义文件</a></li>
-<li><a href="concepts/pod/pod-lifecycle.md">Pod生命周期</a></li>
-<li><a href="concepts/pod/pod-probe.md">Pod健康检查</a></li>
-<li><a href="concepts/pod/pod-volume.md">Pod存储卷</a></li>
-<li><a href="concepts/pod/pod-scheduler.md">Pod控制器</a></li>
-<li><a href="concepts/pod/pod-operation.md">Pod伸缩与升级</a></li>
-</ul>
-</li>
-<li><a href="concepts/configmap/_index.md">配置</a>
-<ul>
-<li><a href="concepts/configmap/pod-configmap.md">ConfigMap</a></li>
-</ul>
-</li>
-<li><a href="concepts/_index.md">Workload</a></li>
-</ul>
-<h2 id="核心原理-a-id-principle-a">核心原理 <a id="principle"></a></h2>
-<ul>
-<li><a href="principle/component/_index.md">核心组件</a>
-<ul>
-<li><a href="principle/component/kubernetes-core-principle-api-server.md">Api Server</a></li>
-<li><a href="principle/component/kubernetes-core-principle-controller-manager.md">Controller Manager</a></li>
-<li><a href="principle/component/kubernetes-core-principle-scheduler.md">Scheduler</a></li>
-<li><a href="principle/component/kubernetes-core-principle-kubelet.md">Kubelet</a></li>
-</ul>
-</li>
-<li><a href="principle/flow/_index.md">流程图</a>
-<ul>
-<li><a href="principle/flow/pod-flow.md">Pod创建流程</a></li>
-<li><a href="principle/flow/pvc-flow.md">PVC创建流程</a></li>
-</ul>
-</li>
-</ul>
-<h2 id="容器网络-a-id-network-a">容器网络 <a id="network"></a></h2>
-<ul>
-<li><a href="network/docker-network.md">Docker网络</a></li>
-<li><a href="network/kubernetes-network.md">K8S网络</a></li>
-<li><a href="network/pod-dns.md">Pod的DNS策略</a></li>
-<li><a href="network/flannel/_index.md">网络插件</a>
-<ul>
-<li><a href="network/flannel/flannel-introduction.md">Flannel介绍</a></li>
-</ul>
-</li>
-<li><a href="network/cni/_index.md">CNI</a>
-<ul>
-<li><a href="network/cni/cni.md">CNI接口介绍</a></li>
-<li><a href="network/cni/macvlan.md">Macvlan介绍</a></li>
-</ul>
-</li>
-</ul>
-<h2 id="容器存储-a-id-storage-a">容器存储 <a id="storage"></a></h2>
-<ul>
-<li><a href="storage/volume/_index.md">存储卷概念</a>
-<ul>
-<li><a href="storage/volume/volume.md">Volume</a></li>
-<li><a href="storage/volume/persistent-volume.md">Persistent Volume</a></li>
-<li><a href="storage/volume/persistent-volume-claim.md">Persistent Volume Claim</a></li>
-<li><a href="storage/volume/storage-class.md">Storage Class</a></li>
-<li><a href="storage/volume/dynamic-provisioning.md">Dynamic Volume Provisioning</a></li>
-</ul>
-</li>
-<li><a href="storage/csi/_index.md">CSI</a>
-<ul>
-<li><a href="storage/csi/ceph/csi-cephfs-plugin.md">csi-cephfs-plugin</a></li>
-<li><a href="storage/csi/ceph/deploy-csi-cephfs.md">部署csi-cephfs</a></li>
-<li><a href="storage/csi/provisioner/cephfs-provisioner.md">部署cephfs-provisioner</a></li>
-<li><a href="storage/csi/flexvolume.md">FlexVolume介绍</a></li>
-</ul>
-</li>
-</ul>
-<h2 id="资源隔离-a-id-resource-a">资源隔离 <a id="resource"></a></h2>
-<ul>
-<li><a href="resource/resource-quota.md">资源配额</a></li>
-<li><a href="resource/limit-range.md">Pod限额</a></li>
-<li><a href="resource/quality-of-service.md">资源服务质量</a></li>
-<li><a href="resource/lxcfs/lxcfs.md">Lxcfs资源视图隔离</a></li>
-</ul>
-<h2 id="运维指南-a-id-operation-a">运维指南 <a id="operation"></a></h2>
-<ul>
-<li><a href="operation/kubernetes-troubleshooting.md">kubernetes集群问题排查</a></li>
-<li><a href="operation/kubectl/_index.md">kubectl工具</a>
-<ul>
-<li><a href="operation/kubectl/install-kubectl.md">kubectl安装与配置</a></li>
-<li><a href="operation/kubectl/kubectl-commands.md">kubectl命令说明</a></li>
-<li><a href="operation/kubectl/kubectl-alias.md">kubectl命令别名</a></li>
-<li><a href="operation/kubectl/kubectl-node-shell.md">kubectl进入node shell</a></li>
-</ul>
-</li>
-<li><a href="operation/helm/_index.md">helm工具</a>
-<ul>
-<li><a href="operation/helm/helm-usage.md">helm的使用</a></li>
-</ul>
-</li>
-<li><a href="operation/node/_index.md">节点迁移</a>
-<ul>
-<li><a href="operation/node/safely-drain-node.md">安全迁移节点</a></li>
-<li><a href="operation/node/nodeselector-and-taint.md">指定Node调度与隔离</a></li>
-</ul>
-</li>
-<li><a href="operation/registry/_index.md">镜像仓库</a>
-<ul>
-<li><a href="operation/registry/config-private-registry.md">配置私有的镜像仓库</a></li>
-<li><a href="operation/registry/ImagePullSecrets.md">拉取私有镜像</a></li>
-</ul>
-</li>
-<li><a href="operation/access/_index.md">访问控制</a>
-<ul>
-<li><a href="operation/access/rbac-auth.md">使用RBAC鉴权</a></li>
-</ul>
-</li>
-<li><a href="operation/deployment/_index.md">版本发布</a>
-<ul>
-<li><a href="operation/deployment/canary-deployment.md">金丝雀发布</a></li>
-</ul>
-</li>
-</ul>
-<h2 id="开发指南-a-id-develop-a">开发指南 <a id="develop"></a></h2>
-<ul>
-<li><a href="develop/client-go.md">client-go的使用及源码分析</a></li>
-<li><a href="develop/csi/_index.md">CSI插件开发</a>
-<ul>
-<li><a href="develop/csi/nfs-client-provisioner.md">nfs-client-provisioner源码分析</a></li>
-<li><a href="develop/csi/csi-provisioner.md">csi-provisioner源码分析</a></li>
-</ul>
-</li>
-<li><a href="develop/operator/_index.md">operator开发</a>
-<ul>
-<li><a href="develop/operator/kubebuilder.md">kubebuilder的使用</a></li>
-<li><a href="develop/operator/develop-operator.md">如何开发一个Operator</a></li>
-</ul>
-</li>
-<li><a href="develop/develop-k8s.md">k8s社区开发指南</a></li>
-</ul>
-<h2 id="问题排查-a-id-trouble-shooting-a">问题排查 <a id="trouble-shooting"></a></h2>
-<ul>
-<li><a href="trouble-shooting/node/_index.md">节点相关问题</a>
-<ul>
-<li><a href="trouble-shooting/node/keycreate-permission-denied.md">keycreate permission denied</a></li>
-<li><a href="trouble-shooting/node/cgroup-pid-error.md">Cgroup不支持pid资源</a></li>
-<li><a href="trouble-shooting/node/cgroup-subsystem-not-mount.md">Cgroup子系统无法挂载</a></li>
-</ul>
-</li>
-<li><a href="trouble-shooting/pod-evicted.md">Pod驱逐</a></li>
-<li><a href="trouble-shooting/pod-image-error.md">镜像拉取失败问题</a></li>
-<li><a href="trouble-shooting/pvc-terminating.md">PVC Terminating</a></li>
-</ul>
-<hr>
-<h2 id="源码分析-a-id-code-analysis-a">源码分析 <a id="code-analysis"></a></h2>
-<ul>
-<li><a href="code-analysis/code-analysis-notes.md">Kubernetes源码分析笔记</a></li>
-<li><a href="code-analysis/kubelet/_index.md">kubelet</a>
-<ul>
-<li><a href="code-analysis/kubelet/NewKubeletCommand.md">NewKubeletCommand</a></li>
-<li><a href="code-analysis/kubelet/NewMainKubelet.md">NewMainKubelet</a></li>
-<li><a href="code-analysis/kubelet/startKubelet.md">startKubelet</a></li>
-<li><a href="code-analysis/kubelet/syncLoopIteration.md">syncLoopIteration</a></li>
-<li><a href="code-analysis/kubelet/syncPod.md">syncPod</a></li>
-</ul>
-</li>
-<li><a href="code-analysis/kube-controller-manager/_index.md">kube-controller-manager</a>
-<ul>
-<li><a href="code-analysis/kube-controller-manager/NewControllerManagerCommand.md">NewControllerManagerCommand</a></li>
-<li><a href="code-analysis/kube-controller-manager/deployment-controller.md">DeploymentController</a></li>
-<li><a href="code-analysis/kube-controller-manager/sharedIndexInformer.md">Informer机制</a></li>
-</ul>
-</li>
-<li><a href="code-analysis/kube-scheduler/_index.md">kube-scheduler</a>
-<ul>
-<li><a href="code-analysis/kube-scheduler/NewSchedulerCommand.md">NewSchedulerCommand</a></li>
-<li><a href="code-analysis/kube-scheduler/registerAlgorithmProvider.md">registerAlgorithmProvider</a></li>
-<li><a href="code-analysis/kube-scheduler/scheduleOne.md">scheduleOne</a></li>
-<li><a href="code-analysis/kube-scheduler/findNodesThatFit.md">findNodesThatFit</a></li>
-<li><a href="code-analysis/kube-scheduler/PrioritizeNodes.md">PrioritizeNodes</a></li>
-<li><a href="code-analysis/kube-scheduler/preempt.md">preempt</a></li>
-</ul>
-</li>
-<li><a href="code-analysis/kube-apiserver/_index.md">kube-apiserver</a>
-<ul>
-<li><a href="code-analysis/kube-apiserver/NewAPIServerCommand.md">NewAPIServerCommand</a></li>
-</ul>
-</li>
-</ul>
-<hr>
-<h2 id="runtime-a-id-runtime-a">Runtime <a id="runtime"></a></h2>
-<ul>
-<li><a href="runtime/_index.md">Runtime</a>
-<ul>
-<li><a href="runtime/runtime.md">Runc和Containerd概述</a></li>
-</ul>
-</li>
-<li><a href="runtime/containerd/_index.md">Containerd</a>
-<ul>
-<li><a href="runtime/containerd/install-containerd.md">安装Containerd</a></li>
-</ul>
-</li>
-<li><a href="runtime/docker/_index.md">Docker</a>
-<ul>
-<li><a href="runtime/docker/docker-notes.md">Docker学习笔记</a></li>
-</ul>
-</li>
-<li><a href="runtime/kata/_index.md">Kata Container</a>
-<ul>
-<li><a href="runtime/kata/kata-container.md">kata容器简介</a></li>
-<li><a href="runtime/kata/kata-container-conf.md">kata配置</a></li>
-</ul>
-</li>
-<li><a href="runtime/gpu/_index.md">GPU</a>
-<ul>
-<li><a href="runtime/gpu/nvidia-device-plugin.md">nvidia-device-plugin介绍</a></li>
-</ul>
-</li>
-</ul>
-<h2 id="etcd-a-id-etcd-a">Etcd <a id="etcd"></a></h2>
-<ul>
-<li><a href="etcd/etcd-introduction.md">Etcd介绍</a></li>
-<li><a href="etcd/raft.md">Raft算法</a></li>
-<li><a href="etcd/etcd-setup-flags.md">Etcd启动配置参数</a></li>
-<li><a href="etcd/etcd-auth-and-security.md">Etcd访问控制</a></li>
-<li><a href="etcd/etcdctl/_index.md">etcdctl命令工具</a>
-<ul>
-<li><a href="etcd/etcdctl/etcdctl-v3.md">etcdctl命令工具-V3</a></li>
-<li><a href="etcd/etcdctl/etcdctl-v2.md">etcdctl命令工具-V2</a></li>
-</ul>
-</li>
-<li><a href="etcd/k8s-etcd-data.md">Etcd中的k8s数据</a></li>
-<li><a href="etcd/etcd-operator-usage.md">Etcd-Operator的使用</a></li>
-</ul>
-<h2 id="多集群管理-a-id-multi-cluster-a">多集群管理 <a id="multi-cluster"></a></h2>
-<ul>
-<li><a href="multi-cluster/k8s-multi-cluster-thinking.md">k8s多集群管理的思考</a></li>
-<li><a href="multi-cluster/virtual-kubelet/_index.md">Virtual Kubelet</a>
-<ul>
-<li><a href="multi-cluster/virtual-kubelet/virtual-kubelet.md">Virtual Kubelet介绍</a></li>
-<li><a href="multi-cluster/virtual-kubelet/virtual-kubelet-cmd.md">Virtual Kubelet 命令</a></li>
-</ul>
-</li>
-<li><a href="multi-cluster/karmada/_index.md">Karmada</a>
-<ul>
-<li><a href="multi-cluster/karmada/karmada-introduction.md">Karmada介绍</a></li>
-</ul>
-</li>
-</ul>
-<h2 id="边缘容器-a-id-kubeedge-a">边缘容器 <a id="kubeedge"></a></h2>
-<ul>
-<li><a href="edge/kubeedge/kubeedge-arch.md">KubeEdge介绍</a></li>
-<li><a href="edge/kubeedge/code-analysis/_index.md">KubeEdge源码分析</a>
-<ul>
-<li><a href="edge/kubeedge/code-analysis/cloudcore.md">cloudcore</a></li>
-<li><a href="edge/kubeedge/code-analysis/edgecore.md">edgecore</a></li>
-</ul>
-</li>
-<li><a href="edge/openyurt/_index.md">OpenYurt</a>
-<ul>
-<li><a href="edge/openyurt/install-openyurt.md">OpenYurt部署</a></li>
-<li><a href="edge/openyurt/update-k8s-for-openyurt.md">OpenYurt部署之调整k8s配置</a></li>
-</ul>
-</li>
-<li><a href="edge/openyurt/code-analysis/_index.md">OpenYurt源码分析</a>
-<ul>
-<li><a href="edge/openyurt/code-analysis/yurthub-code-analysis-1.md">YurtHub源码分析（1)</a></li>
-<li><a href="edge/openyurt/code-analysis/tunnel-server-code-analysis.md">TunnelServer源码分析（1）</a></li>
-<li><a href="edge/openyurt/code-analysis/tennel-agent-code-analysis.md">Tunnel-Agent源码分析</a></li>
-</ul>
-</li>
-</ul>
-<h2 id="虚拟化-a-id-kvm-a">虚拟化 <a id="kvm"></a></h2>
-<ul>
-<li><a href="kvm/vm-concept.md">虚拟化相关概念</a></li>
-<li><a href="kvm/kubevirt/_index.md">KubeVirt</a>
-<ul>
-<li><a href="kvm/kubevirt/kubevirt-introduction.md">KubeVirt的介绍</a></li>
-<li><a href="kvm/kubevirt/kubevirt-installation.md">KubeVirt的使用</a></li>
-</ul>
-</li>
-</ul>
-<h2 id="监控体系-a-id-monitor-a">监控体系 <a id="monitor"></a></h2>
-<ul>
-<li><a href="monitor/kubernetes-cluster-monitoring.md">监控体系介绍</a></li>
-<li><a href="monitor/kube-promethus-stack.md">kube-prometheus-stack的使用</a></li>
-<li><a href="monitor/cadvisor-introduction.md">cAdvisor介绍</a></li>
-<li><a href="monitor/heapster-introduction.md">Heapster介绍</a></li>
-<li><a href="monitor/influxdb-introduction.md">Influxdb介绍</a></li>
-</ul>
-
-</div>
-
-
 
     
 	
