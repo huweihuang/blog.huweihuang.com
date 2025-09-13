@@ -1,0 +1,1319 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<meta name="robots" content="index, follow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>RAG工程 | 胡伟煌</title>
+<meta name="description" content="
+本文基于GitHub - AlibabaCloudDocs/aliyun_acp_learning内容整理。
+
+1. RAG（检索增强生成）
+RAG（Retrieval-Augmented Generation，检索增强生成） 就是实现上下文工程的强大技术方案。
+核心思想：
+
+
+检索：检索与私域知 …">
+<meta property="og:title" content="RAG工程" />
+<meta property="og:description" content="本文基于GitHub - AlibabaCloudDocs/aliyun_acp_learning内容整理。
+1. RAG（检索增强生成） RAG（Retrieval-Augmented Generation，检索增强生成） 就是实现上下文工程的强大技术方案。
+核心思想：
+检索：检索与私域知识相关的知识片段。
+增强：与用户的问题合并喂给大模型。
+生成：生成大模型返回的回答。
+构建RAG主要为2个阶段：
+1.1. 建立索引 建立索引是为了将私有知识文档或片段转换为可以高效检索的形式。通过将文件内容分割并转化为多维向量（使用专用 Embedding 模型），并结合向量存储保留文本的语义信息，方便进行相似度计算。向量化使得模型能够高效检索和匹配相关内容，特别是在处理大规模知识库时，显著提高了查询的准确性和响应速度。
+建议索引主要包含以下步骤：
+文档解析：需要将各种格式的文档（pdf, word）解析成大模型可理解的格式。
+文本分段：对解析后的文档进行分类分段，以便可以快速找到。
+文本向量化：对文本进行数字化，以便进行相似度比较和寻址。
+存储索引：将向量化后的数据存储到向量数据库，增加后续的查找速度。
+1.2. 检索与生成 检索生成是根据用户的提问，从索引中检索相关的文档片段，这些片段会与提问一起输入到大模型生成最终的回答。这样大模型就能够回答私有知识问题了。
+检索：检索会把问题同向量数据库的进行相似度比较，并找出最相关的段落。
+生成：将问题和检索的内容生成提示词喂给大模型，利用大模型的总结能力返回答案。
+1.3. 实践RAG应用 1、基于公司的制度文件创建RAG应用，步骤如下：
+解析文本文件
+创建索引
+创建提问引擎（设置流式输出）
+输入问题并输出答案
+# 导入依赖 from llama_index.embeddings.dashscope import DashScopeEmbedding,DashScopeTextEmbeddingModels from llama_index.core import SimpleDirectoryReader,VectorStoreIndex from llama_index.llms.openai_like import OpenAILike # 这两行代码是用于消除 WARNING 警告信息，避免干扰阅读学习，生产环境中建议根据需要来设置日志级别 import logging logging.basicConfig(level=logging.ERROR) print(&#34;正在解析文件...&#34;) # LlamaIndex提供了SimpleDirectoryReader方法，可以直接将指定文件夹中的文件加载为document对象，对应着解析过程 documents = SimpleDirectoryReader(&#39;./docs&#39;).load_data() print(&#34;正在创建索引...&#34;) # from_documents方法包含切片与建立索引步骤 index = VectorStoreIndex.from_documents( documents, # 指定embedding 模型 embed_model=DashScopeEmbedding( # 你也可以使用阿里云提供的其它embedding模型：https://help." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.huweihuang.com/linux-notes/llm/llm-rag/" /><meta property="article:section" content="linux-notes" />
+
+<meta property="og:site_name" content="胡伟煌" />
+
+<meta itemprop="name" content="RAG工程">
+<meta itemprop="description" content="本文基于GitHub - AlibabaCloudDocs/aliyun_acp_learning内容整理。
+1. RAG（检索增强生成） RAG（Retrieval-Augmented Generation，检索增强生成） 就是实现上下文工程的强大技术方案。
+核心思想：
+检索：检索与私域知识相关的知识片段。
+增强：与用户的问题合并喂给大模型。
+生成：生成大模型返回的回答。
+构建RAG主要为2个阶段：
+1.1. 建立索引 建立索引是为了将私有知识文档或片段转换为可以高效检索的形式。通过将文件内容分割并转化为多维向量（使用专用 Embedding 模型），并结合向量存储保留文本的语义信息，方便进行相似度计算。向量化使得模型能够高效检索和匹配相关内容，特别是在处理大规模知识库时，显著提高了查询的准确性和响应速度。
+建议索引主要包含以下步骤：
+文档解析：需要将各种格式的文档（pdf, word）解析成大模型可理解的格式。
+文本分段：对解析后的文档进行分类分段，以便可以快速找到。
+文本向量化：对文本进行数字化，以便进行相似度比较和寻址。
+存储索引：将向量化后的数据存储到向量数据库，增加后续的查找速度。
+1.2. 检索与生成 检索生成是根据用户的提问，从索引中检索相关的文档片段，这些片段会与提问一起输入到大模型生成最终的回答。这样大模型就能够回答私有知识问题了。
+检索：检索会把问题同向量数据库的进行相似度比较，并找出最相关的段落。
+生成：将问题和检索的内容生成提示词喂给大模型，利用大模型的总结能力返回答案。
+1.3. 实践RAG应用 1、基于公司的制度文件创建RAG应用，步骤如下：
+解析文本文件
+创建索引
+创建提问引擎（设置流式输出）
+输入问题并输出答案
+# 导入依赖 from llama_index.embeddings.dashscope import DashScopeEmbedding,DashScopeTextEmbeddingModels from llama_index.core import SimpleDirectoryReader,VectorStoreIndex from llama_index.llms.openai_like import OpenAILike # 这两行代码是用于消除 WARNING 警告信息，避免干扰阅读学习，生产环境中建议根据需要来设置日志级别 import logging logging.basicConfig(level=logging.ERROR) print(&#34;正在解析文件...&#34;) # LlamaIndex提供了SimpleDirectoryReader方法，可以直接将指定文件夹中的文件加载为document对象，对应着解析过程 documents = SimpleDirectoryReader(&#39;./docs&#39;).load_data() print(&#34;正在创建索引...&#34;) # from_documents方法包含切片与建立索引步骤 index = VectorStoreIndex.from_documents( documents, # 指定embedding 模型 embed_model=DashScopeEmbedding( # 你也可以使用阿里云提供的其它embedding模型：https://help.">
+
+<meta itemprop="wordCount" content="207">
+<meta itemprop="keywords" content="大模型," /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="RAG工程"/>
+<meta name="twitter:description" content="本文基于GitHub - AlibabaCloudDocs/aliyun_acp_learning内容整理。
+1. RAG（检索增强生成） RAG（Retrieval-Augmented Generation，检索增强生成） 就是实现上下文工程的强大技术方案。
+核心思想：
+检索：检索与私域知识相关的知识片段。
+增强：与用户的问题合并喂给大模型。
+生成：生成大模型返回的回答。
+构建RAG主要为2个阶段：
+1.1. 建立索引 建立索引是为了将私有知识文档或片段转换为可以高效检索的形式。通过将文件内容分割并转化为多维向量（使用专用 Embedding 模型），并结合向量存储保留文本的语义信息，方便进行相似度计算。向量化使得模型能够高效检索和匹配相关内容，特别是在处理大规模知识库时，显著提高了查询的准确性和响应速度。
+建议索引主要包含以下步骤：
+文档解析：需要将各种格式的文档（pdf, word）解析成大模型可理解的格式。
+文本分段：对解析后的文档进行分类分段，以便可以快速找到。
+文本向量化：对文本进行数字化，以便进行相似度比较和寻址。
+存储索引：将向量化后的数据存储到向量数据库，增加后续的查找速度。
+1.2. 检索与生成 检索生成是根据用户的提问，从索引中检索相关的文档片段，这些片段会与提问一起输入到大模型生成最终的回答。这样大模型就能够回答私有知识问题了。
+检索：检索会把问题同向量数据库的进行相似度比较，并找出最相关的段落。
+生成：将问题和检索的内容生成提示词喂给大模型，利用大模型的总结能力返回答案。
+1.3. 实践RAG应用 1、基于公司的制度文件创建RAG应用，步骤如下：
+解析文本文件
+创建索引
+创建提问引擎（设置流式输出）
+输入问题并输出答案
+# 导入依赖 from llama_index.embeddings.dashscope import DashScopeEmbedding,DashScopeTextEmbeddingModels from llama_index.core import SimpleDirectoryReader,VectorStoreIndex from llama_index.llms.openai_like import OpenAILike # 这两行代码是用于消除 WARNING 警告信息，避免干扰阅读学习，生产环境中建议根据需要来设置日志级别 import logging logging.basicConfig(level=logging.ERROR) print(&#34;正在解析文件...&#34;) # LlamaIndex提供了SimpleDirectoryReader方法，可以直接将指定文件夹中的文件加载为document对象，对应着解析过程 documents = SimpleDirectoryReader(&#39;./docs&#39;).load_data() print(&#34;正在创建索引...&#34;) # from_documents方法包含切片与建立索引步骤 index = VectorStoreIndex.from_documents( documents, # 指定embedding 模型 embed_model=DashScopeEmbedding( # 你也可以使用阿里云提供的其它embedding模型：https://help."/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" as="style">
+<link href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-114718458-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-page">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">胡伟煌</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/kubernetes-notes/" ><span>Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/k8s-source-code-analysis/" ><span>Kubernetes源码分析</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/golang-notes/" ><span>Golang学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/linux-notes/" ><span class="active">Linux学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/about/" ><span>About</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.eb547862445a0b9050ad3128c2328ffd.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <aside class="col-12 col-md-3 col-xl-2 td-sidebar d-print-none">
+            
+<div id="td-sidebar-menu" class="td-sidebar__inner">
+  <form class="td-sidebar__search d-flex align-items-center">
+    <input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.eb547862445a0b9050ad3128c2328ffd.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+
+    <button class="btn btn-link td-sidebar__toggle d-md-none p-0 ml-3 fas fa-bars" type="button" data-toggle="collapse" data-target="#td-section-nav" aria-controls="td-docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    </button>
+  </form>
+  <nav class="collapse td-sidebar-nav foldable-nav" id="td-section-nav">
+    <ul class="td-sidebar-nav__section pr-md-3 ul-0">
+      <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-linux-notes-li">
+  <a href="/linux-notes/" class="align-left pl-0 td-sidebar-link td-sidebar-link__section tree-root" id="m-linux-notes"><span class="">Linux学习笔记</span></a>
+  <ul class="ul-1">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-file-li">
+  <input type="checkbox" id="m-linux-notes-file-check"/>
+  <label for="m-linux-notes-file-check"><a href="/linux-notes/file/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-file"><span class="">Linux 文件系统</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-file-linux-introduction-li">
+  <input type="checkbox" id="m-linux-notes-file-linux-introduction-check"/>
+  <label for="m-linux-notes-file-linux-introduction-check"><a href="/linux-notes/file/linux-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-file-linux-introduction"><span class="">Linux介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-file-linux-file-system-li">
+  <input type="checkbox" id="m-linux-notes-file-linux-file-system-check"/>
+  <label for="m-linux-notes-file-linux-file-system-check"><a href="/linux-notes/file/linux-file-system/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-file-linux-file-system"><span class="">Linux文件系统</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-file-linux-file-storage-li">
+  <input type="checkbox" id="m-linux-notes-file-linux-file-storage-check"/>
+  <label for="m-linux-notes-file-linux-file-storage-check"><a href="/linux-notes/file/linux-file-storage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-file-linux-file-storage"><span class="">Linux文件存储</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-file-linux-file-permission-li">
+  <input type="checkbox" id="m-linux-notes-file-linux-file-permission-check"/>
+  <label for="m-linux-notes-file-linux-file-permission-check"><a href="/linux-notes/file/linux-file-permission/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-file-linux-file-permission"><span class="">Linux文件权限</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-file-linux-command-li">
+  <input type="checkbox" id="m-linux-notes-file-linux-command-check"/>
+  <label for="m-linux-notes-file-linux-command-check"><a href="/linux-notes/file/linux-command/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-file-linux-command"><span class="">Linux常用命令</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-disk-li">
+  <input type="checkbox" id="m-linux-notes-disk-check"/>
+  <label for="m-linux-notes-disk-check"><a href="/linux-notes/disk/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-disk"><span class="">磁盘</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-disk-disk-command-li">
+  <input type="checkbox" id="m-linux-notes-disk-disk-command-check"/>
+  <label for="m-linux-notes-disk-disk-command-check"><a href="/linux-notes/disk/disk-command/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-disk-disk-command"><span class="">磁盘命令</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-disk-lvm-usage-li">
+  <input type="checkbox" id="m-linux-notes-disk-lvm-usage-check"/>
+  <label for="m-linux-notes-disk-lvm-usage-check"><a href="/linux-notes/disk/lvm-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-disk-lvm-usage"><span class="">LVM的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-disk-disk-raid-li">
+  <input type="checkbox" id="m-linux-notes-disk-disk-raid-check"/>
+  <label for="m-linux-notes-disk-disk-raid-check"><a href="/linux-notes/disk/disk-raid/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-disk-disk-raid"><span class="">Raid介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-disk-make-hardware-raid-li">
+  <input type="checkbox" id="m-linux-notes-disk-make-hardware-raid-check"/>
+  <label for="m-linux-notes-disk-make-hardware-raid-check"><a href="/linux-notes/disk/make-hardware-raid/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-disk-make-hardware-raid"><span class="">创建硬件Raid</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-tcpip-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-check"/>
+  <label for="m-linux-notes-tcpip-check"><a href="/linux-notes/tcpip/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-tcpip"><span class="">TCP/IP</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tcpip-tcpip-basics-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-tcpip-basics-check"/>
+  <label for="m-linux-notes-tcpip-tcpip-basics-check"><a href="/linux-notes/tcpip/tcpip-basics/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tcpip-tcpip-basics"><span class="">TCPIP基础</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tcpip-ip-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-ip-check"/>
+  <label for="m-linux-notes-tcpip-ip-check"><a href="/linux-notes/tcpip/ip/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tcpip-ip"><span class="">IP协议</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tcpip-tcp-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-tcp-check"/>
+  <label for="m-linux-notes-tcpip-tcp-check"><a href="/linux-notes/tcpip/tcp/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tcpip-tcp"><span class="">TCP协议</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tcpip-udp-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-udp-check"/>
+  <label for="m-linux-notes-tcpip-udp-check"><a href="/linux-notes/tcpip/udp/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tcpip-udp"><span class="">UDP协议</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tcpip-http-li">
+  <input type="checkbox" id="m-linux-notes-tcpip-http-check"/>
+  <label for="m-linux-notes-tcpip-http-check"><a href="/linux-notes/tcpip/http/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tcpip-http"><span class="">HTTP协议</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-network-li">
+  <input type="checkbox" id="m-linux-notes-network-check"/>
+  <label for="m-linux-notes-network-check"><a href="/linux-notes/network/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-network"><span class="">网络</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-network-tcpdump-li">
+  <input type="checkbox" id="m-linux-notes-network-tcpdump-check"/>
+  <label for="m-linux-notes-network-tcpdump-check"><a href="/linux-notes/network/tcpdump/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-network-tcpdump"><span class="">tcpdump抓包流程</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-network-iptables-li">
+  <input type="checkbox" id="m-linux-notes-network-iptables-check"/>
+  <label for="m-linux-notes-network-iptables-check"><a href="/linux-notes/network/iptables/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-network-iptables"><span class="">iptables介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-network-iptables-command-li">
+  <input type="checkbox" id="m-linux-notes-network-iptables-command-check"/>
+  <label for="m-linux-notes-network-iptables-command-check"><a href="/linux-notes/network/iptables-command/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-network-iptables-command"><span class="">iptables命令</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-network-wrk-usage-li">
+  <input type="checkbox" id="m-linux-notes-network-wrk-usage-check"/>
+  <label for="m-linux-notes-network-wrk-usage-check"><a href="/linux-notes/network/wrk-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-network-wrk-usage"><span class="">wrk的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-network-vlan-li">
+  <input type="checkbox" id="m-linux-notes-network-vlan-check"/>
+  <label for="m-linux-notes-network-vlan-check"><a href="/linux-notes/network/vlan/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-network-vlan"><span class="">VLAN介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-network-netplan-li">
+  <input type="checkbox" id="m-linux-notes-network-netplan-check"/>
+  <label for="m-linux-notes-network-netplan-check"><a href="/linux-notes/network/netplan/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-network-netplan"><span class="">netplan介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-network-bond-li">
+  <input type="checkbox" id="m-linux-notes-network-bond-check"/>
+  <label for="m-linux-notes-network-bond-check"><a href="/linux-notes/network/bond/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-network-bond"><span class="">网卡Bonding介绍</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-shell-li">
+  <input type="checkbox" id="m-linux-notes-shell-check"/>
+  <label for="m-linux-notes-shell-check"><a href="/linux-notes/shell/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-shell"><span class="">Shell脚本</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-introduction-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-introduction-check"/>
+  <label for="m-linux-notes-shell-shell-introduction-check"><a href="/linux-notes/shell/shell-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-introduction"><span class="">Shell简介</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-var-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-var-check"/>
+  <label for="m-linux-notes-shell-shell-var-check"><a href="/linux-notes/shell/shell-var/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-var"><span class="">Shell变量</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-char-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-char-check"/>
+  <label for="m-linux-notes-shell-shell-char-check"><a href="/linux-notes/shell/shell-char/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-char"><span class="">Shell运算符</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-array-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-array-check"/>
+  <label for="m-linux-notes-shell-shell-array-check"><a href="/linux-notes/shell/shell-array/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-array"><span class="">Shell数组</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-echo-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-echo-check"/>
+  <label for="m-linux-notes-shell-shell-echo-check"><a href="/linux-notes/shell/shell-echo/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-echo"><span class="">Shell echo命令</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-if-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-if-check"/>
+  <label for="m-linux-notes-shell-shell-if-check"><a href="/linux-notes/shell/shell-if/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-if"><span class="">Shell 判断语句</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-loop-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-loop-check"/>
+  <label for="m-linux-notes-shell-shell-loop-check"><a href="/linux-notes/shell/shell-loop/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-loop"><span class="">Shell 循环语句</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-function-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-function-check"/>
+  <label for="m-linux-notes-shell-shell-function-check"><a href="/linux-notes/shell/shell-function/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-function"><span class="">Shell 函数</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-shell-shell-stdout-li">
+  <input type="checkbox" id="m-linux-notes-shell-shell-stdout-check"/>
+  <label for="m-linux-notes-shell-shell-stdout-check"><a href="/linux-notes/shell/shell-stdout/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-shell-shell-stdout"><span class="">Shell 重定向</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-tools-li">
+  <input type="checkbox" id="m-linux-notes-tools-check"/>
+  <label for="m-linux-notes-tools-check"><a href="/linux-notes/tools/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-tools"><span class="">运维工具</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-ansible-usage-li">
+  <input type="checkbox" id="m-linux-notes-tools-ansible-usage-check"/>
+  <label for="m-linux-notes-tools-ansible-usage-check"><a href="/linux-notes/tools/ansible-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-ansible-usage"><span class="">ansible的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-ceph-fuse-li">
+  <input type="checkbox" id="m-linux-notes-tools-ceph-fuse-check"/>
+  <label for="m-linux-notes-tools-ceph-fuse-check"><a href="/linux-notes/tools/ceph-fuse/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-ceph-fuse"><span class="">ceph-fuse的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-confd-usage-li">
+  <input type="checkbox" id="m-linux-notes-tools-confd-usage-check"/>
+  <label for="m-linux-notes-tools-confd-usage-check"><a href="/linux-notes/tools/confd-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-confd-usage"><span class="">confd的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-nfs-usage-li">
+  <input type="checkbox" id="m-linux-notes-tools-nfs-usage-check"/>
+  <label for="m-linux-notes-tools-nfs-usage-check"><a href="/linux-notes/tools/nfs-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-nfs-usage"><span class="">NFS的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-ssh-tips-li">
+  <input type="checkbox" id="m-linux-notes-tools-ssh-tips-check"/>
+  <label for="m-linux-notes-tools-ssh-tips-check"><a href="/linux-notes/tools/ssh-tips/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-ssh-tips"><span class="">ssh tips</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-tools-supervisor-usage-li">
+  <input type="checkbox" id="m-linux-notes-tools-supervisor-usage-check"/>
+  <label for="m-linux-notes-tools-supervisor-usage-check"><a href="/linux-notes/tools/supervisor-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-tools-supervisor-usage"><span class="">Supervisor的使用</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-git-li">
+  <input type="checkbox" id="m-linux-notes-git-check"/>
+  <label for="m-linux-notes-git-check"><a href="/linux-notes/git/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-git"><span class="">GIT命令</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-git-git-li">
+  <input type="checkbox" id="m-linux-notes-git-git-check"/>
+  <label for="m-linux-notes-git-git-check"><a href="/linux-notes/git/git/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-git-git"><span class="">Git介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-git-git-common-cmd-li">
+  <input type="checkbox" id="m-linux-notes-git-git-common-cmd-check"/>
+  <label for="m-linux-notes-git-git-common-cmd-check"><a href="/linux-notes/git/git-common-cmd/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-git-git-common-cmd"><span class="">Git常用命令</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-git-git-commands-li">
+  <input type="checkbox" id="m-linux-notes-git-git-commands-check"/>
+  <label for="m-linux-notes-git-git-commands-check"><a href="/linux-notes/git/git-commands/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-git-git-commands"><span class="">Git命令分类</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-git-git-commit-msg-li">
+  <input type="checkbox" id="m-linux-notes-git-git-commit-msg-check"/>
+  <label for="m-linux-notes-git-git-commit-msg-check"><a href="/linux-notes/git/git-commit-msg/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-git-git-commit-msg"><span class="">Git commit规范</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-git-git-alias-zsh-li">
+  <input type="checkbox" id="m-linux-notes-git-git-alias-zsh-check"/>
+  <label for="m-linux-notes-git-git-alias-zsh-check"><a href="/linux-notes/git/git-alias-zsh/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-git-git-alias-zsh"><span class="">Git命令别名</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-mysql-li">
+  <input type="checkbox" id="m-linux-notes-mysql-check"/>
+  <label for="m-linux-notes-mysql-check"><a href="/linux-notes/mysql/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-mysql"><span class="">Mysql</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-mysql-deploy-mysql-li">
+  <input type="checkbox" id="m-linux-notes-mysql-deploy-mysql-check"/>
+  <label for="m-linux-notes-mysql-deploy-mysql-check"><a href="/linux-notes/mysql/deploy-mysql/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-mysql-deploy-mysql"><span class="">Mysql服务部署</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-mysql-system-manage-li">
+  <input type="checkbox" id="m-linux-notes-mysql-system-manage-check"/>
+  <label for="m-linux-notes-mysql-system-manage-check"><a href="/linux-notes/mysql/system-manage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-mysql-system-manage"><span class="">Mysql常用命令之系统管理</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-mysql-table-operation-li">
+  <input type="checkbox" id="m-linux-notes-mysql-table-operation-check"/>
+  <label for="m-linux-notes-mysql-table-operation-check"><a href="/linux-notes/mysql/table-operation/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-mysql-table-operation"><span class="">Mysql常用命令之数据表操作</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-mysql-curd-commands-li">
+  <input type="checkbox" id="m-linux-notes-mysql-curd-commands-check"/>
+  <label for="m-linux-notes-mysql-curd-commands-check"><a href="/linux-notes/mysql/curd-commands/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-mysql-curd-commands"><span class="">Mysql常用命令之表内容操作</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-redis-li">
+  <input type="checkbox" id="m-linux-notes-redis-check"/>
+  <label for="m-linux-notes-redis-check"><a href="/linux-notes/redis/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-redis"><span class="">Redis</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-redis-redis-introduction-li">
+  <input type="checkbox" id="m-linux-notes-redis-redis-introduction-check"/>
+  <label for="m-linux-notes-redis-redis-introduction-check"><a href="/linux-notes/redis/redis-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-redis-redis-introduction"><span class="">Redis介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-redis-redis-cluster-li">
+  <input type="checkbox" id="m-linux-notes-redis-redis-cluster-check"/>
+  <label for="m-linux-notes-redis-redis-cluster-check"><a href="/linux-notes/redis/redis-cluster/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-redis-redis-cluster"><span class="">Redis集群模式部署</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-redis-redis-sentinel-li">
+  <input type="checkbox" id="m-linux-notes-redis-redis-sentinel-check"/>
+  <label for="m-linux-notes-redis-redis-sentinel-check"><a href="/linux-notes/redis/redis-sentinel/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-redis-redis-sentinel"><span class="">Redis哨兵模式部署</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-redis-redis-conf-cn-li">
+  <input type="checkbox" id="m-linux-notes-redis-redis-conf-cn-check"/>
+  <label for="m-linux-notes-redis-redis-conf-cn-check"><a href="/linux-notes/redis/redis-conf-cn/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-redis-redis-conf-cn"><span class="">Redis配置详解（中文版）</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-redis-redis-conf-en-li">
+  <input type="checkbox" id="m-linux-notes-redis-redis-conf-en-check"/>
+  <label for="m-linux-notes-redis-redis-conf-en-check"><a href="/linux-notes/redis/redis-conf-en/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-redis-redis-conf-en"><span class="">Redis配置详解（英文版）</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-memcached-li">
+  <input type="checkbox" id="m-linux-notes-memcached-check"/>
+  <label for="m-linux-notes-memcached-check"><a href="/linux-notes/memcached/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-memcached"><span class="">Memcached</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-memcached-memcached-li">
+  <input type="checkbox" id="m-linux-notes-memcached-memcached-check"/>
+  <label for="m-linux-notes-memcached-memcached-check"><a href="/linux-notes/memcached/memcached/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-memcached-memcached"><span class="">Memcached的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-memcached-memcached-cmd-li">
+  <input type="checkbox" id="m-linux-notes-memcached-memcached-cmd-check"/>
+  <label for="m-linux-notes-memcached-memcached-cmd-check"><a href="/linux-notes/memcached/memcached-cmd/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-memcached-memcached-cmd"><span class="">Memcached命令</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-nginx-li">
+  <input type="checkbox" id="m-linux-notes-nginx-check"/>
+  <label for="m-linux-notes-nginx-check"><a href="/linux-notes/nginx/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-nginx"><span class="">Nginx</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-nginx-install-nginx-li">
+  <input type="checkbox" id="m-linux-notes-nginx-install-nginx-check"/>
+  <label for="m-linux-notes-nginx-install-nginx-check"><a href="/linux-notes/nginx/install-nginx/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-nginx-install-nginx"><span class="">Nginx的部署与配置</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-nginx-nginx-proxy-li">
+  <input type="checkbox" id="m-linux-notes-nginx-nginx-proxy-check"/>
+  <label for="m-linux-notes-nginx-nginx-proxy-check"><a href="/linux-notes/nginx/nginx-proxy/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-nginx-nginx-proxy"><span class="">Nginx作为反向代理</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-nginx-nginx-http-li">
+  <input type="checkbox" id="m-linux-notes-nginx-nginx-http-check"/>
+  <label for="m-linux-notes-nginx-nginx-http-check"><a href="/linux-notes/nginx/nginx-http/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-nginx-nginx-http"><span class="">Nginx http服务器</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-nginx-config-ssl-for-nginx-li">
+  <input type="checkbox" id="m-linux-notes-nginx-config-ssl-for-nginx-check"/>
+  <label for="m-linux-notes-nginx-config-ssl-for-nginx-check"><a href="/linux-notes/nginx/config-ssl-for-nginx/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-nginx-config-ssl-for-nginx"><span class="">配置Nginx免费证书</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-keepalived-li">
+  <input type="checkbox" id="m-linux-notes-keepalived-check"/>
+  <label for="m-linux-notes-keepalived-check"><a href="/linux-notes/keepalived/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-keepalived"><span class="">Keepalived</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keepalived-keepalived-introduction-li">
+  <input type="checkbox" id="m-linux-notes-keepalived-keepalived-introduction-check"/>
+  <label for="m-linux-notes-keepalived-keepalived-introduction-check"><a href="/linux-notes/keepalived/keepalived-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keepalived-keepalived-introduction"><span class="">Keepalived简介</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keepalived-install-keepalived-li">
+  <input type="checkbox" id="m-linux-notes-keepalived-install-keepalived-check"/>
+  <label for="m-linux-notes-keepalived-install-keepalived-check"><a href="/linux-notes/keepalived/install-keepalived/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keepalived-install-keepalived"><span class="">Keepalived安装与配置</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keepalived-keepalived-operation-li">
+  <input type="checkbox" id="m-linux-notes-keepalived-keepalived-operation-check"/>
+  <label for="m-linux-notes-keepalived-keepalived-operation-check"><a href="/linux-notes/keepalived/keepalived-operation/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keepalived-keepalived-operation"><span class="">Keepalived相关操作</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keepalived-keepalived-conf-li">
+  <input type="checkbox" id="m-linux-notes-keepalived-keepalived-conf-check"/>
+  <label for="m-linux-notes-keepalived-keepalived-conf-check"><a href="/linux-notes/keepalived/keepalived-conf/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keepalived-keepalived-conf"><span class="">Keepalived配置详解</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-ide-li">
+  <input type="checkbox" id="m-linux-notes-ide-check"/>
+  <label for="m-linux-notes-ide-check"><a href="/linux-notes/ide/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-ide"><span class="">IDE配置</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-ide-vscode-li">
+  <input type="checkbox" id="m-linux-notes-ide-vscode-check"/>
+  <label for="m-linux-notes-ide-vscode-check"><a href="/linux-notes/ide/vscode/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-ide-vscode"><span class="">vscode使用配置</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-ide-goland-li">
+  <input type="checkbox" id="m-linux-notes-ide-goland-check"/>
+  <label for="m-linux-notes-ide-goland-check"><a href="/linux-notes/ide/goland/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-ide-goland"><span class="">Goland配置</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-ide-vim-li">
+  <input type="checkbox" id="m-linux-notes-ide-vim-check"/>
+  <label for="m-linux-notes-ide-vim-check"><a href="/linux-notes/ide/vim/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-ide-vim"><span class="">VIM配置</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-ide-vim-basic-vimrc-li">
+  <input type="checkbox" id="m-linux-notes-ide-vim-basic-vimrc-check"/>
+  <label for="m-linux-notes-ide-vim-basic-vimrc-check"><a href="/linux-notes/ide/vim/basic-vimrc/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-ide-vim-basic-vimrc"><span class="">basic vimrc</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-ide-vim-vim-keymap-li">
+  <input type="checkbox" id="m-linux-notes-ide-vim-vim-keymap-check"/>
+  <label for="m-linux-notes-ide-vim-vim-keymap-check"><a href="/linux-notes/ide/vim/vim-keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-ide-vim-vim-keymap"><span class="">vim 命令</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-ide-vim-vimrc-cn-li">
+  <input type="checkbox" id="m-linux-notes-ide-vim-vimrc-cn-check"/>
+  <label for="m-linux-notes-ide-vim-vimrc-cn-check"><a href="/linux-notes/ide/vim/vimrc-cn/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-ide-vim-vimrc-cn"><span class="">vim 配置</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-keymap-li">
+  <input type="checkbox" id="m-linux-notes-keymap-check"/>
+  <label for="m-linux-notes-keymap-check"><a href="/linux-notes/keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-keymap"><span class="">快捷键</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keymap-vscode-keymap-li">
+  <input type="checkbox" id="m-linux-notes-keymap-vscode-keymap-check"/>
+  <label for="m-linux-notes-keymap-vscode-keymap-check"><a href="/linux-notes/keymap/vscode-keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keymap-vscode-keymap"><span class="">vscode快捷键</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keymap-eclipse-keymap-li">
+  <input type="checkbox" id="m-linux-notes-keymap-eclipse-keymap-check"/>
+  <label for="m-linux-notes-keymap-eclipse-keymap-check"><a href="/linux-notes/keymap/eclipse-keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keymap-eclipse-keymap"><span class="">eclipse快捷键</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keymap-chrome-keymap-li">
+  <input type="checkbox" id="m-linux-notes-keymap-chrome-keymap-check"/>
+  <label for="m-linux-notes-keymap-chrome-keymap-check"><a href="/linux-notes/keymap/chrome-keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keymap-chrome-keymap"><span class="">chrome快捷键</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keymap-tmux-keymap-li">
+  <input type="checkbox" id="m-linux-notes-keymap-tmux-keymap-check"/>
+  <label for="m-linux-notes-keymap-tmux-keymap-check"><a href="/linux-notes/keymap/tmux-keymap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keymap-tmux-keymap"><span class="">tmux快捷键</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keymap-iterm2-rzsz-li">
+  <input type="checkbox" id="m-linux-notes-keymap-iterm2-rzsz-check"/>
+  <label for="m-linux-notes-keymap-iterm2-rzsz-check"><a href="/linux-notes/keymap/iterm2-rzsz/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keymap-iterm2-rzsz"><span class="">iterm2 rz与sz的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-keymap-blog-li">
+  <input type="checkbox" id="m-linux-notes-keymap-blog-check"/>
+  <label for="m-linux-notes-keymap-blog-check"><a href="/linux-notes/keymap/blog/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-keymap-blog"><span class="">博客问题记录</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-linux-notes-baremetal-li">
+  <input type="checkbox" id="m-linux-notes-baremetal-check"/>
+  <label for="m-linux-notes-baremetal-check"><a href="/linux-notes/baremetal/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-baremetal"><span class="">裸金属</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-baremetal-bmc-li">
+  <input type="checkbox" id="m-linux-notes-baremetal-bmc-check"/>
+  <label for="m-linux-notes-baremetal-bmc-check"><a href="/linux-notes/baremetal/bmc/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-baremetal-bmc"><span class="">BMC概念</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-baremetal-redfish-api-li">
+  <input type="checkbox" id="m-linux-notes-baremetal-redfish-api-check"/>
+  <label for="m-linux-notes-baremetal-redfish-api-check"><a href="/linux-notes/baremetal/redfish-api/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-baremetal-redfish-api"><span class="">Redfish API</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-baremetal-format-disk-li">
+  <input type="checkbox" id="m-linux-notes-baremetal-format-disk-check"/>
+  <label for="m-linux-notes-baremetal-format-disk-check"><a href="/linux-notes/baremetal/format-disk/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-baremetal-format-disk"><span class="">格式化磁盘分区</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-linux-notes-llm-li">
+  <input type="checkbox" id="m-linux-notes-llm-check" checked/>
+  <label for="m-linux-notes-llm-check"><a href="/linux-notes/llm/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-linux-notes-llm"><span class="">大模型</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-llm-build-ollama-openwebui-li">
+  <input type="checkbox" id="m-linux-notes-llm-build-ollama-openwebui-check"/>
+  <label for="m-linux-notes-llm-build-ollama-openwebui-check"><a href="/linux-notes/llm/build-ollama-openwebui/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-llm-build-ollama-openwebui"><span class="">基于Ollama构建本地大模型</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-llm-mcp-li">
+  <input type="checkbox" id="m-linux-notes-llm-mcp-check"/>
+  <label for="m-linux-notes-llm-mcp-check"><a href="/linux-notes/llm/mcp/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-llm-mcp"><span class="">大模型相关概念</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-llm-how-llm-work-li">
+  <input type="checkbox" id="m-linux-notes-llm-how-llm-work-check"/>
+  <label for="m-linux-notes-llm-how-llm-work-check"><a href="/linux-notes/llm/how-llm-work/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-llm-how-llm-work"><span class="">大模型原理</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-llm-llm-rag-li">
+  <input type="checkbox" id="m-linux-notes-llm-llm-rag-check"/>
+  <label for="m-linux-notes-llm-llm-rag-check"><a href="/linux-notes/llm/llm-rag/" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-linux-notes-llm-llm-rag"><span class="td-sidebar-nav-active-item">RAG工程</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-linux-notes-llm-llm-fine-tuning-li">
+  <input type="checkbox" id="m-linux-notes-llm-llm-fine-tuning-check"/>
+  <label for="m-linux-notes-llm-llm-fine-tuning-check"><a href="/linux-notes/llm/llm-fine-tuning/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-linux-notes-llm-llm-fine-tuning"><span class="">大模型微调</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li>
+    </ul>
+  </nav>
+</div>
+
+          </aside>
+          <aside class="d-none d-xl-block col-xl-2 td-sidebar-toc d-print-none">
+            
+<div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
+<a href="https://github.com/huweihuang/blog.huweihuang.com/tree/master/content/zh-cn/linux-notes/LLM/llm-rag.md" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa fa-file-alt fa-fw"></i> 查看页面源码</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/edit/master/content/zh-cn/linux-notes/LLM/llm-rag.md" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 编辑此页</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/new/master/content/zh-cn/linux-notes/LLM/llm-rag.md?filename=change-me.md&amp;value=---%0Atitle%3A&#43;%22Long&#43;Page&#43;Title%22%0AlinkTitle%3A&#43;%22Short&#43;Nav&#43;Title%22%0Aweight%3A&#43;100%0Adescription%3A&#43;%3E-%0A&#43;&#43;&#43;&#43;&#43;Page&#43;description&#43;for&#43;heading&#43;and&#43;indexes.%0A---%0A%0A%23%23&#43;Heading%0A%0AEdit&#43;this&#43;template&#43;to&#43;create&#43;your&#43;new&#43;page.%0A%0A%2A&#43;Give&#43;it&#43;a&#43;good&#43;name%2C&#43;ending&#43;in&#43;%60.md%60&#43;-&#43;e.g.&#43;%60getting-started.md%60%0A%2A&#43;Edit&#43;the&#43;%22front&#43;matter%22&#43;section&#43;at&#43;the&#43;top&#43;of&#43;the&#43;page&#43;%28weight&#43;controls&#43;how&#43;its&#43;ordered&#43;amongst&#43;other&#43;pages&#43;in&#43;the&#43;same&#43;directory%3B&#43;lowest&#43;number&#43;first%29.%0A%2A&#43;Add&#43;a&#43;good&#43;commit&#43;message&#43;at&#43;the&#43;bottom&#43;of&#43;the&#43;page&#43;%28%3C80&#43;characters%3B&#43;use&#43;the&#43;extended&#43;description&#43;field&#43;for&#43;more&#43;detail%29.%0A%2A&#43;Create&#43;a&#43;new&#43;branch&#43;so&#43;you&#43;can&#43;preview&#43;your&#43;new&#43;file&#43;and&#43;request&#43;a&#43;review&#43;via&#43;Pull&#43;Request.%0A" class="td-page-meta--child" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 添加子页面</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new?title=RAG%e5%b7%a5%e7%a8%8b" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new" class="td-page-meta--project-issue" target="_blank" rel="noopener"><i class="fas fa-tasks fa-fw"></i> 提交项目问题</a>
+  <a id="print" href="https://blog.huweihuang.com/linux-notes/llm/_print/"><i class="fa fa-print fa-fw"></i> 整节打印</a>
+
+</div>
+
+            
+
+
+<div class="td-toc"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-rag-检索增强生成">1. RAG（检索增强生成）</a>
+      <ul>
+        <li><a href="#1-1-建立索引">1.1. 建立索引</a></li>
+        <li><a href="#1-2-检索与生成">1.2. 检索与生成</a></li>
+        <li><a href="#1-3-实践rag应用">1.3. 实践RAG应用</a></li>
+      </ul>
+    </li>
+    <li><a href="#2-rag工作流程优化">2. RAG工作流程优化</a>
+      <ul>
+        <li><a href="#2-1-文档准备阶段">2.1. 文档准备阶段</a></li>
+        <li><a href="#2-2-文档解析与切片阶段">2.2. 文档解析与切片阶段</a>
+          <ul>
+            <li><a href="#2-2-1-问题分类及改进策略">2.2.1. 问题分类及改进策略</a></li>
+            <li><a href="#2-2-2-借助工具解析pdf到markdown">2.2.2. 借助工具解析pdf到markdown</a></li>
+            <li><a href="#2-2-3-使用多种文档切片方法">2.2.3. 使用多种文档切片方法</a></li>
+          </ul>
+        </li>
+        <li><a href="#2-3-切片向量化与存储阶段">2.3. 切片向量化与存储阶段</a>
+          <ul>
+            <li><a href="#2-3-1-了解embedding与向量化">2.3.1. 了解Embedding与向量化</a></li>
+            <li><a href="#2-3-2-选择合适的embedding模型">2.3.2. 选择合适的Embedding模型</a></li>
+            <li><a href="#2-3-3-选择合适的向量数据库">2.3.3. 选择合适的向量数据库</a></li>
+          </ul>
+        </li>
+        <li><a href="#2-4-向量召回阶段">2.4. 向量召回阶段</a>
+          <ul>
+            <li><a href="#2-3-1-问题改写">2.3.1. 问题改写</a></li>
+            <li><a href="#2-3-2-提取标签增强检索">2.3.2. 提取标签增强检索</a></li>
+            <li><a href="#2-2-3-重排序">2.2.3. 重排序</a></li>
+          </ul>
+        </li>
+        <li><a href="#2-5-生成答案阶段">2.5. 生成答案阶段</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav></div>
+
+
+
+            
+
+	
+		
+			
+				
+			
+			
+
+
+
+  
+  
+    <div class="taxonomy taxonomy-terms-cloud taxo-tags">
+      
+        <h5 class="taxonomy-title">Tags</h5>
+      
+      <ul class="taxonomy-terms">
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/apisix/" data-taxonomy-term="apisix"><span class="taxonomy-label">ApiSix</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/blog/" data-taxonomy-term="blog"><span class="taxonomy-label">Blog</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/cgroup/" data-taxonomy-term="cgroup"><span class="taxonomy-label">Cgroup</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/cni/" data-taxonomy-term="cni"><span class="taxonomy-label">CNI</span><span class="taxonomy-count">7</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/containerd/" data-taxonomy-term="containerd"><span class="taxonomy-label">Containerd</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/csi/" data-taxonomy-term="csi"><span class="taxonomy-label">CSI</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/disk/" data-taxonomy-term="disk"><span class="taxonomy-label">disk</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/docker/" data-taxonomy-term="docker"><span class="taxonomy-label">Docker</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/etcd/" data-taxonomy-term="etcd"><span class="taxonomy-label">Etcd</span><span class="taxonomy-count">8</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/git/" data-taxonomy-term="git"><span class="taxonomy-label">Git</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/golang/" data-taxonomy-term="golang"><span class="taxonomy-label">Golang</span><span class="taxonomy-count">39</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/gpu/" data-taxonomy-term="gpu"><span class="taxonomy-label">GPU</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/ide/" data-taxonomy-term="ide"><span class="taxonomy-label">IDE</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/iptables/" data-taxonomy-term="iptables"><span class="taxonomy-label">iptables</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/karmada/" data-taxonomy-term="karmada"><span class="taxonomy-label">Karmada</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/keepalived/" data-taxonomy-term="keepalived"><span class="taxonomy-label">Keepalived</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubeadm/" data-taxonomy-term="kubeadm"><span class="taxonomy-label">kubeadm</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubeedge/" data-taxonomy-term="kubeedge"><span class="taxonomy-label">Kubeedge</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubernetes/" data-taxonomy-term="kubernetes"><span class="taxonomy-label">Kubernetes</span><span class="taxonomy-count">66</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubevirt/" data-taxonomy-term="kubevirt"><span class="taxonomy-label">KubeVirt</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/linux/" data-taxonomy-term="linux"><span class="taxonomy-label">Linux</span><span class="taxonomy-count">11</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/memcached/" data-taxonomy-term="memcached"><span class="taxonomy-label">Memcached</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/monitor/" data-taxonomy-term="monitor"><span class="taxonomy-label">Monitor</span><span class="taxonomy-count">6</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/mysql/" data-taxonomy-term="mysql"><span class="taxonomy-label">Mysql</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/network/" data-taxonomy-term="network"><span class="taxonomy-label">Network</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/nginx/" data-taxonomy-term="nginx"><span class="taxonomy-label">Nginx</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/openyurt/" data-taxonomy-term="openyurt"><span class="taxonomy-label">OpenYurt</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/operator/" data-taxonomy-term="operator"><span class="taxonomy-label">Operator</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/pod/" data-taxonomy-term="pod"><span class="taxonomy-label">Pod</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/redis/" data-taxonomy-term="redis"><span class="taxonomy-label">Redis</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/runtime/" data-taxonomy-term="runtime"><span class="taxonomy-label">Runtime</span><span class="taxonomy-count">9</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/scheduler/" data-taxonomy-term="scheduler"><span class="taxonomy-label">Scheduler</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/serverless/" data-taxonomy-term="serverless"><span class="taxonomy-label">Serverless</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/shell/" data-taxonomy-term="shell"><span class="taxonomy-label">Shell</span><span class="taxonomy-count">9</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/tcpip/" data-taxonomy-term="tcpip"><span class="taxonomy-label">TCPIP</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/vim/" data-taxonomy-term="vim"><span class="taxonomy-label">VIM</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/virtualkubelet/" data-taxonomy-term="virtualkubelet"><span class="taxonomy-label">VirtualKubelet</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%A4%9A%E9%9B%86%E7%BE%A4/" data-taxonomy-term="%E5%A4%9A%E9%9B%86%E7%BE%A4"><span class="taxonomy-label">多集群</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%A4%A7%E6%A8%A1%E5%9E%8B/" data-taxonomy-term="%E5%A4%A7%E6%A8%A1%E5%9E%8B"><span class="taxonomy-label">大模型</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%BF%AB%E6%8D%B7%E9%94%AE/" data-taxonomy-term="%E5%BF%AB%E6%8D%B7%E9%94%AE"><span class="taxonomy-label">快捷键</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-taxonomy-term="%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="taxonomy-label">源码分析</span><span class="taxonomy-count">28</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E8%A3%B8%E9%87%91%E5%B1%9E/" data-taxonomy-term="%E8%A3%B8%E9%87%91%E5%B1%9E"><span class="taxonomy-label">裸金属</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/" data-taxonomy-term="%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5"><span class="taxonomy-label">问题排查</span><span class="taxonomy-count">9</span></a></li>
+        
+      </ul>
+    </div>
+  
+
+		
+			
+				
+			
+			
+
+
+
+  
+  
+
+		
+	
+
+          </aside>
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+  
+
+            <nav aria-label="breadcrumb" class="td-breadcrumbs">
+  <ol class="breadcrumb">
+  <li class="breadcrumb-item">
+    <a href="https://blog.huweihuang.com/linux-notes/">Linux学习笔记</a>
+  </li>
+  <li class="breadcrumb-item">
+    <a href="https://blog.huweihuang.com/linux-notes/llm/">大模型</a>
+  </li>
+  <li class="breadcrumb-item active" aria-current="page">
+    <a href="https://blog.huweihuang.com/linux-notes/llm/llm-rag/">RAG工程</a>
+  </li>
+  </ol>
+</nav>
+            
+<div class="td-content">
+	<h1>RAG工程</h1>
+	
+	<header class="article-meta">
+		
+
+  
+    
+      
+
+
+<div class="taxonomy taxonomy-terms-article taxo-tags">
+  <h5 class="taxonomy-title">Tags:</h5>
+  <ul class="taxonomy-terms">
+    
+      <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%A4%A7%E6%A8%A1%E5%9E%8B/" data-taxonomy-term="%E5%A4%A7%E6%A8%A1%E5%9E%8B"><span class="taxonomy-label">大模型</span></a></li>
+    
+  </ul>
+</div>
+
+    
+      
+
+
+    
+  
+
+		
+	</header>    
+	<blockquote>
+<p>本文基于<a href="https://github.com/AlibabaCloudDocs/aliyun_acp_learning/tree/main">GitHub - AlibabaCloudDocs/aliyun_acp_learning</a>内容整理。</p>
+</blockquote>
+<h1 id="1-rag-检索增强生成">1. RAG（检索增强生成）</h1>
+<p><strong>RAG（Retrieval-Augmented Generation，检索增强生成）</strong> 就是实现上下文工程的强大技术方案。</p>
+<p>核心思想：</p>
+<ul>
+<li>
+<p>检索：检索与私域知识相关的知识片段。</p>
+</li>
+<li>
+<p>增强：与用户的问题合并喂给大模型。</p>
+</li>
+<li>
+<p>生成：生成大模型返回的回答。</p>
+</li>
+</ul>
+<p>构建RAG主要为2个阶段：</p>
+<h2 id="1-1-建立索引">1.1. 建立索引</h2>
+<p>建立索引是为了将私有知识文档或片段转换为可以高效检索的形式。通过将文件内容分割并转化为多维向量（使用专用 Embedding 模型），并结合向量存储保留文本的语义信息，方便进行相似度计算。向量化使得模型能够高效检索和匹配相关内容，特别是在处理大规模知识库时，显著提高了查询的准确性和响应速度。</p>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1757338374/article/linux/llm/rag_1.png" alt=""></p>
+<p>建议索引主要包含以下步骤：</p>
+<ol>
+<li>
+<p><strong>文档解析</strong>：需要将各种格式的文档（pdf, word）解析成大模型可理解的格式。</p>
+</li>
+<li>
+<p><strong>文本分段</strong>：对解析后的文档进行分类分段，以便可以快速找到。</p>
+</li>
+<li>
+<p><strong>文本向量化</strong>：对文本进行数字化，以便进行相似度比较和寻址。</p>
+</li>
+<li>
+<p><strong>存储索引</strong>：将向量化后的数据存储到向量数据库，增加后续的查找速度。</p>
+</li>
+</ol>
+<h2 id="1-2-检索与生成">1.2. 检索与生成</h2>
+<p>检索生成是根据用户的提问，从索引中检索相关的文档片段，这些片段会与提问一起输入到大模型生成最终的回答。这样大模型就能够回答私有知识问题了。</p>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1757338376/article/linux/llm/rag_2.png" alt=""></p>
+<ol>
+<li>
+<p>检索：检索会把问题同向量数据库的进行相似度比较，并找出最相关的段落。</p>
+</li>
+<li>
+<p>生成：将问题和检索的内容生成提示词喂给大模型，利用大模型的总结能力返回答案。</p>
+</li>
+</ol>
+<h2 id="1-3-实践rag应用">1.3. 实践RAG应用</h2>
+<p><strong>1、基于公司的制度文件创建RAG应用</strong>，步骤如下：</p>
+<ol>
+<li>
+<p><strong>解析文本文件</strong></p>
+</li>
+<li>
+<p><strong>创建索引</strong></p>
+</li>
+<li>
+<p><strong>创建提问引擎（设置流式输出）</strong></p>
+</li>
+<li>
+<p><strong>输入问题并输出答案</strong></p>
+</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 导入依赖</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">from</span> <span style="color:#000">llama_index.embeddings.dashscope</span> <span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000">DashScopeEmbedding</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">DashScopeTextEmbeddingModels</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">from</span> <span style="color:#000">llama_index.core</span> <span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000">SimpleDirectoryReader</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">VectorStoreIndex</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">from</span> <span style="color:#000">llama_index.llms.openai_like</span> <span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000">OpenAILike</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 这两行代码是用于消除 WARNING 警告信息，避免干扰阅读学习，生产环境中建议根据需要来设置日志级别</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000">logging</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">logging</span><span style="color:#ce5c00;font-weight:bold">.</span><span style="color:#000">basicConfig</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">level</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#000">logging</span><span style="color:#ce5c00;font-weight:bold">.</span><span style="color:#000">ERROR</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">print</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;正在解析文件...&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># LlamaIndex提供了SimpleDirectoryReader方法，可以直接将指定文件夹中的文件加载为document对象，对应着解析过程</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">documents</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">SimpleDirectoryReader</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#39;./docs&#39;</span><span style="color:#000;font-weight:bold">)</span><span style="color:#ce5c00;font-weight:bold">.</span><span style="color:#000">load_data</span><span style="color:#000;font-weight:bold">()</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">print</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;正在创建索引...&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># from_documents方法包含切片与建立索引步骤</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">index</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">VectorStoreIndex</span><span style="color:#ce5c00;font-weight:bold">.</span><span style="color:#000">from_documents</span><span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">documents</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic"># 指定embedding 模型</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">embed_model</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#000">DashScopeEmbedding</span><span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#8f5902;font-style:italic"># 你也可以使用阿里云提供的其它embedding模型：https://help.aliyun.com/zh/model-studio/getting-started/models#3383780daf8hw</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">model_name</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#000">DashScopeTextEmbeddingModels</span><span style="color:#ce5c00;font-weight:bold">.</span><span style="color:#000">TEXT_EMBEDDING_V2</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">print</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;正在创建提问引擎...&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">query_engine</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">index</span><span style="color:#ce5c00;font-weight:bold">.</span><span style="color:#000">as_query_engine</span><span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic"># 设置为流式输出</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">streaming</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">True</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#8f5902;font-style:italic"># 此处使用qwen-plus模型，你也可以使用阿里云提供的其它qwen的文本生成模型：https://help.aliyun.com/zh/model-studio/getting-started/models#9f8890ce29g5u</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">llm</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#000">OpenAILike</span><span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">model</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;qwen-plus&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">api_base</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;https://dashscope.aliyuncs.com/compatible-mode/v1&#34;</span><span style="color:#000;font-weight:bold">,</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">api_key</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#000">os</span><span style="color:#ce5c00;font-weight:bold">.</span><span style="color:#000">getenv</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;DASHSCOPE_API_KEY&#34;</span><span style="color:#000;font-weight:bold">),</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">is_chat_model</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#204a87;font-weight:bold">True</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">print</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;正在生成回复...&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">streaming_response</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">query_engine</span><span style="color:#ce5c00;font-weight:bold">.</span><span style="color:#000">query</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#39;我们公司项目管理应该用什么工具&#39;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">print</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;回答是：&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 采用流式输出</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">streaming_response</span><span style="color:#ce5c00;font-weight:bold">.</span><span style="color:#000">print_response_stream</span><span style="color:#000;font-weight:bold">()</span>
+</span></span></code></pre></div><p><strong>2、RAG程序优化，保存和加载索引</strong></p>
+<p>由于创建索引的时间比较长，如果提前创建索引并保存到本地，则可以提升大模型回答的速度。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 将索引保存为本地文件</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">index</span><span style="color:#ce5c00;font-weight:bold">.</span><span style="color:#000">storage_context</span><span style="color:#ce5c00;font-weight:bold">.</span><span style="color:#000">persist</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;knowledge_base/test&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">print</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;索引文件保存到了knowledge_base/test&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 将本地索引文件加载为索引</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">from</span> <span style="color:#000">llama_index.core</span> <span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000">StorageContext</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">load_index_from_storage</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">storage_context</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">StorageContext</span><span style="color:#ce5c00;font-weight:bold">.</span><span style="color:#000">from_defaults</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">persist_dir</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;knowledge_base/test&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">index</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">load_index_from_storage</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">storage_context</span><span style="color:#000;font-weight:bold">,</span><span style="color:#000">embed_model</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#000">DashScopeEmbedding</span><span style="color:#000;font-weight:bold">(</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#000">model_name</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#000">DashScopeTextEmbeddingModels</span><span style="color:#ce5c00;font-weight:bold">.</span><span style="color:#000">TEXT_EMBEDDING_V2</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000;font-weight:bold">))</span>
+</span></span><span style="display:flex;"><span><span style="color:#204a87">print</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;成功从knowledge_base/test路径加载索引&#34;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><p>封装：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">from</span> <span style="color:#000">chatbot</span> <span style="color:#204a87;font-weight:bold">import</span> <span style="color:#000">rag</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 引文在前面的步骤中已经建立了索引，因此这里可以直接加载索引。如果需要重建索引，可以增加一行代码：rag.indexing()</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">index</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">rag</span><span style="color:#ce5c00;font-weight:bold">.</span><span style="color:#000">load_index</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">persist_path</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#39;./knowledge_base/test&#39;</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#000">query_engine</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">rag</span><span style="color:#ce5c00;font-weight:bold">.</span><span style="color:#000">create_query_engine</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">index</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#000">index</span><span style="color:#000;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#000">rag</span><span style="color:#ce5c00;font-weight:bold">.</span><span style="color:#000">ask</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#39;我们公司项目管理应该用什么工具&#39;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">query_engine</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#000">query_engine</span><span style="color:#000;font-weight:bold">)</span>
+</span></span></code></pre></div><h1 id="2-rag工作流程优化">2. RAG工作流程优化</h1>
+<p>rag的工作流程如下：</p>
+<ol>
+<li>
+<p>解析与切片</p>
+</li>
+<li>
+<p>向量存储</p>
+</li>
+<li>
+<p>检索召回</p>
+</li>
+<li>
+<p>生成答案</p>
+</li>
+</ol>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1757591798/article/linux/llm/rag.jpg" alt=""></p>
+<p>RAG各个环节优化策略</p>
+<h2 id="2-1-文档准备阶段">2.1. 文档准备阶段</h2>
+<h2 id="2-2-文档解析与切片阶段">2.2. 文档解析与切片阶段</h2>
+<h3 id="2-2-1-问题分类及改进策略">2.2.1. 问题分类及改进策略</h3>
+<h3 id="2-2-2-借助工具解析pdf到markdown">2.2.2. 借助工具解析pdf到markdown</h3>
+<h3 id="2-2-3-使用多种文档切片方法">2.2.3. 使用多种文档切片方法</h3>
+<ol>
+<li>
+<p>Token切片</p>
+</li>
+<li>
+<p>句子切片</p>
+</li>
+<li>
+<p>句子窗口切片</p>
+</li>
+<li>
+<p>语义切片</p>
+</li>
+<li>
+<p>markdown切片</p>
+</li>
+</ol>
+<h2 id="2-3-切片向量化与存储阶段">2.3. 切片向量化与存储阶段</h2>
+<p>文档切片后需要建立索引，可以使用嵌入（Embedding）模型将切片向量化，并存储到向量数据库中。</p>
+<h3 id="2-3-1-了解embedding与向量化">2.3.1. 了解Embedding与向量化</h3>
+<p>Embedding模型将文本转换为高维向量，向量之间夹角越小说明相似度越高。</p>
+<h3 id="2-3-2-选择合适的embedding模型">2.3.2. 选择合适的Embedding模型</h3>
+<p>不同的Embedding模型对相同文字得到的向量可能完全不同，越新的Embedding模型其表现越好。在实践中，单纯升级Embedding模型就可以显著提升检索质量。</p>
+<h3 id="2-3-3-选择合适的向量数据库">2.3.3. 选择合适的向量数据库</h3>
+<p>向量存储方案从简单到复杂如下：</p>
+<ul>
+<li>
+<p><code>内存向量存储</code>：优点快速上手，开发测试；缺点数据无法持久化，受限于内存大小。</p>
+</li>
+<li>
+<p><code>本地向量数据库</code>：例如Milvus、Qdrant 等。这些数据库提供了数据持久化和高效检索能力。优点是功能完整、可控性强；缺点是需要自行部署维护。</p>
+</li>
+<li>
+<p><code>云服务向量存储</code>：例如阿里云的向量检索服务（DashVector），向量检索服务 Milvus 版，已有数据库的向量能力。优点是按量付费，成本可控，无需运维。</p>
+</li>
+</ul>
+<p>选择建议：</p>
+<ul>
+<li>
+<p>开发测试选择内存向量存储</p>
+</li>
+<li>
+<p>小规模应用选择本地向量数据库</p>
+</li>
+<li>
+<p>生产环境使用云服务。</p>
+</li>
+</ul>
+<h2 id="2-4-向量召回阶段">2.4. 向量召回阶段</h2>
+<h3 id="2-3-1-问题改写">2.3.1. 问题改写</h3>
+<ul>
+<li>
+<p>使用大模型扩充问题</p>
+</li>
+<li>
+<p>将单一查询改为多步查询</p>
+</li>
+<li>
+<p>用假设文档来增强检索</p>
+</li>
+</ul>
+<h3 id="2-3-2-提取标签增强检索">2.3.2. 提取标签增强检索</h3>
+<p>在向量检索的基础上我们可以增加标签过滤：</p>
+<ol>
+<li>
+<p>建立索引时，从文档切片中提取结构化标签</p>
+</li>
+<li>
+<p>检索时，从用户问题中提取对应标签进行过滤</p>
+</li>
+</ol>
+<h3 id="2-2-3-重排序">2.2.3. 重排序</h3>
+<p>从向量数据库中检索出20条文档切片，通过文本排序模型进行重新排序，删选出最相关的3条信息。</p>
+<h2 id="2-5-生成答案阶段">2.5. 生成答案阶段</h2>
+<p>大模型生成的答案不及预期，可以通过以下方式解决：</p>
+<ol>
+<li>
+<p>选择合适的大模型</p>
+</li>
+<li>
+<p>充分优化提示词模板：明确要求不编造答案；添加内容分隔标记；根据问题类型调整模板。</p>
+</li>
+<li>
+<p>调整大模型参数</p>
+</li>
+<li>
+<p>调优大模型</p>
+</li>
+</ol>
+<p>参考：</p>
+<ul>
+<li>
+<p><a href="https://github.com/AlibabaCloudDocs/aliyun_acp_learning/blob/main/%E5%A4%A7%E6%A8%A1%E5%9E%8BACP%E8%AE%A4%E8%AF%81%E6%95%99%E7%A8%8B/p2_%E6%9E%84%E9%80%A0%E5%A4%A7%E6%A8%A1%E5%9E%8B%E9%97%AE%E7%AD%94%E7%B3%BB%E7%BB%9F/2_2_%E6%89%A9%E5%B1%95%E7%AD%94%E7%96%91%E6%9C%BA%E5%99%A8%E4%BA%BA%E7%9A%84%E7%9F%A5%E8%AF%86%E8%8C%83%E5%9B%B4.ipynb">扩展答疑机器人的知识范围</a></p>
+</li>
+<li>
+<p><a href="https://github.com/AlibabaCloudDocs/aliyun_acp_learning/blob/main/%E5%A4%A7%E6%A8%A1%E5%9E%8BACP%E8%AE%A4%E8%AF%81%E6%95%99%E7%A8%8B/p2_%E6%9E%84%E9%80%A0%E5%A4%A7%E6%A8%A1%E5%9E%8B%E9%97%AE%E7%AD%94%E7%B3%BB%E7%BB%9F/2_5_%E4%BC%98%E5%8C%96RAG%E5%BA%94%E7%94%A8%E6%8F%90%E5%8D%87%E9%97%AE%E7%AD%94%E5%87%86%E7%A1%AE%E5%BA%A6.ipynb">优化RAG应用提升问答准确度</a></p>
+</li>
+</ul>
+
+	
+		<style>
+  .feedback--answer {
+    display: inline-block;
+  }
+  .feedback--answer-no {
+    margin-left: 1em;
+  }
+  .feedback--response {
+    display: none;
+    margin-top: 1em;
+  }
+  .feedback--response__visible {
+    display: block;
+  }
+</style>
+<div class="d-print-none">
+<h2 class="feedback--title">Feedback</h2>
+<p class="feedback--question">Was this page helpful?</p>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-yes">Yes</button>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-no">No</button>
+<p class="feedback--response feedback--response-yes">
+  Glad to hear it! Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+<p class="feedback--response feedback--response-no">
+  Sorry to hear that. Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+</div>
+<script>
+  const yesButton = document.querySelector('.feedback--answer-yes');
+  const noButton = document.querySelector('.feedback--answer-no');
+  const yesResponse = document.querySelector('.feedback--response-yes');
+  const noResponse = document.querySelector('.feedback--response-no');
+  const disableButtons = () => {
+    yesButton.disabled = true;
+    noButton.disabled = true;
+  };
+  const sendFeedback = (value) => {
+    if (typeof ga !== 'function') return;
+    const args = {
+      command: 'send',
+      hitType: 'event',
+      category: 'Helpful',
+      action: 'click',
+      label: window.location.pathname,
+      value: value
+    };
+    ga(args.command, args.hitType, args.category, args.action, args.label, args.value);
+  };
+  yesButton.addEventListener('click', () => {
+    yesResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(1);
+  });
+  noButton.addEventListener('click', () => {
+    noResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(0);
+  });
+</script>
+
+		<br />
+	
+	
+	
+</div>
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/blog.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2025 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		<p class="mt-2"><a href="/about/">About</a></p>
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+  </body>
+</html>
