@@ -1,0 +1,1785 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<meta name="robots" content="index, follow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>Terraform的使用 | 胡伟煌</title>
+<meta name="description" content="1. 安装terraform
+mac
+brew tap hashicorp/tap
+brew install hashicorp/tap/terraform
+linux: centos
+sudo yum install -y yum-utils
+sudo yum-config-manager …">
+<meta property="og:title" content="Terraform的使用" />
+<meta property="og:description" content="1. 安装terraform mac
+brew tap hashicorp/tap brew install hashicorp/tap/terraform linux: centos
+sudo yum install -y yum-utils sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo sudo yum -y install terraform 2. terraform命令 编写terraform的部署文本，常用命令：
+terraform init：项目初始化
+terraform plan：预览
+terraform apply：部署
+terraform destroy：销毁
+terraform --help Usage: terraform [global options] &lt;subcommand&gt; [args] The available commands for execution are listed below. The primary workflow commands are given first, followed by less common or more advanced commands. Main commands: init Prepare your working directory for other commands validate Check whether the configuration is valid plan Show changes required by the current configuration apply Create or update infrastructure destroy Destroy previously-created infrastructure All other commands: console Try Terraform expressions at an interactive command prompt fmt Reformat your configuration in the standard style force-unlock Release a stuck lock on the current workspace get Install or upgrade remote Terraform modules graph Generate a Graphviz graph of the steps in an operation import Associate existing infrastructure with a Terraform resource login Obtain and save credentials for a remote host logout Remove locally-stored credentials for a remote host metadata Metadata related commands modules Show all declared modules in a working directory output Show output values from your root module providers Show the providers required for this configuration refresh Update the state to match remote systems show Show the current state or a saved plan stacks Manage HCP Terraform stack operations state Advanced state management taint Mark a resource instance as not fully functional test Execute integration tests for Terraform modules untaint Remove the &#39;tainted&#39; state from a resource instance version Show the current Terraform version workspace Workspace management 3." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://blog.huweihuang.com/kubernetes-notes/serverless/terraform-usage/" /><meta property="article:section" content="kubernetes-notes" />
+<meta property="article:published_time" content="2025-09-21T10:50:57+00:00" />
+<meta property="article:modified_time" content="2025-09-21T10:50:57+00:00" /><meta property="og:site_name" content="胡伟煌" />
+
+<meta itemprop="name" content="Terraform的使用">
+<meta itemprop="description" content="1. 安装terraform mac
+brew tap hashicorp/tap brew install hashicorp/tap/terraform linux: centos
+sudo yum install -y yum-utils sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo sudo yum -y install terraform 2. terraform命令 编写terraform的部署文本，常用命令：
+terraform init：项目初始化
+terraform plan：预览
+terraform apply：部署
+terraform destroy：销毁
+terraform --help Usage: terraform [global options] &lt;subcommand&gt; [args] The available commands for execution are listed below. The primary workflow commands are given first, followed by less common or more advanced commands. Main commands: init Prepare your working directory for other commands validate Check whether the configuration is valid plan Show changes required by the current configuration apply Create or update infrastructure destroy Destroy previously-created infrastructure All other commands: console Try Terraform expressions at an interactive command prompt fmt Reformat your configuration in the standard style force-unlock Release a stuck lock on the current workspace get Install or upgrade remote Terraform modules graph Generate a Graphviz graph of the steps in an operation import Associate existing infrastructure with a Terraform resource login Obtain and save credentials for a remote host logout Remove locally-stored credentials for a remote host metadata Metadata related commands modules Show all declared modules in a working directory output Show output values from your root module providers Show the providers required for this configuration refresh Update the state to match remote systems show Show the current state or a saved plan stacks Manage HCP Terraform stack operations state Advanced state management taint Mark a resource instance as not fully functional test Execute integration tests for Terraform modules untaint Remove the &#39;tainted&#39; state from a resource instance version Show the current Terraform version workspace Workspace management 3."><meta itemprop="datePublished" content="2025-09-21T10:50:57+00:00" />
+<meta itemprop="dateModified" content="2025-09-21T10:50:57+00:00" />
+<meta itemprop="wordCount" content="742">
+<meta itemprop="keywords" content="IaC,Terraform," /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Terraform的使用"/>
+<meta name="twitter:description" content="1. 安装terraform mac
+brew tap hashicorp/tap brew install hashicorp/tap/terraform linux: centos
+sudo yum install -y yum-utils sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo sudo yum -y install terraform 2. terraform命令 编写terraform的部署文本，常用命令：
+terraform init：项目初始化
+terraform plan：预览
+terraform apply：部署
+terraform destroy：销毁
+terraform --help Usage: terraform [global options] &lt;subcommand&gt; [args] The available commands for execution are listed below. The primary workflow commands are given first, followed by less common or more advanced commands. Main commands: init Prepare your working directory for other commands validate Check whether the configuration is valid plan Show changes required by the current configuration apply Create or update infrastructure destroy Destroy previously-created infrastructure All other commands: console Try Terraform expressions at an interactive command prompt fmt Reformat your configuration in the standard style force-unlock Release a stuck lock on the current workspace get Install or upgrade remote Terraform modules graph Generate a Graphviz graph of the steps in an operation import Associate existing infrastructure with a Terraform resource login Obtain and save credentials for a remote host logout Remove locally-stored credentials for a remote host metadata Metadata related commands modules Show all declared modules in a working directory output Show output values from your root module providers Show the providers required for this configuration refresh Update the state to match remote systems show Show the current state or a saved plan stacks Manage HCP Terraform stack operations state Advanced state management taint Mark a resource instance as not fully functional test Execute integration tests for Terraform modules untaint Remove the &#39;tainted&#39; state from a resource instance version Show the current Terraform version workspace Workspace management 3."/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" as="style">
+<link href="/scss/main.min.79e3930541ca05b5395c14b2a313b798fad1dc69f9a14aefa57b62eaa9f65f14.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-114718458-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-page">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">胡伟煌</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/kubernetes-notes/" ><span class="active">Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/k8s-source-code-analysis/" ><span>Kubernetes源码分析</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/golang-notes/" ><span>Golang学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/linux-notes/" ><span>Linux学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/about/" ><span>About</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.e2fd09f74a12c5112ef29cf5b07c323d.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <aside class="col-12 col-md-3 col-xl-2 td-sidebar d-print-none">
+            
+<div id="td-sidebar-menu" class="td-sidebar__inner">
+  <form class="td-sidebar__search d-flex align-items-center">
+    <input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.e2fd09f74a12c5112ef29cf5b07c323d.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+
+    <button class="btn btn-link td-sidebar__toggle d-md-none p-0 ml-3 fas fa-bars" type="button" data-toggle="collapse" data-target="#td-section-nav" aria-controls="td-docs-nav" aria-expanded="false" aria-label="Toggle section navigation">
+    </button>
+  </form>
+  <nav class="collapse td-sidebar-nav foldable-nav" id="td-section-nav">
+    <ul class="td-sidebar-nav__section pr-md-3 ul-0">
+      <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-kubernetes-notes-li">
+  <a href="/kubernetes-notes/" class="align-left pl-0 td-sidebar-link td-sidebar-link__section tree-root" id="m-kubernetes-notes"><span class="">Kubernetes学习笔记</span></a>
+  <ul class="ul-1">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-paas-li">
+  <input type="checkbox" id="m-kubernetes-notes-paas-check"/>
+  <label for="m-kubernetes-notes-paas-check"><a href="/kubernetes-notes/paas/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-paas"><span class="">云原生体系</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-paas-k8s-li">
+  <input type="checkbox" id="m-kubernetes-notes-paas-k8s-check"/>
+  <label for="m-kubernetes-notes-paas-k8s-check"><a href="/kubernetes-notes/paas/k8s/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-paas-k8s"><span class="">k8s知识体系</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-paas-12-factor-li">
+  <input type="checkbox" id="m-kubernetes-notes-paas-12-factor-check"/>
+  <label for="m-kubernetes-notes-paas-12-factor-check"><a href="/kubernetes-notes/paas/12-factor/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-paas-12-factor"><span class="">12 Factor</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-setup-li">
+  <input type="checkbox" id="m-kubernetes-notes-setup-check"/>
+  <label for="m-kubernetes-notes-setup-check"><a href="/kubernetes-notes/setup/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-setup"><span class="">安装与配置</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-setup-installer-li">
+  <input type="checkbox" id="m-kubernetes-notes-setup-installer-check"/>
+  <label for="m-kubernetes-notes-setup-installer-check"><a href="/kubernetes-notes/setup/installer/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-setup-installer"><span class="">部署k8s集群</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-setup-installer-install-k8s-by-kubeadm-li">
+  <input type="checkbox" id="m-kubernetes-notes-setup-installer-install-k8s-by-kubeadm-check"/>
+  <label for="m-kubernetes-notes-setup-installer-install-k8s-by-kubeadm-check"><a href="/kubernetes-notes/setup/installer/install-k8s-by-kubeadm/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-setup-installer-install-k8s-by-kubeadm"><span class="">使用kubeadm部署生产环境kubernetes集群</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-setup-installer-install-k8s-by-kubespray-li">
+  <input type="checkbox" id="m-kubernetes-notes-setup-installer-install-k8s-by-kubespray-check"/>
+  <label for="m-kubernetes-notes-setup-installer-install-k8s-by-kubespray-check"><a href="/kubernetes-notes/setup/installer/install-k8s-by-kubespray/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-setup-installer-install-k8s-by-kubespray"><span class="">使用kubespray安装kubernetes</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-setup-installer-install-k8s-by-minikube-li">
+  <input type="checkbox" id="m-kubernetes-notes-setup-installer-install-k8s-by-minikube-check"/>
+  <label for="m-kubernetes-notes-setup-installer-install-k8s-by-minikube-check"><a href="/kubernetes-notes/setup/installer/install-k8s-by-minikube/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-setup-installer-install-k8s-by-minikube"><span class="">使用minikube安装kubernetes</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-setup-installer-install-k8s-by-kind-li">
+  <input type="checkbox" id="m-kubernetes-notes-setup-installer-install-k8s-by-kind-check"/>
+  <label for="m-kubernetes-notes-setup-installer-install-k8s-by-kind-check"><a href="/kubernetes-notes/setup/installer/install-k8s-by-kind/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-setup-installer-install-k8s-by-kind"><span class="">使用kind安装kubernetes</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-setup-installer-install-dashboard-li">
+  <input type="checkbox" id="m-kubernetes-notes-setup-installer-install-dashboard-check"/>
+  <label for="m-kubernetes-notes-setup-installer-install-dashboard-check"><a href="/kubernetes-notes/setup/installer/install-dashboard/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-setup-installer-install-dashboard"><span class="">安装k8s dashboard</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-setup-kubeadm-upgrade-li">
+  <input type="checkbox" id="m-kubernetes-notes-setup-kubeadm-upgrade-check"/>
+  <label for="m-kubernetes-notes-setup-kubeadm-upgrade-check"><a href="/kubernetes-notes/setup/kubeadm-upgrade/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-setup-kubeadm-upgrade"><span class="">kubeadm升级k8s集群</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-setup-k8s-cert-li">
+  <input type="checkbox" id="m-kubernetes-notes-setup-k8s-cert-check"/>
+  <label for="m-kubernetes-notes-setup-k8s-cert-check"><a href="/kubernetes-notes/setup/k8s-cert/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-setup-k8s-cert"><span class="">k8s证书及秘钥</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-setup-kubeadm-certs-li">
+  <input type="checkbox" id="m-kubernetes-notes-setup-kubeadm-certs-check"/>
+  <label for="m-kubernetes-notes-setup-kubeadm-certs-check"><a href="/kubernetes-notes/setup/kubeadm-certs/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-setup-kubeadm-certs"><span class="">kubeadm管理证书</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-setup-k8s-version-release-li">
+  <input type="checkbox" id="m-kubernetes-notes-setup-k8s-version-release-check"/>
+  <label for="m-kubernetes-notes-setup-k8s-version-release-check"><a href="/kubernetes-notes/setup/k8s-version-release/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-setup-k8s-version-release"><span class="">k8s版本说明</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-setup-k8s-changelog-li">
+  <input type="checkbox" id="m-kubernetes-notes-setup-k8s-changelog-check"/>
+  <label for="m-kubernetes-notes-setup-k8s-changelog-check"><a href="/kubernetes-notes/setup/k8s-changelog/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-setup-k8s-changelog"><span class="">k8s版本记录</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-concepts-li">
+  <input type="checkbox" id="m-kubernetes-notes-concepts-check"/>
+  <label for="m-kubernetes-notes-concepts-check"><a href="/kubernetes-notes/concepts/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-concepts"><span class="">基本概念</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-concepts-architecture-li">
+  <input type="checkbox" id="m-kubernetes-notes-concepts-architecture-check"/>
+  <label for="m-kubernetes-notes-concepts-architecture-check"><a href="/kubernetes-notes/concepts/architecture/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-concepts-architecture"><span class="">kubernetes架构</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-concepts-architecture-kubernetes-architecture-li">
+  <input type="checkbox" id="m-kubernetes-notes-concepts-architecture-kubernetes-architecture-check"/>
+  <label for="m-kubernetes-notes-concepts-architecture-kubernetes-architecture-check"><a href="/kubernetes-notes/concepts/architecture/kubernetes-architecture/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-concepts-architecture-kubernetes-architecture"><span class="">Kubernetes总架构图</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-concepts-architecture-paas-based-on-docker-and-kubernetes-li">
+  <input type="checkbox" id="m-kubernetes-notes-concepts-architecture-paas-based-on-docker-and-kubernetes-check"/>
+  <label for="m-kubernetes-notes-concepts-architecture-paas-based-on-docker-and-kubernetes-check"><a href="/kubernetes-notes/concepts/architecture/paas-based-on-docker-and-kubernetes/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-concepts-architecture-paas-based-on-docker-and-kubernetes"><span class=""> 基于Docker及Kubernetes技术构建容器云（PaaS）平台</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-concepts-object-li">
+  <input type="checkbox" id="m-kubernetes-notes-concepts-object-check"/>
+  <label for="m-kubernetes-notes-concepts-object-check"><a href="/kubernetes-notes/concepts/object/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-concepts-object"><span class="">kubernetes对象</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-concepts-object-kubernetes-basic-concepts-li">
+  <input type="checkbox" id="m-kubernetes-notes-concepts-object-kubernetes-basic-concepts-check"/>
+  <label for="m-kubernetes-notes-concepts-object-kubernetes-basic-concepts-check"><a href="/kubernetes-notes/concepts/object/kubernetes-basic-concepts/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-concepts-object-kubernetes-basic-concepts"><span class="">Kubernetes基本概念</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-concepts-object-understanding-kubernetes-objects-li">
+  <input type="checkbox" id="m-kubernetes-notes-concepts-object-understanding-kubernetes-objects-check"/>
+  <label for="m-kubernetes-notes-concepts-object-understanding-kubernetes-objects-check"><a href="/kubernetes-notes/concepts/object/understanding-kubernetes-objects/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-concepts-object-understanding-kubernetes-objects"><span class="">理解kubernetes对象</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-concepts-pod-li">
+  <input type="checkbox" id="m-kubernetes-notes-concepts-pod-check"/>
+  <label for="m-kubernetes-notes-concepts-pod-check"><a href="/kubernetes-notes/concepts/pod/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-concepts-pod"><span class="">Pod对象</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-concepts-pod-pod-li">
+  <input type="checkbox" id="m-kubernetes-notes-concepts-pod-pod-check"/>
+  <label for="m-kubernetes-notes-concepts-pod-pod-check"><a href="/kubernetes-notes/concepts/pod/pod/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-concepts-pod-pod"><span class="">Pod介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-concepts-pod-pod-definition-li">
+  <input type="checkbox" id="m-kubernetes-notes-concepts-pod-pod-definition-check"/>
+  <label for="m-kubernetes-notes-concepts-pod-pod-definition-check"><a href="/kubernetes-notes/concepts/pod/pod-definition/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-concepts-pod-pod-definition"><span class="">Pod定义文件</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-concepts-pod-pod-lifecycle-li">
+  <input type="checkbox" id="m-kubernetes-notes-concepts-pod-pod-lifecycle-check"/>
+  <label for="m-kubernetes-notes-concepts-pod-pod-lifecycle-check"><a href="/kubernetes-notes/concepts/pod/pod-lifecycle/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-concepts-pod-pod-lifecycle"><span class="">Pod生命周期</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-concepts-pod-pod-probe-li">
+  <input type="checkbox" id="m-kubernetes-notes-concepts-pod-pod-probe-check"/>
+  <label for="m-kubernetes-notes-concepts-pod-pod-probe-check"><a href="/kubernetes-notes/concepts/pod/pod-probe/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-concepts-pod-pod-probe"><span class="">Pod健康检查</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-concepts-pod-pod-volume-li">
+  <input type="checkbox" id="m-kubernetes-notes-concepts-pod-pod-volume-check"/>
+  <label for="m-kubernetes-notes-concepts-pod-pod-volume-check"><a href="/kubernetes-notes/concepts/pod/pod-volume/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-concepts-pod-pod-volume"><span class="">Pod存储卷</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-concepts-pod-pod-scheduler-li">
+  <input type="checkbox" id="m-kubernetes-notes-concepts-pod-pod-scheduler-check"/>
+  <label for="m-kubernetes-notes-concepts-pod-pod-scheduler-check"><a href="/kubernetes-notes/concepts/pod/pod-scheduler/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-concepts-pod-pod-scheduler"><span class="">Pod调度</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-concepts-pod-pod-operation-li">
+  <input type="checkbox" id="m-kubernetes-notes-concepts-pod-pod-operation-check"/>
+  <label for="m-kubernetes-notes-concepts-pod-pod-operation-check"><a href="/kubernetes-notes/concepts/pod/pod-operation/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-concepts-pod-pod-operation"><span class="">Pod伸缩与升级</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-concepts-configmap-li">
+  <input type="checkbox" id="m-kubernetes-notes-concepts-configmap-check"/>
+  <label for="m-kubernetes-notes-concepts-configmap-check"><a href="/kubernetes-notes/concepts/configmap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-concepts-configmap"><span class="">配置</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-concepts-configmap-pod-configmap-li">
+  <input type="checkbox" id="m-kubernetes-notes-concepts-configmap-pod-configmap-check"/>
+  <label for="m-kubernetes-notes-concepts-configmap-pod-configmap-check"><a href="/kubernetes-notes/concepts/configmap/pod-configmap/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-concepts-configmap-pod-configmap"><span class="">ConfigMap</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-principle-li">
+  <input type="checkbox" id="m-kubernetes-notes-principle-check"/>
+  <label for="m-kubernetes-notes-principle-check"><a href="/kubernetes-notes/principle/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-principle"><span class="">核心原理</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-principle-component-li">
+  <input type="checkbox" id="m-kubernetes-notes-principle-component-check"/>
+  <label for="m-kubernetes-notes-principle-component-check"><a href="/kubernetes-notes/principle/component/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-principle-component"><span class="">核心组件</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-principle-component-kubernetes-core-principle-api-server-li">
+  <input type="checkbox" id="m-kubernetes-notes-principle-component-kubernetes-core-principle-api-server-check"/>
+  <label for="m-kubernetes-notes-principle-component-kubernetes-core-principle-api-server-check"><a href="/kubernetes-notes/principle/component/kubernetes-core-principle-api-server/" title="Kubernetes核心原理（一）之API Server" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-principle-component-kubernetes-core-principle-api-server"><span class="">API Server</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-principle-component-kubernetes-core-principle-controller-manager-li">
+  <input type="checkbox" id="m-kubernetes-notes-principle-component-kubernetes-core-principle-controller-manager-check"/>
+  <label for="m-kubernetes-notes-principle-component-kubernetes-core-principle-controller-manager-check"><a href="/kubernetes-notes/principle/component/kubernetes-core-principle-controller-manager/" title="Kubernetes核心原理（二）之Controller Manager" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-principle-component-kubernetes-core-principle-controller-manager"><span class="">Controller Manager</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-principle-component-kubernetes-core-principle-scheduler-li">
+  <input type="checkbox" id="m-kubernetes-notes-principle-component-kubernetes-core-principle-scheduler-check"/>
+  <label for="m-kubernetes-notes-principle-component-kubernetes-core-principle-scheduler-check"><a href="/kubernetes-notes/principle/component/kubernetes-core-principle-scheduler/" title="Kubernetes核心原理（三）之Scheduler" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-principle-component-kubernetes-core-principle-scheduler"><span class="">Scheduler</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-principle-component-kubernetes-core-principle-kubelet-li">
+  <input type="checkbox" id="m-kubernetes-notes-principle-component-kubernetes-core-principle-kubelet-check"/>
+  <label for="m-kubernetes-notes-principle-component-kubernetes-core-principle-kubelet-check"><a href="/kubernetes-notes/principle/component/kubernetes-core-principle-kubelet/" title="Kubernetes核心原理（四）之kubelet" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-principle-component-kubernetes-core-principle-kubelet"><span class="">Kubelet</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-principle-flow-li">
+  <input type="checkbox" id="m-kubernetes-notes-principle-flow-check"/>
+  <label for="m-kubernetes-notes-principle-flow-check"><a href="/kubernetes-notes/principle/flow/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-principle-flow"><span class="">流程图</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-principle-flow-pod-flow-li">
+  <input type="checkbox" id="m-kubernetes-notes-principle-flow-pod-flow-check"/>
+  <label for="m-kubernetes-notes-principle-flow-pod-flow-check"><a href="/kubernetes-notes/principle/flow/pod-flow/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-principle-flow-pod-flow"><span class="">Pod创建流程</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-principle-flow-pvc-flow-li">
+  <input type="checkbox" id="m-kubernetes-notes-principle-flow-pvc-flow-check"/>
+  <label for="m-kubernetes-notes-principle-flow-pvc-flow-check"><a href="/kubernetes-notes/principle/flow/pvc-flow/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-principle-flow-pvc-flow"><span class="">PVC创建流程</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-network-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-check"/>
+  <label for="m-kubernetes-notes-network-check"><a href="/kubernetes-notes/network/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-network"><span class="">容器网络</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-network-docker-network-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-docker-network-check"/>
+  <label for="m-kubernetes-notes-network-docker-network-check"><a href="/kubernetes-notes/network/docker-network/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-network-docker-network"><span class="">Docker网络</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-network-kubernetes-network-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-kubernetes-network-check"/>
+  <label for="m-kubernetes-notes-network-kubernetes-network-check"><a href="/kubernetes-notes/network/kubernetes-network/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-network-kubernetes-network"><span class="">K8S网络</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-network-pod-dns-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-pod-dns-check"/>
+  <label for="m-kubernetes-notes-network-pod-dns-check"><a href="/kubernetes-notes/network/pod-dns/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-network-pod-dns"><span class="">Pod的DNS策略</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-network-cni-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-cni-check"/>
+  <label for="m-kubernetes-notes-network-cni-check"><a href="/kubernetes-notes/network/cni/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-network-cni"><span class="">CNI</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-network-cni-cni-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-cni-cni-check"/>
+  <label for="m-kubernetes-notes-network-cni-cni-check"><a href="/kubernetes-notes/network/cni/cni/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-network-cni-cni"><span class="">CNI接口介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-network-cni-cni-plugin-comparison-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-cni-cni-plugin-comparison-check"/>
+  <label for="m-kubernetes-notes-network-cni-cni-plugin-comparison-check"><a href="/kubernetes-notes/network/cni/cni-plugin-comparison/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-network-cni-cni-plugin-comparison"><span class="">CNI插件选型</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-network-cni-macvlan-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-cni-macvlan-check"/>
+  <label for="m-kubernetes-notes-network-cni-macvlan-check"><a href="/kubernetes-notes/network/cni/macvlan/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-network-cni-macvlan"><span class="">Macvlan介绍</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-network-flannel-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-flannel-check"/>
+  <label for="m-kubernetes-notes-network-flannel-check"><a href="/kubernetes-notes/network/flannel/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-network-flannel"><span class="">Flannel</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-network-flannel-flannel-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-flannel-flannel-check"/>
+  <label for="m-kubernetes-notes-network-flannel-flannel-check"><a href="/kubernetes-notes/network/flannel/flannel/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-network-flannel-flannel"><span class="">Flannel介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-network-flannel-vxlan-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-flannel-vxlan-check"/>
+  <label for="m-kubernetes-notes-network-flannel-vxlan-check"><a href="/kubernetes-notes/network/flannel/vxlan/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-network-flannel-vxlan"><span class="">VXLAN原理介绍</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-network-calico-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-calico-check"/>
+  <label for="m-kubernetes-notes-network-calico-check"><a href="/kubernetes-notes/network/calico/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-network-calico"><span class="">Calico</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-network-calico-calico-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-calico-calico-check"/>
+  <label for="m-kubernetes-notes-network-calico-calico-check"><a href="/kubernetes-notes/network/calico/calico/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-network-calico-calico"><span class="">Calico介绍</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-network-cilium-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-cilium-check"/>
+  <label for="m-kubernetes-notes-network-cilium-check"><a href="/kubernetes-notes/network/cilium/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-network-cilium"><span class="">Cilium</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-network-cilium-cilium-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-cilium-cilium-check"/>
+  <label for="m-kubernetes-notes-network-cilium-cilium-check"><a href="/kubernetes-notes/network/cilium/cilium/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-network-cilium-cilium"><span class="">Cilium介绍</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-network-gateway-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-gateway-check"/>
+  <label for="m-kubernetes-notes-network-gateway-check"><a href="/kubernetes-notes/network/gateway/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-network-gateway"><span class="">k8s网关</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-network-gateway-install-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-gateway-install-check"/>
+  <label for="m-kubernetes-notes-network-gateway-install-check"><a href="/kubernetes-notes/network/gateway/install/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-network-gateway-install"><span class="">安装APISIX</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-network-gateway-apisix-ingress-controller-usage-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-gateway-apisix-ingress-controller-usage-check"/>
+  <label for="m-kubernetes-notes-network-gateway-apisix-ingress-controller-usage-check"><a href="/kubernetes-notes/network/gateway/apisix-ingress-controller-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-network-gateway-apisix-ingress-controller-usage"><span class="">创建路由</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-network-gateway-ingress-controller-design-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-gateway-ingress-controller-design-check"/>
+  <label for="m-kubernetes-notes-network-gateway-ingress-controller-design-check"><a href="/kubernetes-notes/network/gateway/ingress-controller-design/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-network-gateway-ingress-controller-design"><span class="">ingress-controller原理</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-network-gateway-apisix-config-li">
+  <input type="checkbox" id="m-kubernetes-notes-network-gateway-apisix-config-check"/>
+  <label for="m-kubernetes-notes-network-gateway-apisix-config-check"><a href="/kubernetes-notes/network/gateway/apisix-config/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-network-gateway-apisix-config"><span class="">APISIX配置</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-storage-li">
+  <input type="checkbox" id="m-kubernetes-notes-storage-check"/>
+  <label for="m-kubernetes-notes-storage-check"><a href="/kubernetes-notes/storage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-storage"><span class="">容器存储</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-storage-volume-li">
+  <input type="checkbox" id="m-kubernetes-notes-storage-volume-check"/>
+  <label for="m-kubernetes-notes-storage-volume-check"><a href="/kubernetes-notes/storage/volume/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-storage-volume"><span class="">存储卷概念</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-storage-volume-volume-li">
+  <input type="checkbox" id="m-kubernetes-notes-storage-volume-volume-check"/>
+  <label for="m-kubernetes-notes-storage-volume-volume-check"><a href="/kubernetes-notes/storage/volume/volume/" title="Volume介绍" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-storage-volume-volume"><span class="">Volume</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-storage-volume-persistent-volume-li">
+  <input type="checkbox" id="m-kubernetes-notes-storage-volume-persistent-volume-check"/>
+  <label for="m-kubernetes-notes-storage-volume-persistent-volume-check"><a href="/kubernetes-notes/storage/volume/persistent-volume/" title="PersistentVolume 介绍" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-storage-volume-persistent-volume"><span class="">PersistentVolume</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-storage-volume-persistent-volume-claim-li">
+  <input type="checkbox" id="m-kubernetes-notes-storage-volume-persistent-volume-claim-check"/>
+  <label for="m-kubernetes-notes-storage-volume-persistent-volume-claim-check"><a href="/kubernetes-notes/storage/volume/persistent-volume-claim/" title="PersistentVolumeClaim 介绍" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-storage-volume-persistent-volume-claim"><span class="">PersistentVolumeClaim</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-storage-volume-storage-class-li">
+  <input type="checkbox" id="m-kubernetes-notes-storage-volume-storage-class-check"/>
+  <label for="m-kubernetes-notes-storage-volume-storage-class-check"><a href="/kubernetes-notes/storage/volume/storage-class/" title="StorageClass 介绍" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-storage-volume-storage-class"><span class="">StorageClass</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-storage-volume-dynamic-provisioning-li">
+  <input type="checkbox" id="m-kubernetes-notes-storage-volume-dynamic-provisioning-check"/>
+  <label for="m-kubernetes-notes-storage-volume-dynamic-provisioning-check"><a href="/kubernetes-notes/storage/volume/dynamic-provisioning/" title="Dynamic Volume Provisioning 介绍" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-storage-volume-dynamic-provisioning"><span class="">Dynamic Volume Provisioning</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-storage-csi-li">
+  <input type="checkbox" id="m-kubernetes-notes-storage-csi-check"/>
+  <label for="m-kubernetes-notes-storage-csi-check"><a href="/kubernetes-notes/storage/csi/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-storage-csi"><span class="">CSI</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-storage-csi-ceph-csi-cephfs-plugin-li">
+  <input type="checkbox" id="m-kubernetes-notes-storage-csi-ceph-csi-cephfs-plugin-check"/>
+  <label for="m-kubernetes-notes-storage-csi-ceph-csi-cephfs-plugin-check"><a href="/kubernetes-notes/storage/csi/ceph/csi-cephfs-plugin/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-storage-csi-ceph-csi-cephfs-plugin"><span class="">csi-cephfs-plugin</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-storage-csi-ceph-deploy-csi-cephfs-li">
+  <input type="checkbox" id="m-kubernetes-notes-storage-csi-ceph-deploy-csi-cephfs-check"/>
+  <label for="m-kubernetes-notes-storage-csi-ceph-deploy-csi-cephfs-check"><a href="/kubernetes-notes/storage/csi/ceph/deploy-csi-cephfs/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-storage-csi-ceph-deploy-csi-cephfs"><span class="">部署csi-cephfs</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-storage-csi-provisioner-cephfs-provisioner-li">
+  <input type="checkbox" id="m-kubernetes-notes-storage-csi-provisioner-cephfs-provisioner-check"/>
+  <label for="m-kubernetes-notes-storage-csi-provisioner-cephfs-provisioner-check"><a href="/kubernetes-notes/storage/csi/provisioner/cephfs-provisioner/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-storage-csi-provisioner-cephfs-provisioner"><span class="">部署cephfs-provisioner</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-storage-csi-flexvolume-li">
+  <input type="checkbox" id="m-kubernetes-notes-storage-csi-flexvolume-check"/>
+  <label for="m-kubernetes-notes-storage-csi-flexvolume-check"><a href="/kubernetes-notes/storage/csi/flexvolume/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-storage-csi-flexvolume"><span class="">FlexVolume介绍</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-resource-li">
+  <input type="checkbox" id="m-kubernetes-notes-resource-check"/>
+  <label for="m-kubernetes-notes-resource-check"><a href="/kubernetes-notes/resource/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-resource"><span class="">资源隔离</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-resource-resource-quota-li">
+  <input type="checkbox" id="m-kubernetes-notes-resource-resource-quota-check"/>
+  <label for="m-kubernetes-notes-resource-resource-quota-check"><a href="/kubernetes-notes/resource/resource-quota/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-resource-resource-quota"><span class="">资源配额</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-resource-limit-range-li">
+  <input type="checkbox" id="m-kubernetes-notes-resource-limit-range-check"/>
+  <label for="m-kubernetes-notes-resource-limit-range-check"><a href="/kubernetes-notes/resource/limit-range/" title="资源配额" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-resource-limit-range"><span class="">Pod限额</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-resource-quality-of-service-li">
+  <input type="checkbox" id="m-kubernetes-notes-resource-quality-of-service-check"/>
+  <label for="m-kubernetes-notes-resource-quality-of-service-check"><a href="/kubernetes-notes/resource/quality-of-service/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-resource-quality-of-service"><span class="">资源服务质量</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-resource-lxcfs-lxcfs-li">
+  <input type="checkbox" id="m-kubernetes-notes-resource-lxcfs-lxcfs-check"/>
+  <label for="m-kubernetes-notes-resource-lxcfs-lxcfs-check"><a href="/kubernetes-notes/resource/lxcfs/lxcfs/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-resource-lxcfs-lxcfs"><span class="">Lxcfs资源视图隔离</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-operation-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-check"/>
+  <label for="m-kubernetes-notes-operation-check"><a href="/kubernetes-notes/operation/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-operation"><span class="">运维指南</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-kubernetes-troubleshooting-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-kubernetes-troubleshooting-check"/>
+  <label for="m-kubernetes-notes-operation-kubernetes-troubleshooting-check"><a href="/kubernetes-notes/operation/kubernetes-troubleshooting/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-kubernetes-troubleshooting"><span class="">Kubernetes集群问题排查</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-operation-kubectl-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-kubectl-check"/>
+  <label for="m-kubernetes-notes-operation-kubectl-check"><a href="/kubernetes-notes/operation/kubectl/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-operation-kubectl"><span class="">kubectl工具</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-kubectl-install-kubectl-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-kubectl-install-kubectl-check"/>
+  <label for="m-kubernetes-notes-operation-kubectl-install-kubectl-check"><a href="/kubernetes-notes/operation/kubectl/install-kubectl/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-kubectl-install-kubectl"><span class="">kubectl安装与配置</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-kubectl-kubectl-commands-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-kubectl-kubectl-commands-check"/>
+  <label for="m-kubernetes-notes-operation-kubectl-kubectl-commands-check"><a href="/kubernetes-notes/operation/kubectl/kubectl-commands/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-kubectl-kubectl-commands"><span class="">kubectl命令使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-kubectl-kubectl-alias-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-kubectl-kubectl-alias-check"/>
+  <label for="m-kubernetes-notes-operation-kubectl-kubectl-alias-check"><a href="/kubernetes-notes/operation/kubectl/kubectl-alias/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-kubectl-kubectl-alias"><span class="">kubectl命令别名</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-kubectl-kubectl-node-shell-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-kubectl-kubectl-node-shell-check"/>
+  <label for="m-kubernetes-notes-operation-kubectl-kubectl-node-shell-check"><a href="/kubernetes-notes/operation/kubectl/kubectl-node-shell/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-kubectl-kubectl-node-shell"><span class="">kubectl进入node shell</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-kubectl-kubeconfig-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-kubectl-kubeconfig-check"/>
+  <label for="m-kubernetes-notes-operation-kubectl-kubeconfig-check"><a href="/kubernetes-notes/operation/kubectl/kubeconfig/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-kubectl-kubeconfig"><span class="">kubeconfig的使用</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-operation-node-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-node-check"/>
+  <label for="m-kubernetes-notes-operation-node-check"><a href="/kubernetes-notes/operation/node/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-operation-node"><span class="">节点迁移</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-node-nodeselector-and-taint-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-node-nodeselector-and-taint-check"/>
+  <label for="m-kubernetes-notes-operation-node-nodeselector-and-taint-check"><a href="/kubernetes-notes/operation/node/nodeselector-and-taint/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-node-nodeselector-and-taint"><span class="">指定节点调度与隔离</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-node-safely-drain-node-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-node-safely-drain-node-check"/>
+  <label for="m-kubernetes-notes-operation-node-safely-drain-node-check"><a href="/kubernetes-notes/operation/node/safely-drain-node/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-node-safely-drain-node"><span class="">安全迁移节点</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-operation-registry-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-registry-check"/>
+  <label for="m-kubernetes-notes-operation-registry-check"><a href="/kubernetes-notes/operation/registry/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-operation-registry"><span class="">镜像仓库</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-registry-config-private-registry-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-registry-config-private-registry-check"/>
+  <label for="m-kubernetes-notes-operation-registry-config-private-registry-check"><a href="/kubernetes-notes/operation/registry/config-private-registry/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-registry-config-private-registry"><span class="">配置私有镜像仓库</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-registry-imagepullsecrets-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-registry-imagepullsecrets-check"/>
+  <label for="m-kubernetes-notes-operation-registry-imagepullsecrets-check"><a href="/kubernetes-notes/operation/registry/imagepullsecrets/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-registry-imagepullsecrets"><span class="">拉取私有镜像</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-operation-deployment-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-deployment-check"/>
+  <label for="m-kubernetes-notes-operation-deployment-check"><a href="/kubernetes-notes/operation/deployment/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-operation-deployment"><span class="">版本发布</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-deployment-canary-deployment-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-deployment-canary-deployment-check"/>
+  <label for="m-kubernetes-notes-operation-deployment-canary-deployment-check"><a href="/kubernetes-notes/operation/deployment/canary-deployment/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-deployment-canary-deployment"><span class="">金丝雀发布</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-deployment-kruise-rollout-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-deployment-kruise-rollout-check"/>
+  <label for="m-kubernetes-notes-operation-deployment-kruise-rollout-check"><a href="/kubernetes-notes/operation/deployment/kruise-rollout/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-deployment-kruise-rollout"><span class="">Kruise Rollout发布</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-deployment-k8s-hpa-usage-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-deployment-k8s-hpa-usage-check"/>
+  <label for="m-kubernetes-notes-operation-deployment-k8s-hpa-usage-check"><a href="/kubernetes-notes/operation/deployment/k8s-hpa-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-deployment-k8s-hpa-usage"><span class="">HPA[自动扩缩容]配置</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-operation-helm-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-helm-check"/>
+  <label for="m-kubernetes-notes-operation-helm-check"><a href="/kubernetes-notes/operation/helm/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-operation-helm"><span class="">helm工具</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-helm-helm-usage-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-helm-helm-usage-check"/>
+  <label for="m-kubernetes-notes-operation-helm-helm-usage-check"><a href="/kubernetes-notes/operation/helm/helm-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-helm-helm-usage"><span class="">helm的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-helm-kine-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-helm-kine-check"/>
+  <label for="m-kubernetes-notes-operation-helm-kine-check"><a href="/kubernetes-notes/operation/helm/kine/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-helm-kine"><span class="">kine的使用</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-operation-access-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-access-check"/>
+  <label for="m-kubernetes-notes-operation-access-check"><a href="/kubernetes-notes/operation/access/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-operation-access"><span class="">访问控制</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-operation-access-rbac-auth-li">
+  <input type="checkbox" id="m-kubernetes-notes-operation-access-rbac-auth-check"/>
+  <label for="m-kubernetes-notes-operation-access-rbac-auth-check"><a href="/kubernetes-notes/operation/access/rbac-auth/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-operation-access-rbac-auth"><span class="">使用 RBAC 鉴权</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-develop-li">
+  <input type="checkbox" id="m-kubernetes-notes-develop-check"/>
+  <label for="m-kubernetes-notes-develop-check"><a href="/kubernetes-notes/develop/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-develop"><span class="">开发指南</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-develop-client-go-li">
+  <input type="checkbox" id="m-kubernetes-notes-develop-client-go-check"/>
+  <label for="m-kubernetes-notes-develop-client-go-check"><a href="/kubernetes-notes/develop/client-go/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-develop-client-go"><span class="">client-go的使用及源码分析</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-develop-operator-li">
+  <input type="checkbox" id="m-kubernetes-notes-develop-operator-check"/>
+  <label for="m-kubernetes-notes-develop-operator-check"><a href="/kubernetes-notes/develop/operator/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-develop-operator"><span class="">operator开发</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-develop-operator-kubebuilder-li">
+  <input type="checkbox" id="m-kubernetes-notes-develop-operator-kubebuilder-check"/>
+  <label for="m-kubernetes-notes-develop-operator-kubebuilder-check"><a href="/kubernetes-notes/develop/operator/kubebuilder/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-develop-operator-kubebuilder"><span class="">kubebuilder的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-develop-operator-develop-operator-li">
+  <input type="checkbox" id="m-kubernetes-notes-develop-operator-develop-operator-check"/>
+  <label for="m-kubernetes-notes-develop-operator-develop-operator-check"><a href="/kubernetes-notes/develop/operator/develop-operator/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-develop-operator-develop-operator"><span class="">如何开发一个Operator</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-develop-csi-li">
+  <input type="checkbox" id="m-kubernetes-notes-develop-csi-check"/>
+  <label for="m-kubernetes-notes-develop-csi-check"><a href="/kubernetes-notes/develop/csi/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-develop-csi"><span class="">CSI插件开发</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-develop-csi-csi-provisioner-li">
+  <input type="checkbox" id="m-kubernetes-notes-develop-csi-csi-provisioner-check"/>
+  <label for="m-kubernetes-notes-develop-csi-csi-provisioner-check"><a href="/kubernetes-notes/develop/csi/csi-provisioner/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-develop-csi-csi-provisioner"><span class="">csi-provisioner源码分析</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-develop-csi-nfs-client-provisioner-li">
+  <input type="checkbox" id="m-kubernetes-notes-develop-csi-nfs-client-provisioner-check"/>
+  <label for="m-kubernetes-notes-develop-csi-nfs-client-provisioner-check"><a href="/kubernetes-notes/develop/csi/nfs-client-provisioner/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-develop-csi-nfs-client-provisioner"><span class="">nfs-client-provisioner源码分析</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-develop-develop-k8s-li">
+  <input type="checkbox" id="m-kubernetes-notes-develop-develop-k8s-check"/>
+  <label for="m-kubernetes-notes-develop-develop-k8s-check"><a href="/kubernetes-notes/develop/develop-k8s/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-develop-develop-k8s"><span class="">k8s社区开发指南</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-trouble-shooting-li">
+  <input type="checkbox" id="m-kubernetes-notes-trouble-shooting-check"/>
+  <label for="m-kubernetes-notes-trouble-shooting-check"><a href="/kubernetes-notes/trouble-shooting/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-trouble-shooting"><span class="">问题排查</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-trouble-shooting-node-li">
+  <input type="checkbox" id="m-kubernetes-notes-trouble-shooting-node-check"/>
+  <label for="m-kubernetes-notes-trouble-shooting-node-check"><a href="/kubernetes-notes/trouble-shooting/node/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-trouble-shooting-node"><span class="">节点问题</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-trouble-shooting-node-keycreate-permission-denied-li">
+  <input type="checkbox" id="m-kubernetes-notes-trouble-shooting-node-keycreate-permission-denied-check"/>
+  <label for="m-kubernetes-notes-trouble-shooting-node-keycreate-permission-denied-check"><a href="/kubernetes-notes/trouble-shooting/node/keycreate-permission-denied/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-trouble-shooting-node-keycreate-permission-denied"><span class="">keycreate permission denied</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-trouble-shooting-node-cgroup-pid-error-li">
+  <input type="checkbox" id="m-kubernetes-notes-trouble-shooting-node-cgroup-pid-error-check"/>
+  <label for="m-kubernetes-notes-trouble-shooting-node-cgroup-pid-error-check"><a href="/kubernetes-notes/trouble-shooting/node/cgroup-pid-error/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-trouble-shooting-node-cgroup-pid-error"><span class="">Cgroup不支持pid资源</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-trouble-shooting-node-cgroup-subsystem-not-mount-li">
+  <input type="checkbox" id="m-kubernetes-notes-trouble-shooting-node-cgroup-subsystem-not-mount-check"/>
+  <label for="m-kubernetes-notes-trouble-shooting-node-cgroup-subsystem-not-mount-check"><a href="/kubernetes-notes/trouble-shooting/node/cgroup-subsystem-not-mount/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-trouble-shooting-node-cgroup-subsystem-not-mount"><span class="">Cgroup子系统无法挂载</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-trouble-shooting-node-runc-1-1-3-exec-failed-li">
+  <input type="checkbox" id="m-kubernetes-notes-trouble-shooting-node-runc-1-1-3-exec-failed-check"/>
+  <label for="m-kubernetes-notes-trouble-shooting-node-runc-1-1-3-exec-failed-check"><a href="/kubernetes-notes/trouble-shooting/node/runc-1.1.3-exec-failed/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-trouble-shooting-node-runc-1-1-3-exec-failed"><span class="">runc-v1.1.3-exec-failed</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-trouble-shooting-node-increase-the-mlock-limit-li">
+  <input type="checkbox" id="m-kubernetes-notes-trouble-shooting-node-increase-the-mlock-limit-check"/>
+  <label for="m-kubernetes-notes-trouble-shooting-node-increase-the-mlock-limit-check"><a href="/kubernetes-notes/trouble-shooting/node/increase-the-mlock-limit/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-trouble-shooting-node-increase-the-mlock-limit"><span class="">increase the mlock limit</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-trouble-shooting-node-kubelet-slice-error-li">
+  <input type="checkbox" id="m-kubernetes-notes-trouble-shooting-node-kubelet-slice-error-check"/>
+  <label for="m-kubernetes-notes-trouble-shooting-node-kubelet-slice-error-check"><a href="/kubernetes-notes/trouble-shooting/node/kubelet-slice-error/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-trouble-shooting-node-kubelet-slice-error"><span class="">Kubelet初始化QOS失败</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-trouble-shooting-pod-evicted-li">
+  <input type="checkbox" id="m-kubernetes-notes-trouble-shooting-pod-evicted-check"/>
+  <label for="m-kubernetes-notes-trouble-shooting-pod-evicted-check"><a href="/kubernetes-notes/trouble-shooting/pod-evicted/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-trouble-shooting-pod-evicted"><span class="">Pod驱逐</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-trouble-shooting-pod-image-error-li">
+  <input type="checkbox" id="m-kubernetes-notes-trouble-shooting-pod-image-error-check"/>
+  <label for="m-kubernetes-notes-trouble-shooting-pod-image-error-check"><a href="/kubernetes-notes/trouble-shooting/pod-image-error/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-trouble-shooting-pod-image-error"><span class="">镜像拉取失败问题</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-trouble-shooting-pvc-terminating-li">
+  <input type="checkbox" id="m-kubernetes-notes-trouble-shooting-pvc-terminating-check"/>
+  <label for="m-kubernetes-notes-trouble-shooting-pvc-terminating-check"><a href="/kubernetes-notes/trouble-shooting/pvc-terminating/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-trouble-shooting-pvc-terminating"><span class="">PVC Terminating</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-trouble-shooting-configmap-yaml-format-li">
+  <input type="checkbox" id="m-kubernetes-notes-trouble-shooting-configmap-yaml-format-check"/>
+  <label for="m-kubernetes-notes-trouble-shooting-configmap-yaml-format-check"><a href="/kubernetes-notes/trouble-shooting/configmap-yaml-format/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-trouble-shooting-configmap-yaml-format"><span class="">ConfigMap多行格式</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-runtime-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-check"/>
+  <label for="m-kubernetes-notes-runtime-check"><a href="/kubernetes-notes/runtime/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-runtime"><span class="">Runtime</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-runtime-runtime-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-runtime-check"/>
+  <label for="m-kubernetes-notes-runtime-runtime-check"><a href="/kubernetes-notes/runtime/runtime/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-runtime-runtime"><span class="">Runc和Containerd概述</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-runtime-namespace-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-namespace-check"/>
+  <label for="m-kubernetes-notes-runtime-namespace-check"><a href="/kubernetes-notes/runtime/namespace/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-runtime-namespace"><span class="">Namespace</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-runtime-namespace-namespace-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-namespace-namespace-check"/>
+  <label for="m-kubernetes-notes-runtime-namespace-namespace-check"><a href="/kubernetes-notes/runtime/namespace/namespace/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-runtime-namespace-namespace"><span class="">Namespace介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-runtime-namespace-namespace-cmd-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-namespace-namespace-cmd-check"/>
+  <label for="m-kubernetes-notes-runtime-namespace-namespace-cmd-check"><a href="/kubernetes-notes/runtime/namespace/namespace-cmd/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-runtime-namespace-namespace-cmd"><span class="">Namespace命令介绍</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-runtime-cgroup-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-cgroup-check"/>
+  <label for="m-kubernetes-notes-runtime-cgroup-check"><a href="/kubernetes-notes/runtime/cgroup/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-runtime-cgroup"><span class="">Cgroup</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-runtime-cgroup-cgroup-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-cgroup-cgroup-check"/>
+  <label for="m-kubernetes-notes-runtime-cgroup-cgroup-check"><a href="/kubernetes-notes/runtime/cgroup/cgroup/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-runtime-cgroup-cgroup"><span class="">Cgroup介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-runtime-cgroup-cgroup-cmd-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-cgroup-cgroup-cmd-check"/>
+  <label for="m-kubernetes-notes-runtime-cgroup-cgroup-cmd-check"><a href="/kubernetes-notes/runtime/cgroup/cgroup-cmd/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-runtime-cgroup-cgroup-cmd"><span class="">Cgroup命令介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-runtime-cgroup-cgroup-dir-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-cgroup-cgroup-dir-check"/>
+  <label for="m-kubernetes-notes-runtime-cgroup-cgroup-dir-check"><a href="/kubernetes-notes/runtime/cgroup/cgroup-dir/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-runtime-cgroup-cgroup-dir"><span class="">Cgroup目录</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-runtime-cgroup-cgroup-v2-vs-v1-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-cgroup-cgroup-v2-vs-v1-check"/>
+  <label for="m-kubernetes-notes-runtime-cgroup-cgroup-v2-vs-v1-check"><a href="/kubernetes-notes/runtime/cgroup/cgroup-v2-vs-v1/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-runtime-cgroup-cgroup-v2-vs-v1"><span class="">Cgroup v2和v1的区别</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-runtime-containerd-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-containerd-check"/>
+  <label for="m-kubernetes-notes-runtime-containerd-check"><a href="/kubernetes-notes/runtime/containerd/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-runtime-containerd"><span class="">Containerd</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-runtime-containerd-install-containerd-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-containerd-install-containerd-check"/>
+  <label for="m-kubernetes-notes-runtime-containerd-install-containerd-check"><a href="/kubernetes-notes/runtime/containerd/install-containerd/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-runtime-containerd-install-containerd"><span class="">安装Containerd</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-runtime-containerd-containerd-ctl-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-containerd-containerd-ctl-check"/>
+  <label for="m-kubernetes-notes-runtime-containerd-containerd-ctl-check"><a href="/kubernetes-notes/runtime/containerd/containerd-ctl/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-runtime-containerd-containerd-ctl"><span class="">Containerd命令工具</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-runtime-containerd-remove-dockershim-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-containerd-remove-dockershim-check"/>
+  <label for="m-kubernetes-notes-runtime-containerd-remove-dockershim-check"><a href="/kubernetes-notes/runtime/containerd/remove-dockershim/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-runtime-containerd-remove-dockershim"><span class="">移除Dockershim</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-runtime-docker-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-docker-check"/>
+  <label for="m-kubernetes-notes-runtime-docker-check"><a href="/kubernetes-notes/runtime/docker/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-runtime-docker"><span class="">Docker</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-runtime-docker-install-docker-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-docker-install-docker-check"/>
+  <label for="m-kubernetes-notes-runtime-docker-install-docker-check"><a href="/kubernetes-notes/runtime/docker/install-docker/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-runtime-docker-install-docker"><span class="">安装Docker</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-runtime-docker-docker-architecture-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-docker-docker-architecture-check"/>
+  <label for="m-kubernetes-notes-runtime-docker-docker-architecture-check"><a href="/kubernetes-notes/runtime/docker/docker-architecture/" title="Docker整体架构图" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-runtime-docker-docker-architecture"><span class="">Docker架构图</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-runtime-docker-docker-commands-principle-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-docker-docker-commands-principle-check"/>
+  <label for="m-kubernetes-notes-runtime-docker-docker-commands-principle-check"><a href="/kubernetes-notes/runtime/docker/docker-commands-principle/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-runtime-docker-docker-commands-principle"><span class="">Docker常用命令原理图</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-runtime-docker-dockerfile-usage-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-docker-dockerfile-usage-check"/>
+  <label for="m-kubernetes-notes-runtime-docker-dockerfile-usage-check"><a href="/kubernetes-notes/runtime/docker/dockerfile-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-runtime-docker-dockerfile-usage"><span class="">Dockerfile使用说明</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-runtime-kata-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-kata-check"/>
+  <label for="m-kubernetes-notes-runtime-kata-check"><a href="/kubernetes-notes/runtime/kata/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-runtime-kata"><span class="">Kata Container</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-runtime-kata-kata-container-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-kata-kata-container-check"/>
+  <label for="m-kubernetes-notes-runtime-kata-kata-container-check"><a href="/kubernetes-notes/runtime/kata/kata-container/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-runtime-kata-kata-container"><span class="">Kata容器简介</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-runtime-kata-kata-container-conf-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-kata-kata-container-conf-check"/>
+  <label for="m-kubernetes-notes-runtime-kata-kata-container-conf-check"><a href="/kubernetes-notes/runtime/kata/kata-container-conf/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-runtime-kata-kata-container-conf"><span class="">kata配置</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-runtime-wasmedge-li">
+  <input type="checkbox" id="m-kubernetes-notes-runtime-wasmedge-check"/>
+  <label for="m-kubernetes-notes-runtime-wasmedge-check"><a href="/kubernetes-notes/runtime/wasmedge/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-runtime-wasmedge"><span class="">WasmEdge介绍</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-etcd-li">
+  <input type="checkbox" id="m-kubernetes-notes-etcd-check"/>
+  <label for="m-kubernetes-notes-etcd-check"><a href="/kubernetes-notes/etcd/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-etcd"><span class="">Etcd集群</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-etcd-etcd-introduction-li">
+  <input type="checkbox" id="m-kubernetes-notes-etcd-etcd-introduction-check"/>
+  <label for="m-kubernetes-notes-etcd-etcd-introduction-check"><a href="/kubernetes-notes/etcd/etcd-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-etcd-etcd-introduction"><span class="">Etcd介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-etcd-install-li">
+  <input type="checkbox" id="m-kubernetes-notes-etcd-install-check"/>
+  <label for="m-kubernetes-notes-etcd-install-check"><a href="/kubernetes-notes/etcd/install/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-etcd-install"><span class="">部署Etcd集群</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-etcd-install-install-etcd-by-etcdadm-li">
+  <input type="checkbox" id="m-kubernetes-notes-etcd-install-install-etcd-by-etcdadm-check"/>
+  <label for="m-kubernetes-notes-etcd-install-install-etcd-by-etcdadm-check"><a href="/kubernetes-notes/etcd/install/install-etcd-by-etcdadm/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-etcd-install-install-etcd-by-etcdadm"><span class="">使用etcdadm部署Etcd集群</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-etcd-raft-li">
+  <input type="checkbox" id="m-kubernetes-notes-etcd-raft-check"/>
+  <label for="m-kubernetes-notes-etcd-raft-check"><a href="/kubernetes-notes/etcd/raft/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-etcd-raft"><span class="">Raft算法</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-etcd-etcdctl-li">
+  <input type="checkbox" id="m-kubernetes-notes-etcd-etcdctl-check"/>
+  <label for="m-kubernetes-notes-etcd-etcdctl-check"><a href="/kubernetes-notes/etcd/etcdctl/" title="etcdctl命令工具" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-etcd-etcdctl"><span class="">Etcdctl命令工具</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-etcd-etcdctl-etcdctl-v3-li">
+  <input type="checkbox" id="m-kubernetes-notes-etcd-etcdctl-etcdctl-v3-check"/>
+  <label for="m-kubernetes-notes-etcd-etcdctl-etcdctl-v3-check"><a href="/kubernetes-notes/etcd/etcdctl/etcdctl-v3/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-etcd-etcdctl-etcdctl-v3"><span class="">etcdctl-V3</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-etcd-etcdctl-etcdctl-v2-li">
+  <input type="checkbox" id="m-kubernetes-notes-etcd-etcdctl-etcdctl-v2-check"/>
+  <label for="m-kubernetes-notes-etcd-etcdctl-etcdctl-v2-check"><a href="/kubernetes-notes/etcd/etcdctl/etcdctl-v2/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-etcd-etcdctl-etcdctl-v2"><span class="">etcdctl-V2</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-etcd-etcd-auth-and-security-li">
+  <input type="checkbox" id="m-kubernetes-notes-etcd-etcd-auth-and-security-check"/>
+  <label for="m-kubernetes-notes-etcd-etcd-auth-and-security-check"><a href="/kubernetes-notes/etcd/etcd-auth-and-security/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-etcd-etcd-auth-and-security"><span class="">Etcd访问控制</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-etcd-etcd-setup-flags-li">
+  <input type="checkbox" id="m-kubernetes-notes-etcd-etcd-setup-flags-check"/>
+  <label for="m-kubernetes-notes-etcd-etcd-setup-flags-check"><a href="/kubernetes-notes/etcd/etcd-setup-flags/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-etcd-etcd-setup-flags"><span class="">Etcd启动配置参数</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-etcd-k8s-etcd-data-li">
+  <input type="checkbox" id="m-kubernetes-notes-etcd-k8s-etcd-data-check"/>
+  <label for="m-kubernetes-notes-etcd-k8s-etcd-data-check"><a href="/kubernetes-notes/etcd/k8s-etcd-data/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-etcd-k8s-etcd-data"><span class="">Etcd中的k8s数据</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-etcd-etcd-operator-usage-li">
+  <input type="checkbox" id="m-kubernetes-notes-etcd-etcd-operator-usage-check"/>
+  <label for="m-kubernetes-notes-etcd-etcd-operator-usage-check"><a href="/kubernetes-notes/etcd/etcd-operator-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-etcd-etcd-operator-usage"><span class="">etcd-operator的使用</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-multi-cluster-li">
+  <input type="checkbox" id="m-kubernetes-notes-multi-cluster-check"/>
+  <label for="m-kubernetes-notes-multi-cluster-check"><a href="/kubernetes-notes/multi-cluster/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-multi-cluster"><span class="">多集群管理</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-multi-cluster-k8s-multi-cluster-thinking-li">
+  <input type="checkbox" id="m-kubernetes-notes-multi-cluster-k8s-multi-cluster-thinking-check"/>
+  <label for="m-kubernetes-notes-multi-cluster-k8s-multi-cluster-thinking-check"><a href="/kubernetes-notes/multi-cluster/k8s-multi-cluster-thinking/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-multi-cluster-k8s-multi-cluster-thinking"><span class="">k8s多集群管理的思考</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-multi-cluster-virtual-kubelet-li">
+  <input type="checkbox" id="m-kubernetes-notes-multi-cluster-virtual-kubelet-check"/>
+  <label for="m-kubernetes-notes-multi-cluster-virtual-kubelet-check"><a href="/kubernetes-notes/multi-cluster/virtual-kubelet/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-multi-cluster-virtual-kubelet"><span class="">Virtual Kubelet</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-multi-cluster-virtual-kubelet-virtual-kubelet-li">
+  <input type="checkbox" id="m-kubernetes-notes-multi-cluster-virtual-kubelet-virtual-kubelet-check"/>
+  <label for="m-kubernetes-notes-multi-cluster-virtual-kubelet-virtual-kubelet-check"><a href="/kubernetes-notes/multi-cluster/virtual-kubelet/virtual-kubelet/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-multi-cluster-virtual-kubelet-virtual-kubelet"><span class="">Virtual Kubelet介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-multi-cluster-virtual-kubelet-virtual-kubelet-cmd-li">
+  <input type="checkbox" id="m-kubernetes-notes-multi-cluster-virtual-kubelet-virtual-kubelet-cmd-check"/>
+  <label for="m-kubernetes-notes-multi-cluster-virtual-kubelet-virtual-kubelet-cmd-check"><a href="/kubernetes-notes/multi-cluster/virtual-kubelet/virtual-kubelet-cmd/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-multi-cluster-virtual-kubelet-virtual-kubelet-cmd"><span class="">Virtual Kubelet命令</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-multi-cluster-karmada-li">
+  <input type="checkbox" id="m-kubernetes-notes-multi-cluster-karmada-check"/>
+  <label for="m-kubernetes-notes-multi-cluster-karmada-check"><a href="/kubernetes-notes/multi-cluster/karmada/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-multi-cluster-karmada"><span class="">Karmada</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-multi-cluster-karmada-karmada-introduction-li">
+  <input type="checkbox" id="m-kubernetes-notes-multi-cluster-karmada-karmada-introduction-check"/>
+  <label for="m-kubernetes-notes-multi-cluster-karmada-karmada-introduction-check"><a href="/kubernetes-notes/multi-cluster/karmada/karmada-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-multi-cluster-karmada-karmada-introduction"><span class="">Karmada介绍</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-edge-li">
+  <input type="checkbox" id="m-kubernetes-notes-edge-check"/>
+  <label for="m-kubernetes-notes-edge-check"><a href="/kubernetes-notes/edge/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-edge"><span class="">边缘容器</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-edge-kubeedge-li">
+  <input type="checkbox" id="m-kubernetes-notes-edge-kubeedge-check"/>
+  <label for="m-kubernetes-notes-edge-kubeedge-check"><a href="/kubernetes-notes/edge/kubeedge/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-edge-kubeedge"><span class="">KubeEdge</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-edge-kubeedge-kubeedge-arch-li">
+  <input type="checkbox" id="m-kubernetes-notes-edge-kubeedge-kubeedge-arch-check"/>
+  <label for="m-kubernetes-notes-edge-kubeedge-kubeedge-arch-check"><a href="/kubernetes-notes/edge/kubeedge/kubeedge-arch/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-edge-kubeedge-kubeedge-arch"><span class="">KubeEdge介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-edge-kubeedge-code-analysis-li">
+  <input type="checkbox" id="m-kubernetes-notes-edge-kubeedge-code-analysis-check"/>
+  <label for="m-kubernetes-notes-edge-kubeedge-code-analysis-check"><a href="/kubernetes-notes/edge/kubeedge/code-analysis/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-edge-kubeedge-code-analysis"><span class="">KubeEdge源码分析</span></a></label>
+  
+  <ul class="ul-4 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-edge-kubeedge-code-analysis-cloudcore-li">
+  <input type="checkbox" id="m-kubernetes-notes-edge-kubeedge-code-analysis-cloudcore-check"/>
+  <label for="m-kubernetes-notes-edge-kubeedge-code-analysis-cloudcore-check"><a href="/kubernetes-notes/edge/kubeedge/code-analysis/cloudcore/" title="Kubeedge之cloudcore 源码分析" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-edge-kubeedge-code-analysis-cloudcore"><span class="">cloudcore</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-edge-kubeedge-code-analysis-edgecore-li">
+  <input type="checkbox" id="m-kubernetes-notes-edge-kubeedge-code-analysis-edgecore-check"/>
+  <label for="m-kubernetes-notes-edge-kubeedge-code-analysis-edgecore-check"><a href="/kubernetes-notes/edge/kubeedge/code-analysis/edgecore/" title="Kubeedge之edgecore 源码分析" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-edge-kubeedge-code-analysis-edgecore"><span class="">edgecore</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-edge-openyurt-li">
+  <input type="checkbox" id="m-kubernetes-notes-edge-openyurt-check"/>
+  <label for="m-kubernetes-notes-edge-openyurt-check"><a href="/kubernetes-notes/edge/openyurt/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-edge-openyurt"><span class="">OpenYurt</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-edge-openyurt-install-openyurt-li">
+  <input type="checkbox" id="m-kubernetes-notes-edge-openyurt-install-openyurt-check"/>
+  <label for="m-kubernetes-notes-edge-openyurt-install-openyurt-check"><a href="/kubernetes-notes/edge/openyurt/install-openyurt/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-edge-openyurt-install-openyurt"><span class="">OpenYurt部署</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-edge-openyurt-update-k8s-for-openyurt-li">
+  <input type="checkbox" id="m-kubernetes-notes-edge-openyurt-update-k8s-for-openyurt-check"/>
+  <label for="m-kubernetes-notes-edge-openyurt-update-k8s-for-openyurt-check"><a href="/kubernetes-notes/edge/openyurt/update-k8s-for-openyurt/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-edge-openyurt-update-k8s-for-openyurt"><span class="">OpenYurt 安装相关Kubernetes配置调整</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-edge-openyurt-code-analysis-li">
+  <input type="checkbox" id="m-kubernetes-notes-edge-openyurt-code-analysis-check"/>
+  <label for="m-kubernetes-notes-edge-openyurt-code-analysis-check"><a href="/kubernetes-notes/edge/openyurt/code-analysis/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-edge-openyurt-code-analysis"><span class="">OpenYurt源码分析</span></a></label>
+  
+  <ul class="ul-4 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-edge-openyurt-code-analysis-yurthub-code-analysis-1-li">
+  <input type="checkbox" id="m-kubernetes-notes-edge-openyurt-code-analysis-yurthub-code-analysis-1-check"/>
+  <label for="m-kubernetes-notes-edge-openyurt-code-analysis-yurthub-code-analysis-1-check"><a href="/kubernetes-notes/edge/openyurt/code-analysis/yurthub-code-analysis-1/" title="OpenYurt之YurtHub源码分析" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-edge-openyurt-code-analysis-yurthub-code-analysis-1"><span class="">YurtHub源码分析（1）</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-edge-openyurt-code-analysis-tunnel-server-code-analysis-li">
+  <input type="checkbox" id="m-kubernetes-notes-edge-openyurt-code-analysis-tunnel-server-code-analysis-check"/>
+  <label for="m-kubernetes-notes-edge-openyurt-code-analysis-tunnel-server-code-analysis-check"><a href="/kubernetes-notes/edge/openyurt/code-analysis/tunnel-server-code-analysis/" title="OpenYurt之TunnelServer源码分析" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-edge-openyurt-code-analysis-tunnel-server-code-analysis"><span class="">TunnelServer源码分析（1）</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-edge-openyurt-code-analysis-tennel-agent-code-analysis-li">
+  <input type="checkbox" id="m-kubernetes-notes-edge-openyurt-code-analysis-tennel-agent-code-analysis-check"/>
+  <label for="m-kubernetes-notes-edge-openyurt-code-analysis-tennel-agent-code-analysis-check"><a href="/kubernetes-notes/edge/openyurt/code-analysis/tennel-agent-code-analysis/" title="OpenYurt之Tunnel-Agent源码分析" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-edge-openyurt-code-analysis-tennel-agent-code-analysis"><span class="">Tunnel-Agent源码分析</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-kvm-li">
+  <input type="checkbox" id="m-kubernetes-notes-kvm-check"/>
+  <label for="m-kubernetes-notes-kvm-check"><a href="/kubernetes-notes/kvm/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-kvm"><span class="">虚拟化</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-kvm-vm-concept-li">
+  <input type="checkbox" id="m-kubernetes-notes-kvm-vm-concept-check"/>
+  <label for="m-kubernetes-notes-kvm-vm-concept-check"><a href="/kubernetes-notes/kvm/vm-concept/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-kvm-vm-concept"><span class="">虚拟化相关概念</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-kvm-kubevirt-li">
+  <input type="checkbox" id="m-kubernetes-notes-kvm-kubevirt-check"/>
+  <label for="m-kubernetes-notes-kvm-kubevirt-check"><a href="/kubernetes-notes/kvm/kubevirt/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-kvm-kubevirt"><span class="">KubeVirt</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-kvm-kubevirt-kubevirt-introduction-li">
+  <input type="checkbox" id="m-kubernetes-notes-kvm-kubevirt-kubevirt-introduction-check"/>
+  <label for="m-kubernetes-notes-kvm-kubevirt-kubevirt-introduction-check"><a href="/kubernetes-notes/kvm/kubevirt/kubevirt-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-kvm-kubevirt-kubevirt-introduction"><span class="">KubeVirt的介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-kvm-kubevirt-kubevirt-installation-li">
+  <input type="checkbox" id="m-kubernetes-notes-kvm-kubevirt-kubevirt-installation-check"/>
+  <label for="m-kubernetes-notes-kvm-kubevirt-kubevirt-installation-check"><a href="/kubernetes-notes/kvm/kubevirt/kubevirt-installation/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-kvm-kubevirt-kubevirt-installation"><span class="">KubeVirt的使用</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-kvm-qemu-system-li">
+  <input type="checkbox" id="m-kubernetes-notes-kvm-qemu-system-check"/>
+  <label for="m-kubernetes-notes-kvm-qemu-system-check"><a href="/kubernetes-notes/kvm/qemu-system/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-kvm-qemu-system"><span class="">qemu创建虚拟机</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-monitor-li">
+  <input type="checkbox" id="m-kubernetes-notes-monitor-check"/>
+  <label for="m-kubernetes-notes-monitor-check"><a href="/kubernetes-notes/monitor/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-monitor"><span class="">监控体系</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-monitor-kube-promethus-stack-li">
+  <input type="checkbox" id="m-kubernetes-notes-monitor-kube-promethus-stack-check"/>
+  <label for="m-kubernetes-notes-monitor-kube-promethus-stack-check"><a href="/kubernetes-notes/monitor/kube-promethus-stack/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-monitor-kube-promethus-stack"><span class="">kube-prometheus-stack的使用</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-monitor-kubernetes-cluster-monitoring-li">
+  <input type="checkbox" id="m-kubernetes-notes-monitor-kubernetes-cluster-monitoring-check"/>
+  <label for="m-kubernetes-notes-monitor-kubernetes-cluster-monitoring-check"><a href="/kubernetes-notes/monitor/kubernetes-cluster-monitoring/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-monitor-kubernetes-cluster-monitoring"><span class="">Kubernetes集群监控</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-monitor-cadvisor-introduction-li">
+  <input type="checkbox" id="m-kubernetes-notes-monitor-cadvisor-introduction-check"/>
+  <label for="m-kubernetes-notes-monitor-cadvisor-introduction-check"><a href="/kubernetes-notes/monitor/cadvisor-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-monitor-cadvisor-introduction"><span class="">cAdvisor介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-monitor-heapster-introduction-li">
+  <input type="checkbox" id="m-kubernetes-notes-monitor-heapster-introduction-check"/>
+  <label for="m-kubernetes-notes-monitor-heapster-introduction-check"><a href="/kubernetes-notes/monitor/heapster-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-monitor-heapster-introduction"><span class="">Heapster介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-monitor-influxdb-introduction-li">
+  <input type="checkbox" id="m-kubernetes-notes-monitor-influxdb-introduction-check"/>
+  <label for="m-kubernetes-notes-monitor-influxdb-introduction-check"><a href="/kubernetes-notes/monitor/influxdb-introduction/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-monitor-influxdb-introduction"><span class="">Influxdb介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-monitor-grafana-usage-li">
+  <input type="checkbox" id="m-kubernetes-notes-monitor-grafana-usage-check"/>
+  <label for="m-kubernetes-notes-monitor-grafana-usage-check"><a href="/kubernetes-notes/monitor/grafana-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-monitor-grafana-usage"><span class="">Grafana部署</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child active-path" id="m-kubernetes-notes-serverless-li">
+  <input type="checkbox" id="m-kubernetes-notes-serverless-check" checked/>
+  <label for="m-kubernetes-notes-serverless-check"><a href="/kubernetes-notes/serverless/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-serverless"><span class="">Serverless</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-serverless-knative-li">
+  <input type="checkbox" id="m-kubernetes-notes-serverless-knative-check"/>
+  <label for="m-kubernetes-notes-serverless-knative-check"><a href="/kubernetes-notes/serverless/knative/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-serverless-knative"><span class="">knative介绍</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-serverless-terraform-usage-li">
+  <input type="checkbox" id="m-kubernetes-notes-serverless-terraform-usage-check"/>
+  <label for="m-kubernetes-notes-serverless-terraform-usage-check"><a href="/kubernetes-notes/serverless/terraform-usage/" class="align-left pl-0  active td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-serverless-terraform-usage"><span class="td-sidebar-nav-active-item">Terraform的使用</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-cluster-optimization-li">
+  <input type="checkbox" id="m-kubernetes-notes-cluster-optimization-check"/>
+  <label for="m-kubernetes-notes-cluster-optimization-check"><a href="/kubernetes-notes/cluster-optimization/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-cluster-optimization"><span class="">集群优化</span></a></label>
+  
+  <ul class="ul-2 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-cluster-optimization-scheduler-li">
+  <input type="checkbox" id="m-kubernetes-notes-cluster-optimization-scheduler-check"/>
+  <label for="m-kubernetes-notes-cluster-optimization-scheduler-check"><a href="/kubernetes-notes/cluster-optimization/scheduler/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-cluster-optimization-scheduler"><span class="">调度优化</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-cluster-optimization-scheduler-massive-pod-scheduling-li">
+  <input type="checkbox" id="m-kubernetes-notes-cluster-optimization-scheduler-massive-pod-scheduling-check"/>
+  <label for="m-kubernetes-notes-cluster-optimization-scheduler-massive-pod-scheduling-check"><a href="/kubernetes-notes/cluster-optimization/scheduler/massive-pod-scheduling/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-cluster-optimization-scheduler-massive-pod-scheduling"><span class="">大规模Pod调度优化</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-cluster-optimization-scheduler-volcano-usage-li">
+  <input type="checkbox" id="m-kubernetes-notes-cluster-optimization-scheduler-volcano-usage-check"/>
+  <label for="m-kubernetes-notes-cluster-optimization-scheduler-volcano-usage-check"><a href="/kubernetes-notes/cluster-optimization/scheduler/volcano-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-cluster-optimization-scheduler-volcano-usage"><span class="">Volcano的使用</span></a></label>
+  
+</li>
+  </ul>
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section with-child" id="m-kubernetes-notes-cluster-optimization-gpu-li">
+  <input type="checkbox" id="m-kubernetes-notes-cluster-optimization-gpu-check"/>
+  <label for="m-kubernetes-notes-cluster-optimization-gpu-check"><a href="/kubernetes-notes/cluster-optimization/gpu/" class="align-left pl-0  td-sidebar-link td-sidebar-link__section" id="m-kubernetes-notes-cluster-optimization-gpu"><span class="">GPU</span></a></label>
+  
+  <ul class="ul-3 foldable">
+    <li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-cluster-optimization-gpu-k8s-gpu-usage-li">
+  <input type="checkbox" id="m-kubernetes-notes-cluster-optimization-gpu-k8s-gpu-usage-check"/>
+  <label for="m-kubernetes-notes-cluster-optimization-gpu-k8s-gpu-usage-check"><a href="/kubernetes-notes/cluster-optimization/gpu/k8s-gpu-usage/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-cluster-optimization-gpu-k8s-gpu-usage"><span class="">k8s管理GPU容器</span></a></label>
+  
+</li><li class="td-sidebar-nav__section-title td-sidebar-nav__section without-child" id="m-kubernetes-notes-cluster-optimization-gpu-gpu-virtualization-li">
+  <input type="checkbox" id="m-kubernetes-notes-cluster-optimization-gpu-gpu-virtualization-check"/>
+  <label for="m-kubernetes-notes-cluster-optimization-gpu-gpu-virtualization-check"><a href="/kubernetes-notes/cluster-optimization/gpu/gpu-virtualization/" class="align-left pl-0  td-sidebar-link td-sidebar-link__page" id="m-kubernetes-notes-cluster-optimization-gpu-gpu-virtualization"><span class="">Volcano GPU虚拟化</span></a></label>
+  
+</li>
+  </ul>
+</li>
+  </ul>
+</li>
+  </ul>
+</li>
+    </ul>
+  </nav>
+</div>
+
+          </aside>
+          <aside class="d-none d-xl-block col-xl-2 td-sidebar-toc d-print-none">
+            
+<div class="td-page-meta ml-2 pb-1 pt-2 mb-0">
+<a href="https://github.com/huweihuang/blog.huweihuang.com/tree/master/content/zh-cn/kubernetes-notes/serverless/terraform-usage.md" class="td-page-meta--view" target="_blank" rel="noopener"><i class="fa fa-file-alt fa-fw"></i> 查看页面源码</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/edit/master/content/zh-cn/kubernetes-notes/serverless/terraform-usage.md" class="td-page-meta--edit" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 编辑此页</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/new/master/content/zh-cn/kubernetes-notes/serverless/terraform-usage.md?filename=change-me.md&amp;value=---%0Atitle%3A&#43;%22Long&#43;Page&#43;Title%22%0AlinkTitle%3A&#43;%22Short&#43;Nav&#43;Title%22%0Aweight%3A&#43;100%0Adescription%3A&#43;%3E-%0A&#43;&#43;&#43;&#43;&#43;Page&#43;description&#43;for&#43;heading&#43;and&#43;indexes.%0A---%0A%0A%23%23&#43;Heading%0A%0AEdit&#43;this&#43;template&#43;to&#43;create&#43;your&#43;new&#43;page.%0A%0A%2A&#43;Give&#43;it&#43;a&#43;good&#43;name%2C&#43;ending&#43;in&#43;%60.md%60&#43;-&#43;e.g.&#43;%60getting-started.md%60%0A%2A&#43;Edit&#43;the&#43;%22front&#43;matter%22&#43;section&#43;at&#43;the&#43;top&#43;of&#43;the&#43;page&#43;%28weight&#43;controls&#43;how&#43;its&#43;ordered&#43;amongst&#43;other&#43;pages&#43;in&#43;the&#43;same&#43;directory%3B&#43;lowest&#43;number&#43;first%29.%0A%2A&#43;Add&#43;a&#43;good&#43;commit&#43;message&#43;at&#43;the&#43;bottom&#43;of&#43;the&#43;page&#43;%28%3C80&#43;characters%3B&#43;use&#43;the&#43;extended&#43;description&#43;field&#43;for&#43;more&#43;detail%29.%0A%2A&#43;Create&#43;a&#43;new&#43;branch&#43;so&#43;you&#43;can&#43;preview&#43;your&#43;new&#43;file&#43;and&#43;request&#43;a&#43;review&#43;via&#43;Pull&#43;Request.%0A" class="td-page-meta--child" target="_blank" rel="noopener"><i class="fa fa-edit fa-fw"></i> 添加子页面</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new?title=Terraform%e7%9a%84%e4%bd%bf%e7%94%a8" class="td-page-meta--issue" target="_blank" rel="noopener"><i class="fab fa-github fa-fw"></i> 提交文档问题</a>
+  <a href="https://github.com/huweihuang/blog.huweihuang.com/issues/new" class="td-page-meta--project-issue" target="_blank" rel="noopener"><i class="fas fa-tasks fa-fw"></i> 提交项目问题</a>
+  <a id="print" href="https://blog.huweihuang.com/kubernetes-notes/serverless/_print/"><i class="fa fa-print fa-fw"></i> 整节打印</a>
+
+</div>
+
+            
+
+
+<div class="td-toc"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-安装terraform">1. 安装terraform</a></li>
+    <li><a href="#2-terraform命令">2. terraform命令</a></li>
+    <li><a href="#3-通过terraform部署k8s应用">3. 通过terraform部署k8s应用</a>
+      <ul>
+        <li><a href="#3-1-创建部署文件">3.1. 创建部署文件</a></li>
+        <li><a href="#3-2-执行部署命令">3.2. 执行部署命令</a></li>
+      </ul>
+    </li>
+    <li><a href="#4-总结">4. 总结</a></li>
+  </ul>
+</nav></div>
+
+
+
+            
+
+	
+		
+			
+				
+			
+			
+
+
+
+  
+  
+    <div class="taxonomy taxonomy-terms-cloud taxo-tags">
+      
+        <h5 class="taxonomy-title">Tags</h5>
+      
+      <ul class="taxonomy-terms">
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/apisix/" data-taxonomy-term="apisix"><span class="taxonomy-label">ApiSix</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/blog/" data-taxonomy-term="blog"><span class="taxonomy-label">Blog</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/cgroup/" data-taxonomy-term="cgroup"><span class="taxonomy-label">Cgroup</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/cni/" data-taxonomy-term="cni"><span class="taxonomy-label">CNI</span><span class="taxonomy-count">7</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/containerd/" data-taxonomy-term="containerd"><span class="taxonomy-label">Containerd</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/csi/" data-taxonomy-term="csi"><span class="taxonomy-label">CSI</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/disk/" data-taxonomy-term="disk"><span class="taxonomy-label">disk</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/docker/" data-taxonomy-term="docker"><span class="taxonomy-label">Docker</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/etcd/" data-taxonomy-term="etcd"><span class="taxonomy-label">Etcd</span><span class="taxonomy-count">8</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/git/" data-taxonomy-term="git"><span class="taxonomy-label">Git</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/golang/" data-taxonomy-term="golang"><span class="taxonomy-label">Golang</span><span class="taxonomy-count">39</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/gpu/" data-taxonomy-term="gpu"><span class="taxonomy-label">GPU</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/iac/" data-taxonomy-term="iac"><span class="taxonomy-label">IaC</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/ide/" data-taxonomy-term="ide"><span class="taxonomy-label">IDE</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/iptables/" data-taxonomy-term="iptables"><span class="taxonomy-label">iptables</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/karmada/" data-taxonomy-term="karmada"><span class="taxonomy-label">Karmada</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/keepalived/" data-taxonomy-term="keepalived"><span class="taxonomy-label">Keepalived</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubeadm/" data-taxonomy-term="kubeadm"><span class="taxonomy-label">kubeadm</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubeedge/" data-taxonomy-term="kubeedge"><span class="taxonomy-label">Kubeedge</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubernetes/" data-taxonomy-term="kubernetes"><span class="taxonomy-label">Kubernetes</span><span class="taxonomy-count">66</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/kubevirt/" data-taxonomy-term="kubevirt"><span class="taxonomy-label">KubeVirt</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/linux/" data-taxonomy-term="linux"><span class="taxonomy-label">Linux</span><span class="taxonomy-count">11</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/memcached/" data-taxonomy-term="memcached"><span class="taxonomy-label">Memcached</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/monitor/" data-taxonomy-term="monitor"><span class="taxonomy-label">Monitor</span><span class="taxonomy-count">6</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/mysql/" data-taxonomy-term="mysql"><span class="taxonomy-label">Mysql</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/network/" data-taxonomy-term="network"><span class="taxonomy-label">Network</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/nginx/" data-taxonomy-term="nginx"><span class="taxonomy-label">Nginx</span><span class="taxonomy-count">4</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/openyurt/" data-taxonomy-term="openyurt"><span class="taxonomy-label">OpenYurt</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/operator/" data-taxonomy-term="operator"><span class="taxonomy-label">Operator</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/pod/" data-taxonomy-term="pod"><span class="taxonomy-label">Pod</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/redis/" data-taxonomy-term="redis"><span class="taxonomy-label">Redis</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/runtime/" data-taxonomy-term="runtime"><span class="taxonomy-label">Runtime</span><span class="taxonomy-count">9</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/scheduler/" data-taxonomy-term="scheduler"><span class="taxonomy-label">Scheduler</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/serverless/" data-taxonomy-term="serverless"><span class="taxonomy-label">Serverless</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/shell/" data-taxonomy-term="shell"><span class="taxonomy-label">Shell</span><span class="taxonomy-count">9</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/tcpip/" data-taxonomy-term="tcpip"><span class="taxonomy-label">TCPIP</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/terraform/" data-taxonomy-term="terraform"><span class="taxonomy-label">Terraform</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/vim/" data-taxonomy-term="vim"><span class="taxonomy-label">VIM</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/virtualkubelet/" data-taxonomy-term="virtualkubelet"><span class="taxonomy-label">VirtualKubelet</span><span class="taxonomy-count">2</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%A4%9A%E9%9B%86%E7%BE%A4/" data-taxonomy-term="%E5%A4%9A%E9%9B%86%E7%BE%A4"><span class="taxonomy-label">多集群</span><span class="taxonomy-count">1</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%A4%A7%E6%A8%A1%E5%9E%8B/" data-taxonomy-term="%E5%A4%A7%E6%A8%A1%E5%9E%8B"><span class="taxonomy-label">大模型</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E5%BF%AB%E6%8D%B7%E9%94%AE/" data-taxonomy-term="%E5%BF%AB%E6%8D%B7%E9%94%AE"><span class="taxonomy-label">快捷键</span><span class="taxonomy-count">5</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" data-taxonomy-term="%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="taxonomy-label">源码分析</span><span class="taxonomy-count">28</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E8%A3%B8%E9%87%91%E5%B1%9E/" data-taxonomy-term="%E8%A3%B8%E9%87%91%E5%B1%9E"><span class="taxonomy-label">裸金属</span><span class="taxonomy-count">3</span></a></li>
+        
+          <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/" data-taxonomy-term="%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5"><span class="taxonomy-label">问题排查</span><span class="taxonomy-count">10</span></a></li>
+        
+      </ul>
+    </div>
+  
+
+		
+			
+				
+			
+			
+
+
+
+  
+  
+
+		
+	
+
+          </aside>
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+  
+
+            <nav aria-label="breadcrumb" class="td-breadcrumbs">
+  <ol class="breadcrumb">
+  <li class="breadcrumb-item">
+    <a href="https://blog.huweihuang.com/kubernetes-notes/">Kubernetes学习笔记</a>
+  </li>
+  <li class="breadcrumb-item">
+    <a href="https://blog.huweihuang.com/kubernetes-notes/serverless/">Serverless</a>
+  </li>
+  <li class="breadcrumb-item active" aria-current="page">
+    <a href="https://blog.huweihuang.com/kubernetes-notes/serverless/terraform-usage/">Terraform的使用</a>
+  </li>
+  </ol>
+</nav>
+            
+<div class="td-content">
+	<h1>Terraform的使用</h1>
+	
+	<header class="article-meta">
+		
+
+  
+    
+      
+
+
+<div class="taxonomy taxonomy-terms-article taxo-tags">
+  <h5 class="taxonomy-title">Tags:</h5>
+  <ul class="taxonomy-terms">
+    
+      <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/iac/" data-taxonomy-term="iac"><span class="taxonomy-label">IaC</span></a></li>
+    
+      <li><a class="taxonomy-term" href="https://blog.huweihuang.com/tags/terraform/" data-taxonomy-term="terraform"><span class="taxonomy-label">Terraform</span></a></li>
+    
+  </ul>
+</div>
+
+    
+      
+
+
+    
+  
+
+		
+	</header>    
+	<h1 id="1-安装terraform">1. 安装terraform</h1>
+<p>mac</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>brew tap hashicorp/tap
+</span></span><span style="display:flex;"><span>brew install hashicorp/tap/terraform
+</span></span></code></pre></div><p>linux: centos</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo yum install -y yum-utils
+</span></span><span style="display:flex;"><span>sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+</span></span><span style="display:flex;"><span>sudo yum -y install terraform
+</span></span></code></pre></div><h1 id="2-terraform命令">2. terraform命令</h1>
+<p>编写terraform的部署文本，常用命令：</p>
+<ol>
+<li>
+<p>terraform init：项目初始化</p>
+</li>
+<li>
+<p>terraform plan：预览</p>
+</li>
+<li>
+<p>terraform apply：部署</p>
+</li>
+<li>
+<p>terraform destroy：销毁</p>
+</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>terraform --help
+</span></span><span style="display:flex;"><span>Usage: terraform <span style="color:#ce5c00;font-weight:bold">[</span>global options<span style="color:#ce5c00;font-weight:bold">]</span> &lt;subcommand&gt; <span style="color:#ce5c00;font-weight:bold">[</span>args<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>The available commands <span style="color:#204a87;font-weight:bold">for</span> execution are listed below.
+</span></span><span style="display:flex;"><span>The primary workflow commands are given first, followed by
+</span></span><span style="display:flex;"><span>less common or more advanced commands.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Main commands:
+</span></span><span style="display:flex;"><span>  init          Prepare your working directory <span style="color:#204a87;font-weight:bold">for</span> other commands
+</span></span><span style="display:flex;"><span>  validate      Check whether the configuration is valid
+</span></span><span style="display:flex;"><span>  plan          Show changes required by the current configuration
+</span></span><span style="display:flex;"><span>  apply         Create or update infrastructure
+</span></span><span style="display:flex;"><span>  destroy       Destroy previously-created infrastructure
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>All other commands:
+</span></span><span style="display:flex;"><span>  console       Try Terraform expressions at an interactive <span style="color:#204a87">command</span> prompt
+</span></span><span style="display:flex;"><span>  fmt           Reformat your configuration in the standard style
+</span></span><span style="display:flex;"><span>  force-unlock  Release a stuck lock on the current workspace
+</span></span><span style="display:flex;"><span>  get           Install or upgrade remote Terraform modules
+</span></span><span style="display:flex;"><span>  graph         Generate a Graphviz graph of the steps in an operation
+</span></span><span style="display:flex;"><span>  import        Associate existing infrastructure with a Terraform resource
+</span></span><span style="display:flex;"><span>  login         Obtain and save credentials <span style="color:#204a87;font-weight:bold">for</span> a remote host
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">logout</span>        Remove locally-stored credentials <span style="color:#204a87;font-weight:bold">for</span> a remote host
+</span></span><span style="display:flex;"><span>  metadata      Metadata related commands
+</span></span><span style="display:flex;"><span>  modules       Show all declared modules in a working directory
+</span></span><span style="display:flex;"><span>  output        Show output values from your root module
+</span></span><span style="display:flex;"><span>  providers     Show the providers required <span style="color:#204a87;font-weight:bold">for</span> this configuration
+</span></span><span style="display:flex;"><span>  refresh       Update the state to match remote systems
+</span></span><span style="display:flex;"><span>  show          Show the current state or a saved plan
+</span></span><span style="display:flex;"><span>  stacks        Manage HCP Terraform stack operations
+</span></span><span style="display:flex;"><span>  state         Advanced state management
+</span></span><span style="display:flex;"><span>  taint         Mark a resource instance as not fully functional
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">test</span>          Execute integration tests <span style="color:#204a87;font-weight:bold">for</span> Terraform modules
+</span></span><span style="display:flex;"><span>  untaint       Remove the <span style="color:#4e9a06">&#39;tainted&#39;</span> state from a resource instance
+</span></span><span style="display:flex;"><span>  version       Show the current Terraform version
+</span></span><span style="display:flex;"><span>  workspace     Workspace management
+</span></span></code></pre></div><h1 id="3-通过terraform部署k8s应用">3. 通过terraform部署k8s应用</h1>
+<h2 id="3-1-创建部署文件">3.1. 创建部署文件</h2>
+<p>创建应用目录，并在本地创建<code>main.tf</code>文件。</p>
+<pre tabindex="0"><code>terraform {
+  required_providers {
+    kubernetes = {
+      source  = &#34;hashicorp/kubernetes&#34;
+      version = &#34;&gt;= 2.0.0&#34;
+    }
+  }
+}
+provider &#34;kubernetes&#34; {
+  config_path = &#34;~/.kube/config&#34;
+}
+resource &#34;kubernetes_namespace&#34; &#34;test&#34; {
+  metadata {
+    name = &#34;nginx&#34;
+  }
+}
+resource &#34;kubernetes_deployment&#34; &#34;test&#34; {
+  metadata {
+    name      = &#34;nginx&#34;
+    namespace = kubernetes_namespace.test.metadata.0.name
+  }
+  spec {
+    replicas = 2
+    selector {
+      match_labels = {
+        app = &#34;MyTestApp&#34;
+      }
+    }
+    template {
+      metadata {
+        labels = {
+          app = &#34;MyTestApp&#34;
+        }
+      }
+      spec {
+        container {
+          image = &#34;nginx&#34;
+          name  = &#34;nginx-container&#34;
+          port {
+            container_port = 80
+          }
+        }
+      }
+    }
+  }
+}
+resource &#34;kubernetes_service&#34; &#34;test&#34; {
+  metadata {
+    name      = &#34;nginx&#34;
+    namespace = kubernetes_namespace.test.metadata.0.name
+  }
+  spec {
+    selector = {
+      app = kubernetes_deployment.test.spec.0.template.0.metadata.0.labels.app
+    }
+    type = &#34;NodePort&#34;
+    port {
+      node_port   = 30201
+      port        = 80
+      target_port = 80
+    }
+  }
+}
+</code></pre><h2 id="3-2-执行部署命令">3.2. 执行部署命令</h2>
+<ul>
+<li><strong>terraform init</strong></li>
+</ul>
+<p>初始化terraform provider数据。</p>
+<ul>
+<li><strong>terraform plan</strong></li>
+</ul>
+<p>部署之前预览<code>diff</code>数据。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># terraform plan</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+</span></span><span style="display:flex;"><span>  + create
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Terraform will perform the following actions:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># kubernetes_deployment.test will be created</span>
+</span></span><span style="display:flex;"><span>  + resource <span style="color:#4e9a06">&#34;kubernetes_deployment&#34;</span> <span style="color:#4e9a06">&#34;test&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>      + <span style="color:#000">id</span>               <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">(</span>known after apply<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      + <span style="color:#000">wait_for_rollout</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#204a87">true</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      + metadata <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">generation</span>       <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">(</span>known after apply<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">name</span>             <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;nginx&#34;</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">namespace</span>        <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;nginx&#34;</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">resource_version</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">(</span>known after apply<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">uid</span>              <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">(</span>known after apply<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      + spec <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">min_ready_seconds</span>         <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">paused</span>                    <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#204a87">false</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">progress_deadline_seconds</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#0000cf;font-weight:bold">600</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">replicas</span>                  <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;2&#34;</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">revision_history_limit</span>    <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#0000cf;font-weight:bold">10</span>
+</span></span><span style="display:flex;"><span>....
+</span></span><span style="display:flex;"><span>Plan: <span style="color:#0000cf;font-weight:bold">3</span> to add, <span style="color:#0000cf;font-weight:bold">0</span> to change, <span style="color:#0000cf;font-weight:bold">0</span> to destroy.
+</span></span><span style="display:flex;"><span>──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+</span></span><span style="display:flex;"><span>Note: You didn<span style="color:#4e9a06">&#39;t use the -out option to save this plan, so Terraform can&#39;</span>t guarantee to take exactly these actions <span style="color:#204a87;font-weight:bold">if</span> you run <span style="color:#4e9a06">&#34;terraform apply&#34;</span> now.
+</span></span></code></pre></div><ul>
+<li><strong>terraform apply</strong></li>
+</ul>
+<p>执行部署的操作。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># terraform apply</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+</span></span><span style="display:flex;"><span>  + create
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Terraform will perform the following actions:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># kubernetes_deployment.test will be created</span>
+</span></span><span style="display:flex;"><span>  + resource <span style="color:#4e9a06">&#34;kubernetes_deployment&#34;</span> <span style="color:#4e9a06">&#34;test&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>      + <span style="color:#000">id</span>               <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">(</span>known after apply<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      + <span style="color:#000">wait_for_rollout</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#204a87">true</span>
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>Plan: <span style="color:#0000cf;font-weight:bold">3</span> to add, <span style="color:#0000cf;font-weight:bold">0</span> to change, <span style="color:#0000cf;font-weight:bold">0</span> to destroy.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Do you want to perform these actions?
+</span></span><span style="display:flex;"><span>  Terraform will perform the actions described above.
+</span></span><span style="display:flex;"><span>  Only <span style="color:#4e9a06">&#39;yes&#39;</span> will be accepted to approve.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  Enter a value: yes
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>kubernetes_namespace.test: Creating...
+</span></span><span style="display:flex;"><span>kubernetes_namespace.test: Creation <span style="color:#204a87">complete</span> after 0s <span style="color:#ce5c00;font-weight:bold">[</span><span style="color:#000">id</span><span style="color:#ce5c00;font-weight:bold">=</span>nginx<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>kubernetes_deployment.test: Creating...
+</span></span><span style="display:flex;"><span>kubernetes_deployment.test: Creation <span style="color:#204a87">complete</span> after 4s <span style="color:#ce5c00;font-weight:bold">[</span><span style="color:#000">id</span><span style="color:#ce5c00;font-weight:bold">=</span>nginx/nginx<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>kubernetes_service.test: Creating...
+</span></span><span style="display:flex;"><span>kubernetes_service.test: Creation <span style="color:#204a87">complete</span> after 0s <span style="color:#ce5c00;font-weight:bold">[</span><span style="color:#000">id</span><span style="color:#ce5c00;font-weight:bold">=</span>nginx/nginx<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Apply complete! Resources: <span style="color:#0000cf;font-weight:bold">3</span> added, <span style="color:#0000cf;font-weight:bold">0</span> changed, <span style="color:#0000cf;font-weight:bold">0</span> destroyed.
+</span></span></code></pre></div><p><strong>查看部署结果</strong></p>
+<p>terraform共创建了三个资源，即对应k8s的三个对象：namespace，deployment，service。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kubectl get all -n nginx</span>
+</span></span><span style="display:flex;"><span>NAME                        READY   STATUS    RESTARTS   AGE
+</span></span><span style="display:flex;"><span>pod/nginx-658c56bc8-djhrx   1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          30m
+</span></span><span style="display:flex;"><span>pod/nginx-658c56bc8-mh67k   1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          30m
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME            TYPE       CLUSTER-IP     EXTERNAL-IP   PORT<span style="color:#ce5c00;font-weight:bold">(</span>S<span style="color:#ce5c00;font-weight:bold">)</span>        AGE
+</span></span><span style="display:flex;"><span>service/nginx   NodePort   10.96.65.155   &lt;none&gt;        80:30201/TCP   30m
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME                    READY   UP-TO-DATE   AVAILABLE   AGE
+</span></span><span style="display:flex;"><span>deployment.apps/nginx   2/2     <span style="color:#0000cf;font-weight:bold">2</span>            <span style="color:#0000cf;font-weight:bold">2</span>           30m
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME                              DESIRED   CURRENT   READY   AGE
+</span></span><span style="display:flex;"><span>replicaset.apps/nginx-658c56bc8   <span style="color:#0000cf;font-weight:bold">2</span>         <span style="color:#0000cf;font-weight:bold">2</span>         <span style="color:#0000cf;font-weight:bold">2</span>       30m
+</span></span></code></pre></div><p>部署后会生成terraform.tfstate本地状态记录文件。</p>
+<ul>
+<li>terraform destroy</li>
+</ul>
+<p>如果需要清理数据，则可以使用destroy命令清理。</p>
+<h1 id="4-总结">4. 总结</h1>
+<p>本文以k8s平台为例展示了terraform的基本使用步骤，相比于kubectl和helm的k8s部署工具，terraform无根本区别。</p>
+<ul>
+<li>
+<p><strong>terraform的优势在于以IaC（基础设施即代码）和GitOps的思想把将基础设施相关的运维部署操作以<code>声明式</code>的方式记录在代码中，通过Git去管理期望的最终状态和版本迭代</strong>。</p>
+</li>
+<li>
+<p>同时terraform可以对接绝大部分的基础设施，例如MySQL，Redis等，可以对接各个不同的部署平台和系统，例如阿里云，aws等，也可以针对公司内部的平台，单独写内部平台对接的provider，<strong>从而实现一套工具管理所有的基础设施</strong>。</p>
+</li>
+</ul>
+<p>参考：</p>
+<ul>
+<li>
+<p><a href="https://developer.hashicorp.com/terraform/install">https://developer.hashicorp.com/terraform/install</a></p>
+</li>
+<li>
+<p><a href="https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/guides/getting-started.html">terraform部署k8s服务</a></p>
+</li>
+</ul>
+
+	
+		<style>
+  .feedback--answer {
+    display: inline-block;
+  }
+  .feedback--answer-no {
+    margin-left: 1em;
+  }
+  .feedback--response {
+    display: none;
+    margin-top: 1em;
+  }
+  .feedback--response__visible {
+    display: block;
+  }
+</style>
+<div class="d-print-none">
+<h2 class="feedback--title">Feedback</h2>
+<p class="feedback--question">Was this page helpful?</p>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-yes">Yes</button>
+<button class="btn btn-primary mb-4 feedback--answer feedback--answer-no">No</button>
+<p class="feedback--response feedback--response-yes">
+  Glad to hear it! Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+<p class="feedback--response feedback--response-no">
+  Sorry to hear that. Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.
+</p>
+</div>
+<script>
+  const yesButton = document.querySelector('.feedback--answer-yes');
+  const noButton = document.querySelector('.feedback--answer-no');
+  const yesResponse = document.querySelector('.feedback--response-yes');
+  const noResponse = document.querySelector('.feedback--response-no');
+  const disableButtons = () => {
+    yesButton.disabled = true;
+    noButton.disabled = true;
+  };
+  const sendFeedback = (value) => {
+    if (typeof ga !== 'function') return;
+    const args = {
+      command: 'send',
+      hitType: 'event',
+      category: 'Helpful',
+      action: 'click',
+      label: window.location.pathname,
+      value: value
+    };
+    ga(args.command, args.hitType, args.category, args.action, args.label, args.value);
+  };
+  yesButton.addEventListener('click', () => {
+    yesResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(1);
+  });
+  noButton.addEventListener('click', () => {
+    noResponse.classList.add('feedback--response__visible');
+    disableButtons();
+    sendFeedback(0);
+  });
+</script>
+
+		<br />
+	
+	
+	
+</div>
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/blog.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2025 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		<p class="mt-2"><a href="/about/">About</a></p>
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+  </body>
+</html>

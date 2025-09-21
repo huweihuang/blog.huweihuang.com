@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.eb547862445a0b9050ad3128c2328ffd.json"
+  data-offline-search-index-json-src="/offline-search-index.e2fd09f74a12c5112ef29cf5b07c323d.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -1476,6 +1476,14 @@ if (!doNotTrack) {
 
     
   
+    
+    
+	
+<li>10.1.6: <a href="#pg-22d1d3c7f44b5eaba040b21160cf67bf">Kubelet初始化QOS失败</a></li>
+
+
+    
+  
 
     </ul>
     
@@ -2299,6 +2307,14 @@ if (!doNotTrack) {
     
 	
 <li>17.1: <a href="#pg-e44de3d390def178636536ce707a8319">knative介绍</a></li>
+
+
+    
+  
+    
+    
+	
+<li>17.2: <a href="#pg-2b35c2e28863ce5dd0a5b2740350a662">Terraform的使用</a></li>
 
 
     
@@ -20934,6 +20950,34 @@ May 13 16:54:26 8b26d7a8 dockerd[44352]: time=&#34;2021-05-13T16:54:26.574800326
     
 	
   
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-22d1d3c7f44b5eaba040b21160cf67bf">10.1.6 - Kubelet初始化QOS失败</h1>
+    
+	<h1 id="问题描述">问题描述</h1>
+<p>现象：kubelet启动不起来，报错如下：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubelet.go:1703<span style="color:#ce5c00;font-weight:bold">]</span> <span style="color:#4e9a06">&#34;Failed to start ContainerManager&#34;</span> <span style="color:#000">err</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;failed to initialize top level QOS containers: error validating root container [kubelet kubepods] : cgroup [\&#34;kubelet\&#34; \&#34;kubepods\&#34;] has some missing paths: /sys/fs/cgroup/systemd/kubelet.slice/kubelet-kubepods.slice&#34;</span>
+</span></span></code></pre></div><h1 id="解决方案">解决方案</h1>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>systemctl stop kubepods.slice
+</span></span><span style="display:flex;"><span>systemctl restart kubelet
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="https://www.ichenfu.com/2019/12/06/kubelet-failed-to-initialize-top-level-qos-containers/">Kubelet启动报错Failed to start ContainerManager failed to initialize top level QOS containers</a></li>
+<li><a href="https://github.com/kubernetes/kubernetes/issues/43856">https://github.com/kubernetes/kubernetes/issues/43856</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
 
     
 	
@@ -31147,6 +31191,259 @@ withfields： 使用InfluxDB fields(默认：false)。</p>
 <li><a href="https://www.ibm.com/topics/knative">https://www.ibm.com/topics/knative</a></li>
 <li><a href="https://knative.dev/docs/concepts/">https://knative.dev/docs/concepts/</a></li>
 <li><a href="https://knative.dev/docs/serving/">https://knative.dev/docs/serving/</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-2b35c2e28863ce5dd0a5b2740350a662">17.2 - Terraform的使用</h1>
+    
+	<h1 id="1-安装terraform">1. 安装terraform</h1>
+<p>mac</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>brew tap hashicorp/tap
+</span></span><span style="display:flex;"><span>brew install hashicorp/tap/terraform
+</span></span></code></pre></div><p>linux: centos</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>sudo yum install -y yum-utils
+</span></span><span style="display:flex;"><span>sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+</span></span><span style="display:flex;"><span>sudo yum -y install terraform
+</span></span></code></pre></div><h1 id="2-terraform命令">2. terraform命令</h1>
+<p>编写terraform的部署文本，常用命令：</p>
+<ol>
+<li>
+<p>terraform init：项目初始化</p>
+</li>
+<li>
+<p>terraform plan：预览</p>
+</li>
+<li>
+<p>terraform apply：部署</p>
+</li>
+<li>
+<p>terraform destroy：销毁</p>
+</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>terraform --help
+</span></span><span style="display:flex;"><span>Usage: terraform <span style="color:#ce5c00;font-weight:bold">[</span>global options<span style="color:#ce5c00;font-weight:bold">]</span> &lt;subcommand&gt; <span style="color:#ce5c00;font-weight:bold">[</span>args<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>The available commands <span style="color:#204a87;font-weight:bold">for</span> execution are listed below.
+</span></span><span style="display:flex;"><span>The primary workflow commands are given first, followed by
+</span></span><span style="display:flex;"><span>less common or more advanced commands.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Main commands:
+</span></span><span style="display:flex;"><span>  init          Prepare your working directory <span style="color:#204a87;font-weight:bold">for</span> other commands
+</span></span><span style="display:flex;"><span>  validate      Check whether the configuration is valid
+</span></span><span style="display:flex;"><span>  plan          Show changes required by the current configuration
+</span></span><span style="display:flex;"><span>  apply         Create or update infrastructure
+</span></span><span style="display:flex;"><span>  destroy       Destroy previously-created infrastructure
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>All other commands:
+</span></span><span style="display:flex;"><span>  console       Try Terraform expressions at an interactive <span style="color:#204a87">command</span> prompt
+</span></span><span style="display:flex;"><span>  fmt           Reformat your configuration in the standard style
+</span></span><span style="display:flex;"><span>  force-unlock  Release a stuck lock on the current workspace
+</span></span><span style="display:flex;"><span>  get           Install or upgrade remote Terraform modules
+</span></span><span style="display:flex;"><span>  graph         Generate a Graphviz graph of the steps in an operation
+</span></span><span style="display:flex;"><span>  import        Associate existing infrastructure with a Terraform resource
+</span></span><span style="display:flex;"><span>  login         Obtain and save credentials <span style="color:#204a87;font-weight:bold">for</span> a remote host
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">logout</span>        Remove locally-stored credentials <span style="color:#204a87;font-weight:bold">for</span> a remote host
+</span></span><span style="display:flex;"><span>  metadata      Metadata related commands
+</span></span><span style="display:flex;"><span>  modules       Show all declared modules in a working directory
+</span></span><span style="display:flex;"><span>  output        Show output values from your root module
+</span></span><span style="display:flex;"><span>  providers     Show the providers required <span style="color:#204a87;font-weight:bold">for</span> this configuration
+</span></span><span style="display:flex;"><span>  refresh       Update the state to match remote systems
+</span></span><span style="display:flex;"><span>  show          Show the current state or a saved plan
+</span></span><span style="display:flex;"><span>  stacks        Manage HCP Terraform stack operations
+</span></span><span style="display:flex;"><span>  state         Advanced state management
+</span></span><span style="display:flex;"><span>  taint         Mark a resource instance as not fully functional
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">test</span>          Execute integration tests <span style="color:#204a87;font-weight:bold">for</span> Terraform modules
+</span></span><span style="display:flex;"><span>  untaint       Remove the <span style="color:#4e9a06">&#39;tainted&#39;</span> state from a resource instance
+</span></span><span style="display:flex;"><span>  version       Show the current Terraform version
+</span></span><span style="display:flex;"><span>  workspace     Workspace management
+</span></span></code></pre></div><h1 id="3-通过terraform部署k8s应用">3. 通过terraform部署k8s应用</h1>
+<h2 id="3-1-创建部署文件">3.1. 创建部署文件</h2>
+<p>创建应用目录，并在本地创建<code>main.tf</code>文件。</p>
+<pre tabindex="0"><code>terraform {
+  required_providers {
+    kubernetes = {
+      source  = &#34;hashicorp/kubernetes&#34;
+      version = &#34;&gt;= 2.0.0&#34;
+    }
+  }
+}
+provider &#34;kubernetes&#34; {
+  config_path = &#34;~/.kube/config&#34;
+}
+resource &#34;kubernetes_namespace&#34; &#34;test&#34; {
+  metadata {
+    name = &#34;nginx&#34;
+  }
+}
+resource &#34;kubernetes_deployment&#34; &#34;test&#34; {
+  metadata {
+    name      = &#34;nginx&#34;
+    namespace = kubernetes_namespace.test.metadata.0.name
+  }
+  spec {
+    replicas = 2
+    selector {
+      match_labels = {
+        app = &#34;MyTestApp&#34;
+      }
+    }
+    template {
+      metadata {
+        labels = {
+          app = &#34;MyTestApp&#34;
+        }
+      }
+      spec {
+        container {
+          image = &#34;nginx&#34;
+          name  = &#34;nginx-container&#34;
+          port {
+            container_port = 80
+          }
+        }
+      }
+    }
+  }
+}
+resource &#34;kubernetes_service&#34; &#34;test&#34; {
+  metadata {
+    name      = &#34;nginx&#34;
+    namespace = kubernetes_namespace.test.metadata.0.name
+  }
+  spec {
+    selector = {
+      app = kubernetes_deployment.test.spec.0.template.0.metadata.0.labels.app
+    }
+    type = &#34;NodePort&#34;
+    port {
+      node_port   = 30201
+      port        = 80
+      target_port = 80
+    }
+  }
+}
+</code></pre><h2 id="3-2-执行部署命令">3.2. 执行部署命令</h2>
+<ul>
+<li><strong>terraform init</strong></li>
+</ul>
+<p>初始化terraform provider数据。</p>
+<ul>
+<li><strong>terraform plan</strong></li>
+</ul>
+<p>部署之前预览<code>diff</code>数据。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># terraform plan</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+</span></span><span style="display:flex;"><span>  + create
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Terraform will perform the following actions:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># kubernetes_deployment.test will be created</span>
+</span></span><span style="display:flex;"><span>  + resource <span style="color:#4e9a06">&#34;kubernetes_deployment&#34;</span> <span style="color:#4e9a06">&#34;test&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>      + <span style="color:#000">id</span>               <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">(</span>known after apply<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      + <span style="color:#000">wait_for_rollout</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#204a87">true</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      + metadata <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">generation</span>       <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">(</span>known after apply<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">name</span>             <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;nginx&#34;</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">namespace</span>        <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;nginx&#34;</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">resource_version</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">(</span>known after apply<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">uid</span>              <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">(</span>known after apply<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>      + spec <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">min_ready_seconds</span>         <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#0000cf;font-weight:bold">0</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">paused</span>                    <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#204a87">false</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">progress_deadline_seconds</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#0000cf;font-weight:bold">600</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">replicas</span>                  <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;2&#34;</span>
+</span></span><span style="display:flex;"><span>          + <span style="color:#000">revision_history_limit</span>    <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#0000cf;font-weight:bold">10</span>
+</span></span><span style="display:flex;"><span>....
+</span></span><span style="display:flex;"><span>Plan: <span style="color:#0000cf;font-weight:bold">3</span> to add, <span style="color:#0000cf;font-weight:bold">0</span> to change, <span style="color:#0000cf;font-weight:bold">0</span> to destroy.
+</span></span><span style="display:flex;"><span>──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+</span></span><span style="display:flex;"><span>Note: You didn<span style="color:#4e9a06">&#39;t use the -out option to save this plan, so Terraform can&#39;</span>t guarantee to take exactly these actions <span style="color:#204a87;font-weight:bold">if</span> you run <span style="color:#4e9a06">&#34;terraform apply&#34;</span> now.
+</span></span></code></pre></div><ul>
+<li><strong>terraform apply</strong></li>
+</ul>
+<p>执行部署的操作。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># terraform apply</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+</span></span><span style="display:flex;"><span>  + create
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Terraform will perform the following actions:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># kubernetes_deployment.test will be created</span>
+</span></span><span style="display:flex;"><span>  + resource <span style="color:#4e9a06">&#34;kubernetes_deployment&#34;</span> <span style="color:#4e9a06">&#34;test&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>      + <span style="color:#000">id</span>               <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">(</span>known after apply<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      + <span style="color:#000">wait_for_rollout</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#204a87">true</span>
+</span></span><span style="display:flex;"><span>...
+</span></span><span style="display:flex;"><span>Plan: <span style="color:#0000cf;font-weight:bold">3</span> to add, <span style="color:#0000cf;font-weight:bold">0</span> to change, <span style="color:#0000cf;font-weight:bold">0</span> to destroy.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Do you want to perform these actions?
+</span></span><span style="display:flex;"><span>  Terraform will perform the actions described above.
+</span></span><span style="display:flex;"><span>  Only <span style="color:#4e9a06">&#39;yes&#39;</span> will be accepted to approve.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  Enter a value: yes
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>kubernetes_namespace.test: Creating...
+</span></span><span style="display:flex;"><span>kubernetes_namespace.test: Creation <span style="color:#204a87">complete</span> after 0s <span style="color:#ce5c00;font-weight:bold">[</span><span style="color:#000">id</span><span style="color:#ce5c00;font-weight:bold">=</span>nginx<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>kubernetes_deployment.test: Creating...
+</span></span><span style="display:flex;"><span>kubernetes_deployment.test: Creation <span style="color:#204a87">complete</span> after 4s <span style="color:#ce5c00;font-weight:bold">[</span><span style="color:#000">id</span><span style="color:#ce5c00;font-weight:bold">=</span>nginx/nginx<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>kubernetes_service.test: Creating...
+</span></span><span style="display:flex;"><span>kubernetes_service.test: Creation <span style="color:#204a87">complete</span> after 0s <span style="color:#ce5c00;font-weight:bold">[</span><span style="color:#000">id</span><span style="color:#ce5c00;font-weight:bold">=</span>nginx/nginx<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Apply complete! Resources: <span style="color:#0000cf;font-weight:bold">3</span> added, <span style="color:#0000cf;font-weight:bold">0</span> changed, <span style="color:#0000cf;font-weight:bold">0</span> destroyed.
+</span></span></code></pre></div><p><strong>查看部署结果</strong></p>
+<p>terraform共创建了三个资源，即对应k8s的三个对象：namespace，deployment，service。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># kubectl get all -n nginx</span>
+</span></span><span style="display:flex;"><span>NAME                        READY   STATUS    RESTARTS   AGE
+</span></span><span style="display:flex;"><span>pod/nginx-658c56bc8-djhrx   1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          30m
+</span></span><span style="display:flex;"><span>pod/nginx-658c56bc8-mh67k   1/1     Running   <span style="color:#0000cf;font-weight:bold">0</span>          30m
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME            TYPE       CLUSTER-IP     EXTERNAL-IP   PORT<span style="color:#ce5c00;font-weight:bold">(</span>S<span style="color:#ce5c00;font-weight:bold">)</span>        AGE
+</span></span><span style="display:flex;"><span>service/nginx   NodePort   10.96.65.155   &lt;none&gt;        80:30201/TCP   30m
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME                    READY   UP-TO-DATE   AVAILABLE   AGE
+</span></span><span style="display:flex;"><span>deployment.apps/nginx   2/2     <span style="color:#0000cf;font-weight:bold">2</span>            <span style="color:#0000cf;font-weight:bold">2</span>           30m
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>NAME                              DESIRED   CURRENT   READY   AGE
+</span></span><span style="display:flex;"><span>replicaset.apps/nginx-658c56bc8   <span style="color:#0000cf;font-weight:bold">2</span>         <span style="color:#0000cf;font-weight:bold">2</span>         <span style="color:#0000cf;font-weight:bold">2</span>       30m
+</span></span></code></pre></div><p>部署后会生成terraform.tfstate本地状态记录文件。</p>
+<ul>
+<li>terraform destroy</li>
+</ul>
+<p>如果需要清理数据，则可以使用destroy命令清理。</p>
+<h1 id="4-总结">4. 总结</h1>
+<p>本文以k8s平台为例展示了terraform的基本使用步骤，相比于kubectl和helm的k8s部署工具，terraform无根本区别。</p>
+<ul>
+<li>
+<p><strong>terraform的优势在于以IaC（基础设施即代码）和GitOps的思想把将基础设施相关的运维部署操作以<code>声明式</code>的方式记录在代码中，通过Git去管理期望的最终状态和版本迭代</strong>。</p>
+</li>
+<li>
+<p>同时terraform可以对接绝大部分的基础设施，例如MySQL，Redis等，可以对接各个不同的部署平台和系统，例如阿里云，aws等，也可以针对公司内部的平台，单独写内部平台对接的provider，<strong>从而实现一套工具管理所有的基础设施</strong>。</p>
+</li>
+</ul>
+<p>参考：</p>
+<ul>
+<li>
+<p><a href="https://developer.hashicorp.com/terraform/install">https://developer.hashicorp.com/terraform/install</a></p>
+</li>
+<li>
+<p><a href="https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/guides/getting-started.html">terraform部署k8s服务</a></p>
+</li>
 </ul>
 
 </div>
