@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.52a94a2394c2f2f38099b11db5f6cd81.json"
+  data-offline-search-index-json-src="/offline-search-index.a9751fc2c7591766440d23fcb79aef5d.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -204,6 +204,14 @@ if (!doNotTrack) {
     
 	
 <li>1.1: <a href="#pg-46685ef45663498ab635a9ab162c785a">Terraform的使用</a></li>
+
+
+    
+  
+    
+    
+	
+<li>1.2: <a href="#pg-bf0fbb771d80524c8359a906cd4fe4ee">Terraform的基本概念</a></li>
 
 
     
@@ -516,6 +524,208 @@ if (!doNotTrack) {
 </li>
 <li>
 <p><a href="https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/guides/getting-started.html">terraform部署k8s服务</a></p>
+</li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-bf0fbb771d80524c8359a906cd4fe4ee">1.2 - Terraform的基本概念</h1>
+    
+	<p>本文主要描述编写Terraform部署文件的基本概念。</p>
+<h1 id="1-基本概念">1. 基本概念</h1>
+<h2 id="1-1-提供商-provider">1.1. 提供商（Provider）</h2>
+<p>Provider实现了每一种可配置的资源类型。可以理解为实现了资源增删改查的通用接口。</p>
+<p>提供商通常定义在 providers.tf 文件中，您需要指定包含提供商定义的 Terraform 块。当声明了提供商后，Terraform 通过 init 命令自动下载提供商插件。</p>
+<p>官方provider的仓库：<a href="https://registry.terraform.io/">https://registry.terraform.io/</a></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>terraform <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  required_providers <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">alicloud</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#204a87">source</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;aliyun/alicloud&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#000">version</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;1.225.0&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>provider <span style="color:#4e9a06">&#34;alicloud&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># 配置你的阿里云凭据和地域信息</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># 出于安全考虑，建议不要在这个文件中直接包含你的阿里云AccessKey和SecretKey，推荐使用环境变量或其它安全方式设置凭据：</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># export ALICLOUD_ACCESS_KEY=&#34;&lt;你的阿里云Access Key&gt;&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># export ALICLOUD_SECRET_KEY=&#34;&lt;你的阿里云Secret Key&gt;&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">region</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;cn-hangzhou&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="1-2-资源-resources">1.2. 资源（Resources）</h2>
+<p>资源（Resources）是定义基础设施组件的代码块，可以按照资源类型单独使用一个独立的 .tf 文件来存放，例如：database.tf。资源通过关键字 resource 来标识，之后是具体的资源类型和自定义名称。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>resource <span style="color:#4e9a06">&#34;resource_type&#34;</span> <span style="color:#4e9a06">&#34;resource_name&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># 指定资源类型的参数（Argument）</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="1-2-1-属性参数引用">1.2.1. 属性参数引用</h3>
+<p>当从一个资源块访问另一个资源属性时，使用格式：<code>&lt;resource_type&gt;.&lt;resource_name&gt;.&lt;attribute&gt;</code>。</p>
+<h3 id="1-2-2-资源定义考虑事项">1.2.2. 资源定义考虑事项</h3>
+<ul>
+<li>
+<p>resource_name 必须唯一。</p>
+</li>
+<li>
+<p>resource_type 资源类型是与提供商关联的关键字，不能由用户自定义。</p>
+</li>
+<li>
+<p>所有配置参数必须包含在资源块体内，即大括号之间。</p>
+</li>
+<li>
+<p>所有必填参数必须设置。</p>
+</li>
+</ul>
+<h2 id="1-3-变量-variables">1.3. 变量（Variables）</h2>
+<p>变量用于参数化你的 Terraform 配置。输入变量作为参数供给 Terraform 使用，使其允许在无需更改源配置代码的情况下轻松定制和共享配置。在 Terraform 运行时可以有多种不同的方式来设置其值：环境变量、CLI 参数、键值文件等。</p>
+<p>变量必须在 variable 块中声明。建议将所有的变量声明保存在一个名为 variables.tf 的文件中。变量没有必选的参数，因此变量块可以为空，Terraform 可以根据变量值自动推断类型和默认值。</p>
+<p>变量名称有两个设置规则：</p>
+<ul>
+<li>
+<p>变量名在模块内必须唯一</p>
+</li>
+<li>
+<p>变量名不能是关键字，例如：count，for_each等</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>variable <span style="color:#4e9a06">&#34;variable_name&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">type</span><span style="color:#ce5c00;font-weight:bold">=</span>&lt;变量类型&gt;
+</span></span><span style="display:flex;"><span>    <span style="color:#000">description</span><span style="color:#ce5c00;font-weight:bold">=</span>&lt;变量的描述&gt;
+</span></span><span style="display:flex;"><span>    <span style="color:#000">default</span><span style="color:#ce5c00;font-weight:bold">=</span>&lt;赋予变量的默认值&gt;
+</span></span><span style="display:flex;"><span>    <span style="color:#000">sensitive</span><span style="color:#ce5c00;font-weight:bold">=</span>&lt;是否是敏感信息&gt;
+</span></span><span style="display:flex;"><span>    <span style="color:#000">validation</span><span style="color:#ce5c00;font-weight:bold">=</span>&lt;变量值的验证规则&gt;
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="1-3-1-type">1.3.1. type</h3>
+<p>type 参数指定了变量接受的值的类型。Terraform 支持以下基本变量类型：</p>
+<ul>
+<li>
+<p><strong>bool</strong>，用于二进制值，如 true 或 false（不带引号）</p>
+</li>
+<li>
+<p><strong>number</strong>，用于数值变量</p>
+</li>
+<li>
+<p><strong>string</strong>，用于字符序列</p>
+</li>
+</ul>
+<h3 id="1-3-2-default">1.3.2. default</h3>
+<p>要访问模块内声明的变量值，可以使用表达式 <code>var.</code></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>resource <span style="color:#4e9a06">&#34;alicloud_vpc&#34;</span> <span style="color:#4e9a06">&#34;my_vpc&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">vpc_name</span>    <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;main-vpc&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">cidr_block</span>  <span style="color:#ce5c00;font-weight:bold">=</span> var.vpc_cidr_block
+</span></span><span style="display:flex;"><span>  <span style="color:#000">description</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>variable <span style="color:#4e9a06">&#34;vpc_cidr_block&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">default</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;10.0.0.0/16&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><p>默认值可以通过分配值在环境变量或 .tfvars 文件或 -var 选项中被覆盖，如：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 通过 CLI -var 选项覆盖变量默认值</span>
+</span></span><span style="display:flex;"><span>$ terraform plan -var <span style="color:#000">vpc_cidr_block</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#4e9a06">&#34;172.16.0.0/16&#34;</span>
+</span></span></code></pre></div><h3 id="1-3-3-sensitive">1.3.3. sensitive</h3>
+<p>敏感值的可接受值为true。当设置为true时，变量的值在 terraform plan 或terraform apply 的输出中标记为敏感。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>$ terraform plan
+</span></span><span style="display:flex;"><span>Terraform will perform the following actions:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># alicloud_vpc.my-vpc will be created</span>
+</span></span><span style="display:flex;"><span>  + resource <span style="color:#4e9a06">&#34;alicloud_vpc&#34;</span> <span style="color:#4e9a06">&#34;my-vpc&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>      + <span style="color:#000">cidr_block</span>            <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">(</span>sensitive value<span style="color:#ce5c00;font-weight:bold">)</span>   <span style="color:#8f5902;font-style:italic"># 标记为敏感信息</span>
+</span></span><span style="display:flex;"><span>      + <span style="color:#000">create_time</span>           <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">(</span>known after apply<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      + <span style="color:#000">id</span>                    <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">(</span>known after apply<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      + <span style="color:#000">status</span>                <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">(</span>known after apply<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      + <span style="color:#000">user_cidrs</span>            <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">(</span>known after apply<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>      + <span style="color:#000">vpc_name</span>              <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;main-vpc&#34;</span>
+</span></span><span style="display:flex;"><span>      ...
+</span></span><span style="display:flex;"><span>    <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="1-3-4-validation">1.3.4. validation</h3>
+<p>验证块包含一个条件参数，用于指定验证规则。你可以通过在变量块中包含验证子块来验证赋给变量的值。</p>
+<p>在如下示例中，length 和 substr 用作条件参数，验证 vpc_name 的值是否长度超过 4 并且是否以 tf- 为开头：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>variable <span style="color:#4e9a06">&#34;vpc_name&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  validation <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">condition</span>     <span style="color:#ce5c00;font-weight:bold">=</span> length<span style="color:#ce5c00;font-weight:bold">(</span>var.vpc_name<span style="color:#ce5c00;font-weight:bold">)</span> &gt; <span style="color:#0000cf;font-weight:bold">4</span> <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> substr<span style="color:#ce5c00;font-weight:bold">(</span>var.vpc_name, 0, 3<span style="color:#ce5c00;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">==</span> <span style="color:#4e9a06">&#34;tf-&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">error_message</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;The vpc name must start with &#39;tf-&#39; and be longer than 4 characters.&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h3 id="1-3-5-变量的设置方式">1.3.5. 变量的设置方式</h3>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># .tfvars 文件（推荐）</span>
+</span></span><span style="display:flex;"><span>$ terraform apply -var-file my-vars.tfvars
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># CLI 选项</span>
+</span></span><span style="display:flex;"><span>$ terraform apply -var <span style="color:#000">vpc_cidr_block</span><span style="color:#ce5c00;font-weight:bold">=</span>“172.16.0.0/16”
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 环境变量</span>
+</span></span><span style="display:flex;"><span>$ <span style="color:#204a87">export</span> <span style="color:#000">TF_VAR_vpc_dicr_block</span><span style="color:#ce5c00;font-weight:bold">=</span>“172.16.0.0/16”
+</span></span><span style="display:flex;"><span>$ terraform apply
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 默认的变量文件 terraform.tfvars</span>
+</span></span><span style="display:flex;"><span>$ terraform apply
+</span></span></code></pre></div><h3 id="1-3-6-变量的最佳实践">1.3.6. 变量的最佳实践</h3>
+<ul>
+<li>
+<p><strong>只参数化每个实例或环境中会变化的值</strong></p>
+</li>
+<li>
+<p><strong>尽可能使用 .tfvars 变量文件</strong></p>
+</li>
+<li>
+<p><strong>给变量起与其使用目的相关的名称</strong></p>
+</li>
+<li>
+<p><strong>变量必须要有描述，增强 Terraform 配置文件的可读性和可维护性。</strong></p>
+</li>
+</ul>
+<h2 id="1-4-输出-outputs">1.4. 输出（Outputs）</h2>
+<p>outputs.tf 文件保存了资源的输出值。由 Terraform 管理的每个资源实例都可以导出属性，这些属性的值可在 Terraform 配置的其他地方被引用。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>output <span style="color:#4e9a06">&#34;vswitch_id&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">value</span> <span style="color:#ce5c00;font-weight:bold">=</span> alicloud_vswitch.main_vswitch.id
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="1-5-状态-state">1.5. 状态（State）</h2>
+<p>Terraform 在状态文件中保存它管理的资源的状态。默认情况下，状态文件是存储在本地，但它也可以远端存储。在团队协作场景中，远端存储通常是首选方法。</p>
+<p>不要修改或触碰此文件，它是自动创建和更新的，一旦状态文件损坏，将会导致继续执行 Terraform 失败或者重复创建新的资源。</p>
+<h1 id="2-terraform目录">2. Terraform目录</h1>
+<ul>
+<li>
+<p><strong>根模块</strong></p>
+<p>根模块也被称为根配置文件，是运行 Terraform 命令的工作目录。</p>
+</li>
+<li>
+<p><strong>子模块</strong></p>
+<p>子模块是可选的，每个子模块可以是出于对某类复用功能的抽象，也可以是出于对根模块复杂逻辑的简化。根模块通过对子模块的引用来降低根模块的编写复杂度，提升复用性和可读性。</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>├── main.tf
+</span></span><span style="display:flex;"><span>├── modules
+</span></span><span style="display:flex;"><span> ├── network
+</span></span><span style="display:flex;"><span> │ ├── main.tf
+</span></span><span style="display:flex;"><span> │ ├── variables.tf
+</span></span><span style="display:flex;"><span> │ └── outputs.tf
+</span></span><span style="display:flex;"><span> └── server
+</span></span><span style="display:flex;"><span>   ├── main.tf
+</span></span><span style="display:flex;"><span>   ├── variables.tf
+</span></span><span style="display:flex;"><span>   └── outputs.tf
+</span></span></code></pre></div><p>输出调用关系图</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># install graphviz for mac</span>
+</span></span><span style="display:flex;"><span>brew install graphviz
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 生成调用关系</span>
+</span></span><span style="display:flex;"><span>terraform graph <span style="color:#000;font-weight:bold">|</span> dot -Tsvg &gt; graph.svg
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li>
+<p><a href="https://help.aliyun.com/zh/terraform/basic-terms?spm=a2c4g.11186623.help-menu-95817.d_3_0_1.1a42673dZFDpQ9&amp;scm=20140722.H_2837056._.OR_help-T_cn~zh-V_1">基本术语_Terraform</a></p>
+</li>
+<li>
+<p><a href="https://help.aliyun.com/zh/terraform/resource-introduction?spm=a2c4g.11186623.help-menu-95817.d_3_2_0.16133193brrXl6&amp;scm=20140722.H_2837062._.OR_help-T_cn~zh-V_1">Resource 介绍_Terraform</a></p>
 </li>
 </ul>
 
