@@ -142,7 +142,7 @@ if (!doNotTrack) {
   aria-label="站内搜索…"
   autocomplete="off"
   
-  data-offline-search-index-json-src="/offline-search-index.a9751fc2c7591766440d23fcb79aef5d.json"
+  data-offline-search-index-json-src="/offline-search-index.30ad7a1fd246a9f12d8fa8e396e5428b.json"
   data-offline-search-base-href="/"
   data-offline-search-max-results="10"
 >
@@ -212,6 +212,14 @@ if (!doNotTrack) {
     
 	
 <li>1.2: <a href="#pg-bf0fbb771d80524c8359a906cd4fe4ee">Terraform的基本概念</a></li>
+
+
+    
+  
+    
+    
+	
+<li>1.3: <a href="#pg-e48abb517180f08f5738fa9863d9944f">Terraform的模块及依赖引用</a></li>
 
 
     
@@ -726,6 +734,274 @@ if (!doNotTrack) {
 </li>
 <li>
 <p><a href="https://help.aliyun.com/zh/terraform/resource-introduction?spm=a2c4g.11186623.help-menu-95817.d_3_2_0.16133193brrXl6&amp;scm=20140722.H_2837062._.OR_help-T_cn~zh-V_1">Resource 介绍_Terraform</a></p>
+</li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-e48abb517180f08f5738fa9863d9944f">1.3 - Terraform的模块及依赖引用</h1>
+    
+	<h1 id="1-模块-modules">1. 模块（Modules）</h1>
+<h2 id="1-1-module简介">1.1. module简介</h2>
+<p>Terraform 模块是一组位于单个目录中的 Terraform 配置文件，即使是一个包含了一个或多个 .tf 文件的单一目录的简单配置也被视为一个模块。模块是 Terraform 中代码复用的主要方法，它们通过指定可以检索代码的源来重复使用。</p>
+<p><strong>模块可以多层嵌套，类似代码中的函数。</strong></p>
+<blockquote>
+<p><strong>Module 就是一组 <code>.tf</code> 文件的集合</strong>，用来创建一组相关的基础设施资源。</p>
+</blockquote>
+<p>比如：</p>
+<ul>
+<li>一个 <code>vpc</code> 模块：创建 VPC、子网、路由表</li>
+<li>一个 <code>rds</code> 模块：创建数据库实例、安全组</li>
+<li>一个 <code>eks</code> 模块：创建 Kubernetes 集群</li>
+</ul>
+<h2 id="1-2-module-的基本结构">1.2. Module 的基本结构</h2>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>modules/
+</span></span><span style="display:flex;"><span>└── vpc/
+</span></span><span style="display:flex;"><span>    ├── main.tf          <span style="color:#8f5902;font-style:italic"># 资源定义</span>
+</span></span><span style="display:flex;"><span>    ├── variables.tf     <span style="color:#8f5902;font-style:italic"># 输入参数</span>
+</span></span><span style="display:flex;"><span>    └── outputs.tf       <span style="color:#8f5902;font-style:italic"># 输出结果</span>
+</span></span></code></pre></div><p><code>modules/vpc/main.tf</code></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>resource <span style="color:#4e9a06">&#34;aws_vpc&#34;</span> <span style="color:#4e9a06">&#34;main&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">cidr_block</span> <span style="color:#ce5c00;font-weight:bold">=</span> var.cidr_block
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">tags</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">Name</span> <span style="color:#ce5c00;font-weight:bold">=</span> var.name
+</span></span><span style="display:flex;"><span>  <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>resource <span style="color:#4e9a06">&#34;aws_subnet&#34;</span> <span style="color:#4e9a06">&#34;private&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">count</span> <span style="color:#ce5c00;font-weight:bold">=</span> length<span style="color:#ce5c00;font-weight:bold">(</span>var.private_subnets<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">vpc_id</span>            <span style="color:#ce5c00;font-weight:bold">=</span> aws_vpc.main.id
+</span></span><span style="display:flex;"><span>  <span style="color:#000">cidr_block</span>        <span style="color:#ce5c00;font-weight:bold">=</span> var.private_subnets<span style="color:#ce5c00;font-weight:bold">[</span>count.index<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">availability_zone</span> <span style="color:#ce5c00;font-weight:bold">=</span> element<span style="color:#ce5c00;font-weight:bold">(</span>var.azs, count.index<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">tags</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#000">Name</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;private-</span><span style="color:#4e9a06">${</span><span style="color:#000">element</span><span style="color:#000;font-weight:bold">(var.azs, count.index)</span><span style="color:#4e9a06">}</span><span style="color:#4e9a06">&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><p><code>variables.tf</code></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>variable <span style="color:#4e9a06">&#34;cidr_block&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">type</span> <span style="color:#ce5c00;font-weight:bold">=</span> string
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>variable <span style="color:#4e9a06">&#34;name&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">type</span> <span style="color:#ce5c00;font-weight:bold">=</span> string
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>variable <span style="color:#4e9a06">&#34;private_subnets&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">type</span> <span style="color:#ce5c00;font-weight:bold">=</span> list<span style="color:#ce5c00;font-weight:bold">(</span>string<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>variable <span style="color:#4e9a06">&#34;azs&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">type</span> <span style="color:#ce5c00;font-weight:bold">=</span> list<span style="color:#ce5c00;font-weight:bold">(</span>string<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><p><code>outputs.tf</code></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>output <span style="color:#4e9a06">&#34;vpc_id&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">value</span> <span style="color:#ce5c00;font-weight:bold">=</span> aws_vpc.main.id
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>output <span style="color:#4e9a06">&#34;private_subnet_ids&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">value</span> <span style="color:#ce5c00;font-weight:bold">=</span> aws_subnet.private<span style="color:#ce5c00;font-weight:bold">[</span>*<span style="color:#ce5c00;font-weight:bold">]</span>.id
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="1-3-在根模块中使用-module">1.3. 在根模块中使用 Module</h2>
+<p>方法 1：本地模块</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>module <span style="color:#4e9a06">&#34;prod_vpc&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">source</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;./modules/vpc&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">cidr_block</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;10.0.0.0/16&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">name</span>       <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;prod-vpc&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">private_subnets</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">[</span><span style="color:#4e9a06">&#34;10.0.1.0/24&#34;</span>, <span style="color:#4e9a06">&#34;10.0.2.0/24&#34;</span>, <span style="color:#4e9a06">&#34;10.0.3.0/24&#34;</span><span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">azs</span>             <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">[</span><span style="color:#4e9a06">&#34;us-west-2a&#34;</span>, <span style="color:#4e9a06">&#34;us-west-2b&#34;</span>, <span style="color:#4e9a06">&#34;us-west-2c&#34;</span><span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><p>方法 2：远程模块</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>module <span style="color:#4e9a06">&#34;vpc&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">source</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;git::https://github.com/your-org/terraform-modules.git//vpc?ref=v1.0.0&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">cidr_block</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;10.10.0.0/16&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">name</span>       <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;dev-vpc&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># ... 其他参数</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><p>支持来源类型：</p>
+<ul>
+<li><code>./path/to/module</code> — 本地</li>
+<li><code>github.com/org/repo//dir</code></li>
+<li><code>git::https://...</code></li>
+<li><code>terraform-registry-mirror/internal/modules/vpc</code></li>
+</ul>
+<h2 id="1-4-module-的输入与输出">1.4. Module 的输入与输出</h2>
+<p><strong>1. 输入（Input Variables）</strong></p>
+<p>通过 <code>variables.tf</code> 定义参数，在调用时传入。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>module <span style="color:#4e9a06">&#34;xxx&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">source</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;...&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">param1</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;value1&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">param2</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#204a87">true</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><p><strong>2. 输出（Outputs）</strong></p>
+<p>其他模块或根配置可以通过 <code>module.&lt;name&gt;.&lt;output&gt;</code> 引用输出值。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 假设 module.vpc 输出了 vpc_id 和 subnet_ids</span>
+</span></span><span style="display:flex;"><span>resource <span style="color:#4e9a06">&#34;aws_instance&#34;</span> <span style="color:#4e9a06">&#34;app&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">subnet_id</span> <span style="color:#ce5c00;font-weight:bold">=</span> module.prod_vpc.private_subnet_ids<span style="color:#ce5c00;font-weight:bold">[</span>0<span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># ...</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="1-5-实际使用场景示例">1.5. 实际使用场景示例</h2>
+<p><strong>VPC 模块创建网络，RDS 模块使用它的输出来部署数据库</strong>。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># main.tf</span>
+</span></span><span style="display:flex;"><span>module <span style="color:#4e9a06">&#34;network&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">source</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;./modules/vpc&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">cidr_block</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;10.0.0.0/16&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">name</span>       <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;my-app-network&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">private_subnets</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">[</span><span style="color:#4e9a06">&#34;10.0.1.0/24&#34;</span>, <span style="color:#4e9a06">&#34;10.0.2.0/24&#34;</span><span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">azs</span>             <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">[</span><span style="color:#4e9a06">&#34;us-west-2a&#34;</span>, <span style="color:#4e9a06">&#34;us-west-2b&#34;</span><span style="color:#ce5c00;font-weight:bold">]</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>module <span style="color:#4e9a06">&#34;database&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">source</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;./modules/rds&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">vpc_id</span>         <span style="color:#ce5c00;font-weight:bold">=</span> module.network.vpc_id
+</span></span><span style="display:flex;"><span>  <span style="color:#000">subnet_ids</span>     <span style="color:#ce5c00;font-weight:bold">=</span> module.network.private_subnet_ids
+</span></span><span style="display:flex;"><span>  <span style="color:#000">instance_class</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;db.t3.micro&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h1 id="2-资源依赖">2. 资源依赖</h1>
+<p>Terraform 有两种依赖关系：<code>隐式依赖</code>（Implicit Dependence）和`显式依赖``（Explicit Dependence）。隐式依赖是 Terraform 已知的，而显式依赖是未知的。</p>
+<h2 id="2-1-隐式依赖-implicit-dependence">2.1. 隐式依赖（Implicit Dependence）</h2>
+<p><strong>隐式依赖简单来讲就是对于变量引用的依赖</strong>。当一个资源的创建依赖于另一个资源创建后的信息时，需要用到隐式依赖来让 Terraform 知晓依赖关系。</p>
+<p>针对隐式依赖关系，Terraform 通过属性值引用赋值的方式来知晓。</p>
+<h2 id="2-2-显式依赖-explicit-dependence">2.2. 显式依赖（Explicit Dependence）</h2>
+<p>显式依赖就是Terraform无法通过变量之间的引用关系推断出来，需要用户明确指出的依赖。可以使用 depends_on 来显式声明依赖关系。无论资源类型是什么，depends_on 可以在模块内使用，该值可以是指向资源的表达式。</p>
+<h2 id="2-3-平级module的变量引用">2.3. 平级module的变量引用</h2>
+<p><strong>Terraform 中：Module 之间不能直接访问对方的内部资源或输出，除非通过根模块中显式传递。</strong></p>
+<p>但你可以通过 <strong>根模块作为“中介”</strong>，将一个 module 的输出传给另一个 module 作为输入。</p>
+<p><strong>示例：两个平级模块通信</strong></p>
+<p>假设我们有两个模块：</p>
+<ul>
+<li><code>vpc</code>：创建 VPC 和子网</li>
+<li><code>eks</code>：创建 EKS 集群，需要使用 VPC 创建的子网 ID</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>.
+</span></span><span style="display:flex;"><span>├── main.tf
+</span></span><span style="display:flex;"><span>├── variables.tf
+</span></span><span style="display:flex;"><span>├── outputs.tf
+</span></span><span style="display:flex;"><span>└── modules/
+</span></span><span style="display:flex;"><span>    ├── vpc/
+</span></span><span style="display:flex;"><span>    │   ├── main.tf
+</span></span><span style="display:flex;"><span>    │   └── outputs.tf
+</span></span><span style="display:flex;"><span>    └── eks/
+</span></span><span style="display:flex;"><span>        ├── main.tf
+</span></span><span style="display:flex;"><span>        └── variables.tf
+</span></span></code></pre></div><p><strong>步骤 1：为 <code>vpc</code> 模块定义输出（<code>modules/vpc/outputs.tf</code>）</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>output <span style="color:#4e9a06">&#34;private_subnet_ids&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">value</span> <span style="color:#ce5c00;font-weight:bold">=</span> aws_subnet.private<span style="color:#ce5c00;font-weight:bold">[</span>*<span style="color:#ce5c00;font-weight:bold">]</span>.id
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>output <span style="color:#4e9a06">&#34;vpc_id&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">value</span> <span style="color:#ce5c00;font-weight:bold">=</span> aws_vpc.main.id
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><p><strong>步骤 2：为 <code>eks</code> 模块定义输入变量（<code>modules/eks/variables.tf</code>）</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>variable <span style="color:#4e9a06">&#34;vpc_id&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">type</span> <span style="color:#ce5c00;font-weight:bold">=</span> string
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>variable <span style="color:#4e9a06">&#34;subnet_ids&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">type</span> <span style="color:#ce5c00;font-weight:bold">=</span> list<span style="color:#ce5c00;font-weight:bold">(</span>string<span style="color:#ce5c00;font-weight:bold">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><p><strong>步骤 3：在根模块中调用并连接两个模块（<code>main.tf</code>）</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建 VPC 模块</span>
+</span></span><span style="display:flex;"><span>module <span style="color:#4e9a06">&#34;network&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">source</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;./modules/vpc&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># 输入变量...</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 创建 EKS 模块，使用 network 模块的输出作为输入</span>
+</span></span><span style="display:flex;"><span>module <span style="color:#4e9a06">&#34;cluster&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">source</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;./modules/eks&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">vpc_id</span>     <span style="color:#ce5c00;font-weight:bold">=</span> module.network.vpc_id
+</span></span><span style="display:flex;"><span>  <span style="color:#000">subnet_ids</span> <span style="color:#ce5c00;font-weight:bold">=</span> module.network.private_subnet_ids
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><p>这样就实现了：<strong><code>eks</code> 模块使用了平级 <code>vpc</code> 模块的输出值</strong>。</p>
+<h2 id="2-4-父级模块的变量引用">2.4. 父级模块的变量引用</h2>
+<p><strong>核心原则：Terraform 模块的引用方向是 单向向下的。</strong></p>
+<blockquote>
+<p>🔹 <strong>Terraform 只能引用当前模块直接调用的“子模块”的 <code>output</code> 字段。</strong><br>
+🔹 <strong>不能向上引用父级、也不能横向引用兄弟模块。</strong><br>
+🔹 <strong>所有跨模块通信都必须通过“调用者”显式传递（通常是根模块）。</strong></p>
+</blockquote>
+<p>依赖必须由“上层模块”显式传递，通过 <strong>根模块中转</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>module <span style="color:#4e9a06">&#34;A&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">source</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;./modules/a&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>module <span style="color:#4e9a06">&#34;B&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">source</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;./modules/b&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>  <span style="color:#8f5902;font-style:italic"># 正确！根模块把 A 的输出传给 B 的输入</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">vpc_id</span> <span style="color:#ce5c00;font-weight:bold">=</span> module.A.vpc_id
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><h2 id="2-5-推荐架构设计原则">2.5. 推荐架构设计原则</h2>
+<ol>
+<li>
+<p><strong>扁平化优于深层嵌套</strong></p>
+<ul>
+<li>尽量让多个模块由根模块统一调用</li>
+<li>减少层级，便于管理依赖</li>
+</ul>
+</li>
+<li>
+<p><strong>接口清晰化</strong></p>
+<ul>
+<li>每个模块通过 <code>outputs.tf</code> 明确暴露哪些值</li>
+<li>通过 <code>variables.tf</code> 明确需要哪些输入</li>
+</ul>
+</li>
+<li>
+<p><strong>避免循环依赖</strong></p>
+<ul>
+<li>A → B → C → A 是非法的</li>
+<li>如果出现，说明模块职责不清，需重构</li>
+</ul>
+</li>
+<li>
+<p><strong>用 locals 或 variables 统一配置</strong></p>
+</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>locals <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">common_tags</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">{</span> <span style="color:#000">Environment</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;prod&#34;</span> <span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>module <span style="color:#4e9a06">&#34;vpc&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">source</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;./modules/vpc&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">tags</span>   <span style="color:#ce5c00;font-weight:bold">=</span> local.common_tags
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>module <span style="color:#4e9a06">&#34;rds&#34;</span> <span style="color:#ce5c00;font-weight:bold">{</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#204a87">source</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#34;./modules/rds&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#000">tags</span>   <span style="color:#ce5c00;font-weight:bold">=</span> local.common_tags
+</span></span><span style="display:flex;"><span><span style="color:#ce5c00;font-weight:bold">}</span>
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li>
+<p><a href="https://help.aliyun.com/zh/terraform/resource-dependence?spm=a2c4g.11186623.help-menu-95817.d_3_2_3.5ca03e1cAvq0zp&amp;scm=20140722.H_2837069._.OR_help-T_cn~zh-V_1">资源依赖_Terraform</a></p>
+</li>
+<li>
+<p><a href="https://help.aliyun.com/zh/terraform/depends-on?spm=a2c4g.11186623.help-menu-95817.d_3_3_0_0.3ac96fd4IO0YM0&amp;scm=20140722.H_2875514._.OR_help-T_cn~zh-V_1">depends_on,显示依赖_Terraform</a></p>
+</li>
+<li>
+<p><a href="https://docs.aws.amazon.com/zh_cn/prescriptive-guidance/latest/terraform-aws-provider-best-practices/structure.html">代码库结构和组织的最佳实践 - AWS 规范性指导</a></p>
 </li>
 </ul>
 
