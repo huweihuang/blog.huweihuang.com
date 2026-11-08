@@ -1,0 +1,1065 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>胡伟煌 – Agent Substrate</title>
+    <link>https://blog.huweihuang.com/kubernetes-notes/sandbox/substrate/</link>
+    <description>Recent content in Agent Substrate on 胡伟煌</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Sat, 07 Nov 2026 10:30:00 +0000</lastBuildDate>
+    
+	  <atom:link href="https://blog.huweihuang.com/kubernetes-notes/sandbox/substrate/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+      
+        
+      
+    
+    
+    <item>
+      <title>Kubernetes-Notes: Agent Substrate 架构解析</title>
+      <link>https://blog.huweihuang.com/kubernetes-notes/sandbox/substrate/agent-substrate-arch/</link>
+      <pubDate>Sat, 31 Oct 2026 18:30:00 +0000</pubDate>
+      
+      <guid>https://blog.huweihuang.com/kubernetes-notes/sandbox/substrate/agent-substrate-arch/</guid>
+      <description>
+        
+        
+        &lt;p&gt;Agent Substrate 不是用来开发 Agent 的框架，而是用来安全、高密度地运行 Agent 和 Sandbox 的基础设施运行时。&lt;/p&gt;
+&lt;p&gt;项目地址：&lt;a href=&#34;https://github.com/agent-substrate/substrate?utm_source=chatgpt.com&#34;&gt;agent-substrate/substrate（GitHub）&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;它主要解决一个问题：如果一个平台要为大量用户分别创建独立的 AI Agent 执行环境，如何同时实现安全隔离、状态持久化、快速唤醒和资源复用？&lt;/p&gt;
+&lt;p&gt;结合 Kubernetes 的视角，可以把它理解为：在 Pod 和容器之上，为有状态、间歇性运行的 Agent 增加一层专用的调度与执行管理系统。&lt;/p&gt;
+&lt;h2 id=&#34;1-为什么需要-agent-substrate&#34;&gt;1. 为什么需要 Agent Substrate？&lt;/h2&gt;
+&lt;p&gt;传统 Kubernetes 部署通常是一个应用对应一个或多个 Pod。但 AI Agent 的工作模式有些特殊：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;用户发起任务后，Agent 执行推理、调用工具或运行代码。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;调用大模型、等待用户输入时，Agent 可能长时间处于空闲状态。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Agent 往往需要保留运行时内存、文件系统和会话状态。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Agent 执行的代码可能不可信，需要严格的安全隔离。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;如果每个用户的 Agent 都长期占用一个独立的 Pod，就可能浪费大量资源；如果任务到来时才创建 Pod，又可能引入调度和启动延迟。&lt;/p&gt;
+&lt;h3 id=&#34;1-1-核心思路-actor-与-worker-解耦&#34;&gt;1.1. 核心思路：Actor 与 Worker 解耦&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1793430789/article/substrate/agent-substrate-control-plane.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;这里最重要的是两个概念：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Actor：逻辑上的一个 Agent 实例，具有自己的身份、状态和生命周期。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Worker：实际承载 Actor 的执行资源，通常由预先启动的 Kubernetes Pod 提供。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;多个 Actor 可以共享一组 Worker 的计算资源，但同一时刻实际执行的 Actor 仍然需要相应的执行容量。空闲 Actor 可以被挂起并保存状态，需要继续执行时再恢复。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;这与传统的“一份 Agent 对应一个长期运行的 Pod”是不同的资源管理模型。&lt;/strong&gt;&lt;/p&gt;
+&lt;h3 id=&#34;1-2-核心组件与-kubernetes-对应关系&#34;&gt;1.2. 核心组件与 Kubernetes 对应关系&lt;/h3&gt;
+&lt;p&gt;从源码和架构文档来看，Agent Substrate 的主要组件可以这样理解。&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;组件 / 概念&lt;/th&gt;
+&lt;th&gt;作用&lt;/th&gt;
+&lt;th&gt;Kubernetes 视角&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;ActorTemplate&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;定义 Actor 的运行镜像、资源及运行参数&lt;/td&gt;
+&lt;td&gt;类似工作负载模板，但不是 Deployment&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Actor&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;一个具体的、有状态的运行实例&lt;/td&gt;
+&lt;td&gt;不等于 Pod，生命周期独立于 Worker&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;WorkerPool&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;管理可用于执行 Actor 的 Worker 容量&lt;/td&gt;
+&lt;td&gt;类似执行资源池&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Worker&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;真正承载沙箱执行环境&lt;/td&gt;
+&lt;td&gt;通常由 Kubernetes Pod 承载&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Atespace&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Actor 的租户与命名空间边界&lt;/td&gt;
+&lt;td&gt;类似逻辑租户隔离，不能简单等同于 Namespace&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;ate-api-server&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;处理 Actor、Worker 生命周期等控制请求&lt;/td&gt;
+&lt;td&gt;专用控制面&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;atelet&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;节点级监督、快照和状态迁移&lt;/td&gt;
+&lt;td&gt;类似节点 Agent / DaemonSet&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;atenet&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;负责网络路由与代理等功能&lt;/td&gt;
+&lt;td&gt;类似专用数据面与网络控制组件&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;kubectl-ate&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;通过命令行管理 Substrate 资源&lt;/td&gt;
+&lt;td&gt;类似 &lt;code&gt;kubectl&lt;/code&gt; 的扩展工具&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;注意：这些是帮助理解的类比，不代表它们与 Kubernetes 原生资源一一对应。&lt;/p&gt;
+&lt;p&gt;可以把它理解为：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;ActorTemplate&lt;/code&gt; 决定“这个 Sandbox 运行什么”。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;Actor&lt;/code&gt; 决定“这是哪个用户或任务的独立运行实例”。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;WorkerPool&lt;/code&gt; 决定“实际执行资源从哪里来”。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;SandboxConfig&lt;/code&gt; 决定“使用哪个沙箱运行时版本”。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Snapshot 决定“挂起后如何保留和恢复状态”。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;2-substrate的部署架构&#34;&gt;2. Substrate的部署架构&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1793430791/article/substrate/google-agent-substrate-architecture.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;从部署视角看，可以分成五层：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;层次&lt;/th&gt;
+&lt;th&gt;主要组件&lt;/th&gt;
+&lt;th&gt;作用&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;API 与控制面&lt;/td&gt;
+&lt;td&gt;ate-api-server&lt;/td&gt;
+&lt;td&gt;Actor 生命周期、调度、快照编排&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Kubernetes 管理层&lt;/td&gt;
+&lt;td&gt;atecontroller、CRD&lt;/td&gt;
+&lt;td&gt;将 WorkerPool 等资源转换成实际 Kubernetes 工作负载&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;节点管理层&lt;/td&gt;
+&lt;td&gt;atelet&lt;/td&gt;
+&lt;td&gt;节点上的 Worker 管理、镜像准备、快照传输&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Sandbox 执行层&lt;/td&gt;
+&lt;td&gt;Worker Pod、ateworker/ateom、gVisor 或 MicroVM&lt;/td&gt;
+&lt;td&gt;真正运行 Actor&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;网络与存储层&lt;/td&gt;
+&lt;td&gt;atenet、atunnel、PostgreSQL、对象存储&lt;/td&gt;
+&lt;td&gt;请求转发、身份认证、状态和快照持久化&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id=&#34;2-1-部署的k8s-工作负载&#34;&gt;2.1. 部署的k8s 工作负载&lt;/h3&gt;
+&lt;p&gt;下面是按组件整理的部署清单。具体 Pod 数量、容器组合和名称会随版本、安装选项变化。&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;工作负载&lt;/th&gt;
+&lt;th&gt;K8s 类型&lt;/th&gt;
+&lt;th&gt;部署位置&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;ate-api-server&lt;/td&gt;
+&lt;td&gt;Deployment&lt;/td&gt;
+&lt;td&gt;ate-system&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;atecontroller&lt;/td&gt;
+&lt;td&gt;Deployment&lt;/td&gt;
+&lt;td&gt;ate-system&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;atelet&lt;/td&gt;
+&lt;td&gt;DaemonSet&lt;/td&gt;
+&lt;td&gt;ate-system&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;atenet&lt;/td&gt;
+&lt;td&gt;Deployment / 相关代理工作负载&lt;/td&gt;
+&lt;td&gt;ate-system&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;podcertcontroller&lt;/td&gt;
+&lt;td&gt;Deployment&lt;/td&gt;
+&lt;td&gt;证书控制器命名空间&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;ate-idp-server&lt;/td&gt;
+&lt;td&gt;Deployment&lt;/td&gt;
+&lt;td&gt;ate-system&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;PostgreSQL&lt;/td&gt;
+&lt;td&gt;StatefulSet 或外部数据库&lt;/td&gt;
+&lt;td&gt;ate-system 或外部&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Worker&lt;/td&gt;
+&lt;td&gt;Deployment 管理的 Pod&lt;/td&gt;
+&lt;td&gt;Worker 节点&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;ateom / ateworker&lt;/td&gt;
+&lt;td&gt;Worker 内部容器&lt;/td&gt;
+&lt;td&gt;Worker Pod&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;atunnel&lt;/td&gt;
+&lt;td&gt;Worker 内部网络服务&lt;/td&gt;
+&lt;td&gt;Worker Pod&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Object Store Plugin&lt;/td&gt;
+&lt;td&gt;Sidecar&lt;/td&gt;
+&lt;td&gt;相关组件 Pod&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;这里有个容易误解的地方：&lt;code&gt;ateom&lt;/code&gt;、&lt;code&gt;atunnel&lt;/code&gt; 不一定是独立的 Kubernetes Deployment，它们属于 Worker 内部的运行组件。Object Store Plugin 也可能以 Sidecar 方式运行，而不是单独部署一个集群级服务。&lt;/p&gt;
+&lt;h3 id=&#34;2-2-外部基础设施依赖&#34;&gt;2.2. 外部基础设施依赖&lt;/h3&gt;
+&lt;p&gt;除了 Substrate 自身组件，还需要准备外部基础设施。&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;依赖&lt;/th&gt;
+&lt;th&gt;作用&lt;/th&gt;
+&lt;th&gt;是否必要&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;Kubernetes&lt;/td&gt;
+&lt;td&gt;承载所有组件和 Worker Pod&lt;/td&gt;
+&lt;td&gt;必须&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;PostgreSQL&lt;/td&gt;
+&lt;td&gt;保存 Actor、Worker 等控制面状态&lt;/td&gt;
+&lt;td&gt;必须&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;对象存储（GCS/S3）&lt;/td&gt;
+&lt;td&gt;保存 Actor 快照、模板快照&lt;/td&gt;
+&lt;td&gt;持久化快照场景必须&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;节点本地存储&lt;/td&gt;
+&lt;td&gt;缓存运行时资源、快照文件&lt;/td&gt;
+&lt;td&gt;需要&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;gVisor 或 MicroVM 环境&lt;/td&gt;
+&lt;td&gt;提供 Sandbox 隔离运行时&lt;/td&gt;
+&lt;td&gt;必须至少选择一种&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Pod 证书能力&lt;/td&gt;
+&lt;td&gt;提供内部身份认证和 mTLS&lt;/td&gt;
+&lt;td&gt;按部署版本和配置要求&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;凭据提供服务&lt;/td&gt;
+&lt;td&gt;为 Actor 的出站请求注入受控凭据&lt;/td&gt;
+&lt;td&gt;按功能配置&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;这里尤其要区分 PostgreSQL 和对象存储：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;PostgreSQL 保存的是 Actor 的元数据和状态，不是 Actor 的完整内存。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;对象存储保存的是 Actor 的快照文件。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;atelet&lt;/code&gt; 负责节点与对象存储之间的快照传输。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;官方架构还包含 Object Store Plugin，用来为快照上传、下载和资源缓存提供统一的对象存储接口。&lt;/p&gt;
+&lt;h3 id=&#34;2-3-实际部署顺序&#34;&gt;2.3. 实际部署顺序&lt;/h3&gt;
+&lt;p&gt;从零部署时，我建议按以下依赖顺序理解。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;准备 Kubernetes 集群&lt;/p&gt;
+&lt;p&gt;准备节点、网络、存储、证书 API，以及 Worker 所需的运行时能力。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;准备外部基础设施&lt;/p&gt;
+&lt;p&gt;部署 PostgreSQL、对象存储、IAM / Workload Identity 等。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;部署 Kubernetes 扩展能力&lt;/p&gt;
+&lt;p&gt;安装 Substrate CRD、证书相关组件、&lt;code&gt;podcertcontroller&lt;/code&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;部署控制面&lt;/p&gt;
+&lt;p&gt;安装 &lt;code&gt;ate-api-server&lt;/code&gt;、&lt;code&gt;atecontroller&lt;/code&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;部署节点管理组件&lt;/p&gt;
+&lt;p&gt;安装 &lt;code&gt;atelet&lt;/code&gt; DaemonSet。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;部署网络组件&lt;/p&gt;
+&lt;p&gt;安装 &lt;code&gt;atenet&lt;/code&gt;、Router、相关隧道和代理能力。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;创建 WorkerPool&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;选择 gVisor 或 MicroVM，配置 Worker 数量和资源。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;创建 ActorTemplate&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;配置 Actor 镜像、资源限制、快照存储位置等。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;创建 Actor 并验证&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;创建 Actor，验证启动、访问、Suspend、Resume。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;3-核心组件及功能&#34;&gt;3. 核心组件及功能&lt;/h2&gt;
+&lt;h3 id=&#34;2-1-控制面组件-ate-api-server&#34;&gt;2.1 控制面组件【ate-api-server】&lt;/h3&gt;
+&lt;p&gt;这是 Substrate 的核心控制面，主要负责：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;提供 gRPC API，供 CLI、上层 Agent 平台调用。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;创建、删除和管理 Actor。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;管理 ActorTemplate、Atespace、Tag 等资源。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;维护 Actor 与 Worker 的映射关系。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;选择可用 Worker，完成 Actor 调度。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;编排 Actor 的 Suspend、Resume、Checkpoint、Restore。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;进行 API 身份认证和权限校验。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;它的内部主要包含三个逻辑部分：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;内部模块&lt;/th&gt;
+&lt;th&gt;功能&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;State Store&lt;/td&gt;
+&lt;td&gt;保存 Actor、Worker 状态及映射关系&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Scheduler&lt;/td&gt;
+&lt;td&gt;选择可用 Worker&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Workflow Engine&lt;/td&gt;
+&lt;td&gt;编排 Actor 暂停、恢复等多步骤操作&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;部署形态： Kubernetes Deployment。&lt;/p&gt;
+&lt;p&gt;它不直接运行 Agent，也不直接操作底层 Sandbox，而是通过节点管理组件协调执行。&lt;/p&gt;
+&lt;h3 id=&#34;2-2-kubernetes-controller-atecontroller&#34;&gt;2.2 Kubernetes Controller【atecontroller】&lt;/h3&gt;
+&lt;p&gt;这是 Substrate 与 Kubernetes 之间的桥梁。&lt;/p&gt;
+&lt;p&gt;主要负责：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Watch Substrate 定义的 Kubernetes CRD。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;监听 WorkerPool 的创建、修改和删除。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;根据 WorkerPool 配置创建或更新 Kubernetes Deployment。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;维护 Worker Pod 的期望状态。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;例如，创建一个 WorkerPool：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;apiVersion: ate.dev/v1alpha1
+kind: WorkerPool
+metadata:
+  name: gvisor-pool
+spec:
+  replicas: 10
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Controller 负责将它转换为实际运行的 Worker Pod。&lt;/p&gt;
+&lt;p&gt;部署形态： Kubernetes Deployment。&lt;/p&gt;
+&lt;p&gt;注意：ActorTemplate 并不是 Kubernetes CRD，它通过 Substrate API 管理；WorkerPool 才是 Kubernetes 侧管理的资源。&lt;/p&gt;
+&lt;h3 id=&#34;2-3-节点管理组件-atelet&#34;&gt;2.3 节点管理组件【atelet】&lt;/h3&gt;
+&lt;p&gt;&lt;code&gt;atelet&lt;/code&gt; 是运行在 Kubernetes Node 上的节点级管理进程。&lt;/p&gt;
+&lt;p&gt;它主要负责：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;监听和管理当前节点上的 Worker。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;准备 Sandbox 需要的镜像和运行时资源。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;组装 OCI Bundle。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;调用 Worker 内部的管理进程执行 Sandbox 启动。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;协调 Actor 的 Checkpoint 和 Restore。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;将快照上传到对象存储，或从对象存储下载快照。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;管理节点本地的 Sandbox Asset Cache。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;它是整个数据面的重要执行协调者。&lt;/p&gt;
+&lt;p&gt;部署形态： Kubernetes DaemonSet。&lt;/p&gt;
+&lt;p&gt;也就是说，符合调度条件的每个 Node 都会运行一个 &lt;code&gt;atelet&lt;/code&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;2-4-worker-内部管理组件-ateom-ateworker&#34;&gt;2.4 Worker 内部管理组件【ateom / ateworker】&lt;/h3&gt;
+&lt;p&gt;这是运行在 Worker Pod 内部的 Sandbox 管理进程。&lt;/p&gt;
+&lt;p&gt;不同版本和文档中使用过 &lt;code&gt;ateworker&lt;/code&gt;、&lt;code&gt;ateom&lt;/code&gt; 这些名称。当前架构文档使用 &lt;code&gt;ateom&lt;/code&gt; 描述这一层的职责。&lt;/p&gt;
+&lt;p&gt;它主要负责：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;接收 &lt;code&gt;atelet&lt;/code&gt; 下发的操作。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;创建和管理 Actor 对应的 Sandbox。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;调用底层 Sandbox Runtime。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;执行 RunWorkload、CheckpointWorkload、RestoreWorkload。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;管理 Actor 的网络连接。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;通过内部网络服务 &lt;code&gt;atunnel&lt;/code&gt; 转发 Actor 流量。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;它与 &lt;code&gt;atelet&lt;/code&gt; 的关系是：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;组件&lt;/th&gt;
+&lt;th&gt;所在位置&lt;/th&gt;
+&lt;th&gt;主要职责&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;atelet&lt;/td&gt;
+&lt;td&gt;Kubernetes Node&lt;/td&gt;
+&lt;td&gt;管理节点上的 Worker，协调生命周期和快照&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;ateom&lt;/td&gt;
+&lt;td&gt;Worker Pod 内&lt;/td&gt;
+&lt;td&gt;具体操作 Sandbox，驱动运行时&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;atunnel&lt;/td&gt;
+&lt;td&gt;Worker 内部网络服务&lt;/td&gt;
+&lt;td&gt;接收经过认证的流量并转发给 Actor&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;部署形态： Worker Pod 内的容器或管理进程，具体由 WorkerPool 选择的 Sandbox 类型决定。&lt;/p&gt;
+&lt;h3 id=&#34;2-5-sandbox-runtime&#34;&gt;2.5 Sandbox Runtime&lt;/h3&gt;
+&lt;p&gt;Substrate 需要真正提供隔离执行环境的底层 Runtime。&lt;/p&gt;
+&lt;p&gt;目前主要有两种运行时实现：&lt;/p&gt;
+&lt;h4 id=&#34;2-5-1-gvisor&#34;&gt;2.5.1. gVisor&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;使用用户态内核提供系统调用隔离。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;由 &lt;code&gt;runsc&lt;/code&gt; 执行 Sandbox 的创建、Checkpoint 和 Restore。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;相比完整虚拟机，运行开销通常更低。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;是 Substrate 默认使用的隔离运行时之一。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1793430789/article/substrate/gvisor.jpg&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;h4 id=&#34;2-5-2-microvm&#34;&gt;2.5.2. MicroVM&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;使用轻量级虚拟机提供隔离。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;当前实现使用 Cloud Hypervisor。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Worker 需要具备相应虚拟化能力。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;适合需要更强虚拟化隔离边界的场景。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1793430789/article/substrate/microvm.jpg&#34; alt=&#34;MicroVMs&#34;&gt;&lt;/p&gt;
+&lt;p&gt;对应的 Worker 管理程序包括：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;ateworker-gvisor&lt;/code&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;ateworker-microvm&lt;/code&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;注意：不能直接把普通 &lt;code&gt;runc&lt;/code&gt; 容器当作 Substrate 已支持的 Sandbox Runtime。Substrate 的设计依赖运行时支持的 Checkpoint/Restore 能力。&lt;/p&gt;
+&lt;h3 id=&#34;2-6-网络组件-atenet&#34;&gt;2.6 网络组件【atenet】&lt;/h3&gt;
+&lt;p&gt;&lt;code&gt;atenet&lt;/code&gt; 是 Substrate 的网络组件集合，负责 Actor 流量入口、路由和网络隔离。&lt;/p&gt;
+&lt;p&gt;主要包括：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;组件&lt;/th&gt;
+&lt;th&gt;功能&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;atenet-controller&lt;/td&gt;
+&lt;td&gt;管理网络相关配置和代理工作负载&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;atenet-router&lt;/td&gt;
+&lt;td&gt;Envoy 网关，接收 Actor 请求并进行路由&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;atunnel&lt;/td&gt;
+&lt;td&gt;Worker 内部隧道服务，将请求转发到 Actor&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;其中 &lt;code&gt;atenet-router&lt;/code&gt; 是一个非常重要的组件。&lt;/p&gt;
+&lt;p&gt;例如，上层 Agent 平台访问某个 Actor：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;POST /execute HTTP/1.1
+Host: agent.example.com
+ate-target-actor: demo/my-agent
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;路由过程：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;Router 识别请求中的 Actor 标识。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;调用 &lt;code&gt;ate-api-server&lt;/code&gt; 查询 Actor 状态。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;如果 Actor 已暂停，则触发 Resume。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Control Plane 分配 Worker。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;atelet&lt;/code&gt; 和 Worker 内部管理进程恢复 Actor。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Router 与 Worker 的 &lt;code&gt;atunnel&lt;/code&gt; 建立认证隧道。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;atunnel&lt;/code&gt; 将请求转发到 Actor。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;这样，上层应用不需要知道 Actor 当前在哪个 Worker 上。&lt;/p&gt;
+&lt;h3 id=&#34;2-7-身份认证组件-podcertcontroller&#34;&gt;2.7 身份认证组件【podcertcontroller】&lt;/h3&gt;
+&lt;p&gt;这是 Kubernetes Pod 证书签发控制器。&lt;/p&gt;
+&lt;p&gt;主要负责：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;为 Substrate 组件提供短期证书。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;为组件提供可验证的身份。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;支持内部服务之间的 mTLS 通信。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;为 Actor 运行环境提供身份认证基础。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;部署形态： Kubernetes Deployment 或相应控制器工作负载。&lt;/p&gt;
+&lt;p&gt;此外，还有：&lt;/p&gt;
+&lt;p&gt;ate-idp-server&lt;/p&gt;
+&lt;p&gt;负责提供 OpenID Connect Discovery 文档和 JWKS 公钥信息，供依赖方验证 Actor JWT。&lt;/p&gt;
+&lt;p&gt;它与 &lt;code&gt;podcertcontroller&lt;/code&gt; 不是同一个东西：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;podcertcontroller&lt;/code&gt;：解决 Pod 及内部组件的证书身份问题。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;ate-idp-server&lt;/code&gt;：提供 JWT 验证所需的身份提供方元数据。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+
+      </description>
+    </item>
+    
+    <item>
+      <title>Kubernetes-Notes: 部署 Substrate Sandbox</title>
+      <link>https://blog.huweihuang.com/kubernetes-notes/sandbox/substrate/deploy-sandbox-by-substrate/</link>
+      <pubDate>Sat, 07 Nov 2026 10:30:00 +0000</pubDate>
+      
+      <guid>https://blog.huweihuang.com/kubernetes-notes/sandbox/substrate/deploy-sandbox-by-substrate/</guid>
+      <description>
+        
+        
+        &lt;p&gt;本文主要描述在已经部署好 Agent Substrate 的 Kubernetes 集群上执行的完整示例。&lt;/p&gt;
+&lt;p&gt;先创建一个简单的 HTTP Sandbox Actor，验证完整链路：&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;Atespace → WorkerPool → ActorTemplate → Actor → Resume → 访问 → Suspend&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;这里有一个容易忽略的地方：Atespace、ActorTemplate、Actor 是通过 Substrate API 管理的逻辑资源，不是 Kubernetes CRD；WorkerPool 和 SandboxConfig 才是 Kubernetes 资源。 因此不能全部使用 &lt;code&gt;kubectl apply&lt;/code&gt; 创建。&lt;/p&gt;
+&lt;h2 id=&#34;0-检查-substrate-是否部署正常&#34;&gt;0. 检查 Substrate 是否部署正常&lt;/h2&gt;
+&lt;p&gt;先检查核心组件：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl get pods -n ate-system
+kubectl get crd | grep -E &amp;#39;workerpools|sandboxconfigs&amp;#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;检查 Substrate CLI：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl ate get atespaces
+kubectl ate get workers
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;如果本地还没有 &lt;code&gt;kubectl ate&lt;/code&gt;：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;go install github.com/agent-substrate/substrate/cmd/kubectl-ate@latest
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;注意：CLI 版本尽量与集群部署的 Substrate 版本保持一致。&lt;/p&gt;
+&lt;h2 id=&#34;1-创建-atespace-租户&#34;&gt;1. 创建 Atespace【租户】&lt;/h2&gt;
+&lt;p&gt;先创建 Kubernetes Namespace：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl create namespace demo-space
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;现在创建 Substrate 逻辑隔离空间：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl ate create atespace demo-space
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;查看：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl ate get atespace demo-space
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#示例&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;ATESPACE       NAME            TEMPLATE                  STATE                 WORKER POD                    WORKER IPS   VERSION   AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;demo-space   ate-demo-actor   ate-demo/demo-template   ACTOR_STATE_RUNNING   ate-demo/demo-68c995676b-f7tmn   1.1.1.1     &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;3&lt;/span&gt;         39h
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;注意这里有两个同名对象：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;对象&lt;/th&gt;
+&lt;th&gt;所属系统&lt;/th&gt;
+&lt;th&gt;作用&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;Namespace &lt;code&gt;demo-space&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Kubernetes&lt;/td&gt;
+&lt;td&gt;WorkerPool 等 K8s 资源的命名空间&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Atespace &lt;code&gt;demo-space&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Substrate&lt;/td&gt;
+&lt;td&gt;Actor 的逻辑隔离空间&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;它们不是同一个对象，只是为了方便示例使用了相同名称。注意执行ate的参数指定atespace 是用参数&lt;code&gt;-a&lt;/code&gt;而不是&lt;code&gt;-n&lt;/code&gt;。&lt;/p&gt;
+&lt;h2 id=&#34;2-创建-workerpool-资源池&#34;&gt;2. 创建 WorkerPool【资源池】&lt;/h2&gt;
+&lt;p&gt;这是创建 Actor 之前最重要的准备工作。&lt;/p&gt;
+&lt;p&gt;WorkerPool 是 Kubernetes CRD，负责提供可以承载 Actor 的 Worker Pod。可以理解为资源池。&lt;/p&gt;
+&lt;p&gt;创建 &lt;code&gt;workerpool.yaml&lt;/code&gt;：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;apiVersion&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;ate.dev/v1&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;kind&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;WorkerPool&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;metadata&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;demo-pool&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;namespace&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;demo-space&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;labels&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;workload&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;demo-agent&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;spec&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;replicas&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;2&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 必须使用与当前 Substrate 部署版本匹配的 Worker 镜像&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;workerImage&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;&amp;lt;你的 ateworker-gvisor 镜像&amp;gt;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;sandboxClasses&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;gvisor&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;template&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;resources&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;limits&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;cpu&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;2&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;memory&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;2Gi&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;requests&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;cpu&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;500m&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;memory&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;2Gi&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;这里的 &lt;code&gt;workerImage&lt;/code&gt; 不能随意填写。应该使用你当前 Substrate 安装时使用的 &lt;code&gt;ateworker-gvisor&lt;/code&gt; 镜像，确保版本一致。&lt;/p&gt;
+&lt;p&gt;应用：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl apply -f workerpool.yaml
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;检查：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl get workerpool -n demo-space
+
+kubectl get pods -n demo-space -w
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;预期有两个 Worker Pod 逐渐变成 Running。&lt;/p&gt;
+&lt;p&gt;WorkerPool 有几个重要概念：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;配置&lt;/th&gt;
+&lt;th&gt;含义&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;replicas&lt;/td&gt;
+&lt;td&gt;预热 Worker 的数量&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;workerImage&lt;/td&gt;
+&lt;td&gt;Worker 内部管理程序的镜像&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;sandboxClasses&lt;/td&gt;
+&lt;td&gt;支持的 Sandbox Runtime&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;template.resources&lt;/td&gt;
+&lt;td&gt;Worker Pod 的资源配置&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;metadata.labels&lt;/td&gt;
+&lt;td&gt;供 ActorTemplate 的 workerSelector 选择&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;这里要特别注意：WorkerPool 的资源限制决定 Worker 可承载的容量；ActorTemplate 的资源限制决定单个 Actor 申请的资源。两者不是同一个概念。&lt;/p&gt;
+&lt;h2 id=&#34;3-创建-actortemplate-sandbox模板&#34;&gt;3. 创建 ActorTemplate【Sandbox模板】&lt;/h2&gt;
+&lt;p&gt;ActorTemplate 用来定义 Actor 运行什么程序、使用什么资源、使用什么 Sandbox Runtime，以及如何保存快照。&lt;/p&gt;
+&lt;p&gt;这一步需要准备一个容器镜像。&lt;/p&gt;
+&lt;p&gt;这里推荐直接使用一个自己构建的 HTTP 服务镜像，假设它具有以下行为：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;容器启动后监听 80 端口。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;GET /readyz&lt;/code&gt; 返回 HTTP 200。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;GET /&lt;/code&gt; 返回 &lt;code&gt;Hello from Agent Substrate&lt;/code&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;工作目录为 &lt;code&gt;/workspace&lt;/code&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;假设你的镜像为：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;registry.example.com/agent/demo-server:v1
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;创建 &lt;code&gt;actor-template.yaml&lt;/code&gt;：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;metadata&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;atespace&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;demo-space&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;demo-template&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 选择前面创建的 WorkerPool&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;workerSelector&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;matchLabels&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;workload&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;demo-agent&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;containers&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;agent&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;image&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;registry.example.com/agent/demo-server:v1&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;ports&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;containerPort&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;80&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;wakeupProbe&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;httpGet&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;path&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;/readyz&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;port&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;80&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;volumeMounts&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;      &lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;workspace&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;        &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;mountPath&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;/workspace&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;resources&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;limits&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;cpuMillicores&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1000&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;memoryBytes&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;1073741824&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;snapshotConfig&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;storageLocation&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;gs://YOUR_BUCKET/agent-substrate/demo-space/&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;sandboxConfig&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;sandboxClass&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;SANDBOX_CLASS_GVISOR&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;configName&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;gvisor-default&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;volumes&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;  &lt;/span&gt;- &lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;workspace&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;    &lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;durableDir&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;:&lt;/span&gt;&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt; &lt;/span&gt;{}&lt;span style=&#34;color:#f8f8f8;text-decoration:underline&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;需要替换：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;registry.example.com/agent/demo-server:v1&lt;/code&gt;：替换成你自己的镜像。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;gs://YOUR_BUCKET/...&lt;/code&gt;：替换成当前 Substrate 对象存储插件支持的快照存储路径。这里沿用官方 GCS 示例；如果你部署的是其他存储后端，要使用对应支持的 URI。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;gvisor-default&lt;/code&gt;：确保集群里存在对应的 SandboxConfig。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;关于几个关键字段：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;字段&lt;/th&gt;
+&lt;th&gt;作用&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;metadata.atespace&lt;/td&gt;
+&lt;td&gt;ActorTemplate 所属的 Atespace&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;metadata.name&lt;/td&gt;
+&lt;td&gt;模板名称&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;workerSelector&lt;/td&gt;
+&lt;td&gt;选择具有对应标签的 WorkerPool&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;containers&lt;/td&gt;
+&lt;td&gt;Actor 内部运行的容器&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;resources&lt;/td&gt;
+&lt;td&gt;Actor 的资源申请&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;wakeupProbe&lt;/td&gt;
+&lt;td&gt;恢复后判断服务是否就绪&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;snapshotConfig&lt;/td&gt;
+&lt;td&gt;配置快照策略和存储位置&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;sandboxConfig&lt;/td&gt;
+&lt;td&gt;选择 Sandbox Runtime&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;durableDir&lt;/td&gt;
+&lt;td&gt;Actor 独立的持久化数据目录&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;这里使用 &lt;code&gt;durableDir&lt;/code&gt;，是为了让 &lt;code&gt;/workspace&lt;/code&gt; 中的数据能够在 Actor Suspend/Resume 后保留。&lt;/p&gt;
+&lt;p&gt;关于快照： 当前示例重点是持久化工作目录。如果你还要求进程内存状态也恢复，需要根据当前 Substrate 版本配置相应的完整内存快照策略。&lt;/p&gt;
+&lt;p&gt;官方 Counter Demo 提供了完整的 gVisor、DurableDir 和内存快照配置，可以作为进一步参考 &lt;a href=&#34;https://github.com/agent-substrate/substrate/blob/main/demos/counter/counter-template.yaml.tmpl&#34;&gt;substrate/demos/counter&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;创建模板：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl ate create actor-template -f actor-template.yaml
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;查看：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl ate get actor-templates -a demo-space
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;查看具体模板：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl ate get actor-template demo-template &lt;span style=&#34;color:#4e9a06&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&lt;/span&gt;  -a demo-space &lt;span style=&#34;color:#4e9a06&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&lt;/span&gt;  -o yaml
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# status 输出&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;status:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  goldenSnapshotStatus:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    goldenTag:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      atespace: ate-golden
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      name: 0afe4a06-1432-424e-9e9c-ca60bb991a17
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    takeGoldenSnapshotAt: &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;2026-10-31T11:34:52.168080494Z&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;注意&lt;/p&gt;
+&lt;p&gt;ActorTemplate 创建后，Substrate 默认会创建 Golden Snapshot。Golden Snapshot 是模板的初始快照，不是你创建的每个 Actor 的独立快照。&lt;/p&gt;
+&lt;p&gt;需要等待模板初始化完成，再创建 Actor。检查模板状态以及 Golden Tag 是否已经生成。&lt;/p&gt;
+&lt;h2 id=&#34;4-创建-actor-sandbox逻辑实例&#34;&gt;4. 创建 Actor【sandbox逻辑实例】&lt;/h2&gt;
+&lt;p&gt;现在终于可以创建 Actor 了。actor 是sandbox的逻辑实例，类似一个轻量型虚拟机，初始化是未开机状态。&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl ate create actor my-agent-001 \
+  -a demo-space \
+  --template demo-template
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;这里：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;参数&lt;/th&gt;
+&lt;th&gt;含义&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;my-agent-001&lt;/td&gt;
+&lt;td&gt;Actor 名称&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;-a demo-space&lt;/td&gt;
+&lt;td&gt;Actor 所属 Atespace&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;--template demo-template&lt;/td&gt;
+&lt;td&gt;使用哪个 ActorTemplate&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;查看 Actor：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl ate get actors -a demo-space
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;查看具体 Actor：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl ate get actor my-agent-001 \
+  -a demo-space \
+  -o yaml
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;这里要注意：&lt;/p&gt;
+&lt;p&gt;创建 Actor 并不等于立即启动 Actor。&lt;/p&gt;
+&lt;p&gt;CreateActor 主要是在 Substrate 控制面注册一个逻辑 Actor，真正分配 Worker 和恢复 Sandbox 需要执行 Resume，或者通过 Router 的请求触发自动恢复。&lt;/p&gt;
+&lt;h2 id=&#34;5-启动-sandbox-resume-actor&#34;&gt;5. 启动 Sandbox【Resume Actor】&lt;/h2&gt;
+&lt;p&gt;执行：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl ate resume actor my-agent-001 \
+  -a demo-space
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;这时候 Substrate 会完成大致如下流程：&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;kubectl ate resume actor&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://res.cloudinary.com/dqxtn0ick/image/upload/v1793805413/article/substrate/resume-actor.png&#34; alt=&#34;&#34;&gt;&lt;/p&gt;
+&lt;p&gt;查看 Actor 状态：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl ate get actor my-agent-001 \
+  -a demo-space \
+  -o yaml
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;查看 Worker：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl ate get workers
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 输出&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;NAME                                   POOL                   STATE                 ACTORS   CPU   MEMORY    POD                                                              AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;978b42b3-8bed-4b8c-a1b0-957c5b343f76   demo-pool        WORKER_STATE_ACTIVE   0/1      0/1   0/2Gi     ate-demo-pool/demo-pool-68c995676b-2nrvm             39h
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;009b30f6-e170-43a0-9b5d-7cfe236e9e9f   demo-pool        WORKER_STATE_ACTIVE   1/1      1/1   1Gi/2Gi   ate-demo-pool/demo-pool-68c995676b-f7tmn             39h
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;fef5851c-52b1-4805-b7b0-c86af3d53143   demo-pool        WORKER_STATE_ACTIVE   0/1      0/1   0/2Gi     ate-demo-pool/demo-pool-68c995676b-kcwnz             39h
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;你应该能看到一个 Worker 被分配给 &lt;code&gt;demo-space/my-agent-001&lt;/code&gt;。&lt;/p&gt;
+&lt;h2 id=&#34;6-通过-router-访问-actor&#34;&gt;6. 通过 Router 访问 Actor&lt;/h2&gt;
+&lt;p&gt;Substrate 不要求你直接访问 Worker Pod IP。&lt;/p&gt;
+&lt;p&gt;通过 &lt;code&gt;atenet-router&lt;/code&gt; 访问：&lt;/p&gt;
+&lt;p&gt;先转发 Router：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl port-forward \
+  -n ate-system \
+  svc/atenet-router 8000:80
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;另外打开一个终端：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;curl -i \
+  -H &amp;#34;ate-target-actor: demo-space/my-agent-001&amp;#34; \
+  http://localhost:8000/
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;预期：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;HTTP/1.1 200 OK
+
+Hello from Agent Substrate
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;这里最重要的是：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;ate-target-actor: demo-space/my-agent-001
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;它告诉 Router 应该把请求路由到哪个 Actor。&lt;/p&gt;
+&lt;p&gt;Router 不需要知道 Actor 当前在哪一个 Worker Pod 上。&lt;/p&gt;
+&lt;h2 id=&#34;7-暂停sandbox-suspend-actor&#34;&gt;7. 暂停sandbox【Suspend Actor】&lt;/h2&gt;
+&lt;p&gt;这是 Substrate 最值得验证的功能。&lt;/p&gt;
+&lt;p&gt;先在 Actor 工作目录中创建一个文件：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;# 这里假设你的 demo-server 提供了文件操作接口
+# 或者通过你自己的 Actor 命令接口写入文件
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;然后暂停 Actor：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl ate suspend actor my-agent-001 \
+  -a demo-space
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;查看状态：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl ate get actor my-agent-001 &lt;span style=&#34;color:#4e9a06&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&lt;/span&gt;  -a demo-space
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 示例&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;ATESPACE       NAME             TEMPLATE               STATE                   WORKER POD   WORKER IPS   VERSION   AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;demo-space   ate-demo-actor   ate-demo/demo-template   ACTOR_STATE_SUSPENDED   &amp;lt;none&amp;gt;                    &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;5&lt;/span&gt;         39h
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;此时 Actor 应该进入 &lt;code&gt;SUSPENDED&lt;/code&gt; 状态，并释放原来占用的 Worker。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl ate get workers
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 输出&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;NAME                                   POOL                   STATE                 ACTORS   CPU   MEMORY    POD                                                              AGE
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;978b42b3-8bed-4b8c-a1b0-957c5b343f76   demo-pool        WORKER_STATE_ACTIVE   0/1      0/1   0/2Gi     ate-demo-pool/demo-pool-68c995676b-2nrvm             39h
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;009b30f6-e170-43a0-9b5d-7cfe236e9e9f   demo-pool        WORKER_STATE_ACTIVE   0/1      0/1   0/2Gi   ate-demo-pool/demo-pool-68c995676b-f7tmn             39h
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;fef5851c-52b1-4805-b7b0-c86af3d53143   demo-pool        WORKER_STATE_ACTIVE   0/1      0/1   0/2Gi     ate-demo-pool/demo-pool-68c995676b-kcwnz             39h
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;再次访问：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;curl -i \
+  -H &amp;#34;ate-target-actor: demo-space/my-agent-001&amp;#34; \
+  http://localhost:8000/
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Router 会触发 Actor 恢复，然后将请求转发到新的执行位置。&lt;/p&gt;
+&lt;p&gt;你可以再查看：&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;kubectl ate get actor my-agent-001 \
+  -a demo-space \
+  -o yaml
+
+kubectl ate get workers
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;这就完成了 Actor 的创建、启动、访问、暂停和恢复。&lt;/p&gt;
+&lt;h2 id=&#34;8-完整创建流程汇总&#34;&gt;8. 完整创建流程汇总&lt;/h2&gt;
+&lt;p&gt;如果前面的准备工作都完成了，后续日常创建 Actor 主要就是下面这些命令：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 1. 创建 Kubernetes Namespace&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl create namespace demo-space
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 2. 创建 WorkerPool&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl apply -f workerpool.yaml
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 3. 创建 Atespace&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl ate create atespace demo-space
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 4. 创建 ActorTemplate&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl ate create actor-template -f actor-template.yaml
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 5. 等待 Golden Snapshot 就绪&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl ate get actor-templates -a demo-space
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 6. 创建 Actor&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl ate create actor my-agent-001 &lt;span style=&#34;color:#4e9a06&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&lt;/span&gt;  -a demo-space &lt;span style=&#34;color:#4e9a06&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&lt;/span&gt;  --template demo-template
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 7. 启动 Actor&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl ate resume actor my-agent-001 &lt;span style=&#34;color:#4e9a06&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&lt;/span&gt;  -a demo-space
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 8. 查看 Actor&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl ate get actor my-agent-001 -a demo-space
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 9. 查看 Worker&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl ate get workers
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 10. 暂停 Actor&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl ate &lt;span style=&#34;color:#204a87&#34;&gt;suspend&lt;/span&gt; actor my-agent-001 &lt;span style=&#34;color:#4e9a06&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&lt;/span&gt;  -a demo-space
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;# 11. 删除 Actor&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;kubectl ate delete actor my-agent-001 &lt;span style=&#34;color:#4e9a06&#34;&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;&lt;/span&gt;  -a demo-space
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;参考：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/agent-substrate/substrate/tree/main/demos&#34;&gt;https://github.com/agent-substrate/substrate/tree/main/demos&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+      </description>
+    </item>
+    
+  </channel>
+</rss>

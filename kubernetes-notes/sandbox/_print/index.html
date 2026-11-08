@@ -1,0 +1,1424 @@
+<!doctype html>
+<html lang="zh-cn" class="no-js">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.101.0" />
+<link rel="canonical" type="text/html" href="https://blog.huweihuang.com/kubernetes-notes/sandbox/">
+<link rel="alternate" type="application/rss&#43;xml" href="https://blog.huweihuang.com/kubernetes-notes/sandbox/index.xml">
+<meta name="robots" content="noindex, nofollow">
+
+
+<link rel="shortcut icon" href="/favicons/favicon.ico" >
+<link rel="apple-touch-icon" href="/favicons/apple-touch-icon-180x180.png" sizes="180x180">
+<link rel="icon" type="image/png" href="/favicons/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
+<link rel="icon" type="image/png" href="/favicons/android-36x36.png" sizes="36x36">
+<link rel="icon" type="image/png" href="/favicons/android-48x48.png" sizes="48x48">
+<link rel="icon" type="image/png" href="/favicons/android-72x72.png" sizes="72x72">
+<link rel="icon" type="image/png" href="/favicons/android-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/favicons/android-144x144.png" sizes="144x144">
+<link rel="icon" type="image/png" href="/favicons/android-192x192.png" sizes="192x192">
+
+<title>安全沙箱 | 胡伟煌</title>
+<meta name="description" content="">
+<meta property="og:title" content="安全沙箱" />
+<meta property="og:description" content="Kubernetes学习笔记" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://blog.huweihuang.com/kubernetes-notes/sandbox/" /><meta property="og:site_name" content="胡伟煌" />
+
+<meta itemprop="name" content="安全沙箱">
+<meta itemprop="description" content="Kubernetes学习笔记"><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="安全沙箱"/>
+<meta name="twitter:description" content="Kubernetes学习笔记"/>
+
+
+
+
+<link rel="preload" href="/scss/main.min.50b9a7e865726a91aad331eb58e138cd34a842954cc9f498c4b8133356eaecf4.css" as="style">
+<link href="/scss/main.min.50b9a7e865726a91aad331eb58e138cd34a842954cc9f498c4b8133356eaecf4.css" rel="stylesheet" integrity="">
+
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
+  crossorigin="anonymous"></script>
+<script
+  src="https://unpkg.com/lunr@2.3.9/lunr.min.js"
+  integrity="sha384-203J0SNzyqHby3iU6hzvzltrWi/M41wOP5Gu+BiJMz5nwKykbkUx8Kp7iti0Lpli"
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/prism.css"/>
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-114718458-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+  </head>
+  <body class="td-section">
+    <header>
+      
+<nav class="js-navbar-scroll navbar navbar-expand navbar-dark flex-column flex-md-row td-navbar">
+        <a class="navbar-brand" href="/">
+		<span class="navbar-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path d="M15.9.476a2.14 2.14.0 00-.823.218L3.932 6.01c-.582.277-1.005.804-1.15 1.432L.054 19.373c-.13.56-.025 1.147.3 1.627q.057.087.12.168l7.7 9.574c.407.5 1.018.787 1.662.784h12.35c.646.001 1.258-.3 1.664-.793l7.696-9.576c.404-.5.555-1.16.4-1.786L29.2 7.43c-.145-.628-.57-1.155-1.15-1.432L16.923.695A2.14 2.14.0 0015.89.476z" fill="#326ce5"/><path d="M16.002 4.542c-.384.027-.675.356-.655.74v.188c.018.213.05.424.092.633a6.22 6.22.0 01.066 1.21c-.038.133-.114.253-.218.345l-.015.282c-.405.034-.807.096-1.203.186-1.666.376-3.183 1.24-4.354 2.485l-.24-.17c-.132.04-.274.025-.395-.04a6.22 6.22.0 01-.897-.81 5.55 5.55.0 00-.437-.465l-.148-.118c-.132-.106-.294-.167-.463-.175a.64.64.0 00-.531.236c-.226.317-.152.756.164.983l.138.11a5.55 5.55.0 00.552.323c.354.197.688.428.998.7a.74.74.0 01.133.384l.218.2c-1.177 1.766-1.66 3.905-1.358 6.006l-.28.08c-.073.116-.17.215-.286.288a6.22 6.22.0 01-1.194.197 5.57 5.57.0 00-.64.05l-.177.04h-.02a.67.67.0 00-.387 1.132.67.67.0 00.684.165h.013l.18-.02c.203-.06.403-.134.598-.218.375-.15.764-.265 1.162-.34.138.008.27.055.382.135l.3-.05c.65 2.017 2.016 3.726 3.84 4.803l-.122.255c.056.117.077.247.06.376-.165.382-.367.748-.603 1.092a5.58 5.58.0 00-.358.533l-.085.18a.67.67.0 00.65 1.001.67.67.0 00.553-.432l.083-.17c.076-.2.14-.404.192-.61.177-.437.273-.906.515-1.196a.54.54.0 01.286-.14l.15-.273a8.62 8.62.0 006.146.015l.133.255c.136.02.258.095.34.205.188.358.34.733.456 1.12a5.57 5.57.0 00.194.611l.083.17a.67.67.0 001.187.131.67.67.0 00.016-.701l-.087-.18a5.55 5.55.0 00-.358-.531c-.23-.332-.428-.686-.6-1.057a.52.52.0 01.068-.4 2.29 2.29.0 01-.111-.269c1.82-1.085 3.18-2.8 3.823-4.82l.284.05c.102-.093.236-.142.373-.138.397.076.786.2 1.162.34.195.09.395.166.598.23.048.013.118.024.172.037h.013a.67.67.0 00.841-.851.67.67.0 00-.544-.446l-.194-.046a5.57 5.57.0 00-.64-.05c-.404-.026-.804-.092-1.194-.197-.12-.067-.22-.167-.288-.288l-.27-.08a8.65 8.65.0 00-1.386-5.993l.236-.218c-.01-.137.035-.273.124-.378.307-.264.64-.497.99-.696a5.57 5.57.0 00.552-.323l.146-.118a.67.67.0 00-.133-1.202.67.67.0 00-.696.161l-.148.118a5.57 5.57.0 00-.437.465c-.264.302-.556.577-.873.823a.74.74.0 01-.404.044l-.253.18c-1.46-1.53-3.427-2.48-5.535-2.67.0-.1-.013-.25-.015-.297-.113-.078-.192-.197-.218-.332a6.23 6.23.0 01.076-1.207c.043-.21.073-.42.092-.633v-.2c.02-.384-.27-.713-.655-.74zm-.834 5.166-.2 3.493h-.015c-.01.216-.137.4-.332.504s-.426.073-.6-.054l-2.865-2.03a6.86 6.86.0 013.303-1.799c.234-.05.47-.088.707-.114zm1.668.0c1.505.187 2.906.863 3.99 1.924l-2.838 2.017c-.175.14-.415.168-.618.072s-.333-.3-.336-.524zm-6.72 3.227 2.62 2.338v.015c.163.142.234.363.186.574s-.21.378-.417.435v.01l-3.362.967a6.86 6.86.0 01.974-4.34zm11.753.0c.796 1.295 1.148 2.814 1.002 4.327l-3.367-.97v-.013c-.21-.057-.37-.224-.417-.435s.023-.43.186-.574l2.6-2.327zm-6.404 2.52h1.072l.655.832-.238 1.04-.963.463-.965-.463-.227-1.04zm3.434 2.838c.045-.005.1-.005.135.0l3.467.585c-.5 1.44-1.487 2.67-2.775 3.493l-1.34-3.244a.59.59.0 01.509-.819zm-5.823.015c.196.003.377.104.484.268s.124.37.047.55v.013l-1.332 3.218C11 21.54 10.032 20.325 9.517 18.9l3.437-.583c.038-.004.077-.004.116.0zm2.904 1.4a.59.59.0 01.537.308h.013l1.694 3.057-.677.2c-1.246.285-2.547.218-3.758-.194l1.7-3.057c.103-.18.293-.29.5-.295z" fill="#fff" stroke="#fff" stroke-width=".055"/></svg></span><span class="font-weight-bold">胡伟煌</span>
+	</a>
+	<div class="td-navbar-nav-scroll ml-md-auto" id="main_navbar">
+		<ul class="navbar-nav mt-2 mt-lg-0">
+			
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link active" href="/kubernetes-notes/" ><span class="active">Kubernetes学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/k8s-source-code-analysis/" ><span>Kubernetes源码分析</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/linux-notes/" ><span>Linux学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/golang-notes/" ><span>Golang学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/python-notes/" ><span>Python学习笔记</span></a>
+			</li>
+			
+			<li class="nav-item mr-4 mb-2 mb-lg-0">
+				
+				
+				
+				
+				
+				
+				
+				
+				<a class="nav-link" href="/about/" ><span>About</span></a>
+			</li>
+			
+			
+			
+		</ul>
+	</div>
+	<div class="navbar-nav d-none d-lg-block"><input
+  type="search"
+  class="form-control td-search-input"
+  placeholder="&#xf002; 站内搜索…"
+  aria-label="站内搜索…"
+  autocomplete="off"
+  
+  data-offline-search-index-json-src="/offline-search-index.46577953ef402b4b509b137e89fe315f.json"
+  data-offline-search-base-href="/"
+  data-offline-search-max-results="10"
+>
+</div>
+</nav>
+
+    </header>
+    <div class="container-fluid td-outer">
+      <div class="td-main">
+        <div class="row flex-xl-nowrap">
+          <main class="col-12 col-md-9 col-xl-8 pl-md-5" role="main">
+            
+
+
+
+
+<div class="td-content">
+<div class="pageinfo pageinfo-primary d-print-none">
+<p>
+这是本节的多页打印视图。
+<a href="#" onclick="print();return false;">点击此处打印</a>.
+</p><p>
+<a href="/kubernetes-notes/sandbox/">返回本页常规视图</a>.
+</p>
+</div>
+
+
+
+<h1 class="title">安全沙箱</h1>
+
+
+
+
+
+    <ul>
+    
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>1: <a href="#pg-1b80109b82d079a3088ccf8a16e61d06">Agent Substrate</a></li>
+
+
+    
+    <ul>
+        
+  
+  
+  
+  
+
+  
+    
+    
+	
+<li>1.1: <a href="#pg-c4a2255c049a28de23ba2b827874ade8">Agent Substrate 架构解析</a></li>
+
+
+    
+  
+    
+    
+	
+<li>1.2: <a href="#pg-17d6358f862cf7d56bb037f897128a96">部署 Substrate Sandbox</a></li>
+
+
+    
+  
+
+    </ul>
+    
+  
+
+    </ul>
+
+
+<div class="content">
+      
+</div>
+</div>
+
+
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-1b80109b82d079a3088ccf8a16e61d06">1 - Agent Substrate</h1>
+    
+	
+</div>
+
+
+
+    
+      
+  
+  
+  
+  
+
+  
+  
+
+  
+    
+    
+	
+    
+
+<div class="td-content" style="">
+    
+	<h1 id="pg-c4a2255c049a28de23ba2b827874ade8">1.1 - Agent Substrate 架构解析</h1>
+    
+	<p>Agent Substrate 不是用来开发 Agent 的框架，而是用来安全、高密度地运行 Agent 和 Sandbox 的基础设施运行时。</p>
+<p>项目地址：<a href="https://github.com/agent-substrate/substrate?utm_source=chatgpt.com">agent-substrate/substrate（GitHub）</a></p>
+<p>它主要解决一个问题：如果一个平台要为大量用户分别创建独立的 AI Agent 执行环境，如何同时实现安全隔离、状态持久化、快速唤醒和资源复用？</p>
+<p>结合 Kubernetes 的视角，可以把它理解为：在 Pod 和容器之上，为有状态、间歇性运行的 Agent 增加一层专用的调度与执行管理系统。</p>
+<h2 id="1-为什么需要-agent-substrate">1. 为什么需要 Agent Substrate？</h2>
+<p>传统 Kubernetes 部署通常是一个应用对应一个或多个 Pod。但 AI Agent 的工作模式有些特殊：</p>
+<ul>
+<li>
+<p>用户发起任务后，Agent 执行推理、调用工具或运行代码。</p>
+</li>
+<li>
+<p>调用大模型、等待用户输入时，Agent 可能长时间处于空闲状态。</p>
+</li>
+<li>
+<p>Agent 往往需要保留运行时内存、文件系统和会话状态。</p>
+</li>
+<li>
+<p>Agent 执行的代码可能不可信，需要严格的安全隔离。</p>
+</li>
+</ul>
+<p>如果每个用户的 Agent 都长期占用一个独立的 Pod，就可能浪费大量资源；如果任务到来时才创建 Pod，又可能引入调度和启动延迟。</p>
+<h3 id="1-1-核心思路-actor-与-worker-解耦">1.1. 核心思路：Actor 与 Worker 解耦</h3>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1793430789/article/substrate/agent-substrate-control-plane.png" alt=""></p>
+<p>这里最重要的是两个概念：</p>
+<ul>
+<li>
+<p>Actor：逻辑上的一个 Agent 实例，具有自己的身份、状态和生命周期。</p>
+</li>
+<li>
+<p>Worker：实际承载 Actor 的执行资源，通常由预先启动的 Kubernetes Pod 提供。</p>
+</li>
+</ul>
+<p>多个 Actor 可以共享一组 Worker 的计算资源，但同一时刻实际执行的 Actor 仍然需要相应的执行容量。空闲 Actor 可以被挂起并保存状态，需要继续执行时再恢复。</p>
+<p><strong>这与传统的“一份 Agent 对应一个长期运行的 Pod”是不同的资源管理模型。</strong></p>
+<h3 id="1-2-核心组件与-kubernetes-对应关系">1.2. 核心组件与 Kubernetes 对应关系</h3>
+<p>从源码和架构文档来看，Agent Substrate 的主要组件可以这样理解。</p>
+<table>
+<thead>
+<tr>
+<th>组件 / 概念</th>
+<th>作用</th>
+<th>Kubernetes 视角</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ActorTemplate</code></td>
+<td>定义 Actor 的运行镜像、资源及运行参数</td>
+<td>类似工作负载模板，但不是 Deployment</td>
+</tr>
+<tr>
+<td><code>Actor</code></td>
+<td>一个具体的、有状态的运行实例</td>
+<td>不等于 Pod，生命周期独立于 Worker</td>
+</tr>
+<tr>
+<td><code>WorkerPool</code></td>
+<td>管理可用于执行 Actor 的 Worker 容量</td>
+<td>类似执行资源池</td>
+</tr>
+<tr>
+<td><code>Worker</code></td>
+<td>真正承载沙箱执行环境</td>
+<td>通常由 Kubernetes Pod 承载</td>
+</tr>
+<tr>
+<td><code>Atespace</code></td>
+<td>Actor 的租户与命名空间边界</td>
+<td>类似逻辑租户隔离，不能简单等同于 Namespace</td>
+</tr>
+<tr>
+<td><code>ate-api-server</code></td>
+<td>处理 Actor、Worker 生命周期等控制请求</td>
+<td>专用控制面</td>
+</tr>
+<tr>
+<td><code>atelet</code></td>
+<td>节点级监督、快照和状态迁移</td>
+<td>类似节点 Agent / DaemonSet</td>
+</tr>
+<tr>
+<td><code>atenet</code></td>
+<td>负责网络路由与代理等功能</td>
+<td>类似专用数据面与网络控制组件</td>
+</tr>
+<tr>
+<td><code>kubectl-ate</code></td>
+<td>通过命令行管理 Substrate 资源</td>
+<td>类似 <code>kubectl</code> 的扩展工具</td>
+</tr>
+</tbody>
+</table>
+<p>注意：这些是帮助理解的类比，不代表它们与 Kubernetes 原生资源一一对应。</p>
+<p>可以把它理解为：</p>
+<ul>
+<li>
+<p><code>ActorTemplate</code> 决定“这个 Sandbox 运行什么”。</p>
+</li>
+<li>
+<p><code>Actor</code> 决定“这是哪个用户或任务的独立运行实例”。</p>
+</li>
+<li>
+<p><code>WorkerPool</code> 决定“实际执行资源从哪里来”。</p>
+</li>
+<li>
+<p><code>SandboxConfig</code> 决定“使用哪个沙箱运行时版本”。</p>
+</li>
+<li>
+<p>Snapshot 决定“挂起后如何保留和恢复状态”。</p>
+</li>
+</ul>
+<h2 id="2-substrate的部署架构">2. Substrate的部署架构</h2>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1793430791/article/substrate/google-agent-substrate-architecture.png" alt=""></p>
+<p>从部署视角看，可以分成五层：</p>
+<table>
+<thead>
+<tr>
+<th>层次</th>
+<th>主要组件</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API 与控制面</td>
+<td>ate-api-server</td>
+<td>Actor 生命周期、调度、快照编排</td>
+</tr>
+<tr>
+<td>Kubernetes 管理层</td>
+<td>atecontroller、CRD</td>
+<td>将 WorkerPool 等资源转换成实际 Kubernetes 工作负载</td>
+</tr>
+<tr>
+<td>节点管理层</td>
+<td>atelet</td>
+<td>节点上的 Worker 管理、镜像准备、快照传输</td>
+</tr>
+<tr>
+<td>Sandbox 执行层</td>
+<td>Worker Pod、ateworker/ateom、gVisor 或 MicroVM</td>
+<td>真正运行 Actor</td>
+</tr>
+<tr>
+<td>网络与存储层</td>
+<td>atenet、atunnel、PostgreSQL、对象存储</td>
+<td>请求转发、身份认证、状态和快照持久化</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2-1-部署的k8s-工作负载">2.1. 部署的k8s 工作负载</h3>
+<p>下面是按组件整理的部署清单。具体 Pod 数量、容器组合和名称会随版本、安装选项变化。</p>
+<table>
+<thead>
+<tr>
+<th>工作负载</th>
+<th>K8s 类型</th>
+<th>部署位置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ate-api-server</td>
+<td>Deployment</td>
+<td>ate-system</td>
+</tr>
+<tr>
+<td>atecontroller</td>
+<td>Deployment</td>
+<td>ate-system</td>
+</tr>
+<tr>
+<td>atelet</td>
+<td>DaemonSet</td>
+<td>ate-system</td>
+</tr>
+<tr>
+<td>atenet</td>
+<td>Deployment / 相关代理工作负载</td>
+<td>ate-system</td>
+</tr>
+<tr>
+<td>podcertcontroller</td>
+<td>Deployment</td>
+<td>证书控制器命名空间</td>
+</tr>
+<tr>
+<td>ate-idp-server</td>
+<td>Deployment</td>
+<td>ate-system</td>
+</tr>
+<tr>
+<td>PostgreSQL</td>
+<td>StatefulSet 或外部数据库</td>
+<td>ate-system 或外部</td>
+</tr>
+<tr>
+<td>Worker</td>
+<td>Deployment 管理的 Pod</td>
+<td>Worker 节点</td>
+</tr>
+<tr>
+<td>ateom / ateworker</td>
+<td>Worker 内部容器</td>
+<td>Worker Pod</td>
+</tr>
+<tr>
+<td>atunnel</td>
+<td>Worker 内部网络服务</td>
+<td>Worker Pod</td>
+</tr>
+<tr>
+<td>Object Store Plugin</td>
+<td>Sidecar</td>
+<td>相关组件 Pod</td>
+</tr>
+</tbody>
+</table>
+<p>这里有个容易误解的地方：<code>ateom</code>、<code>atunnel</code> 不一定是独立的 Kubernetes Deployment，它们属于 Worker 内部的运行组件。Object Store Plugin 也可能以 Sidecar 方式运行，而不是单独部署一个集群级服务。</p>
+<h3 id="2-2-外部基础设施依赖">2.2. 外部基础设施依赖</h3>
+<p>除了 Substrate 自身组件，还需要准备外部基础设施。</p>
+<table>
+<thead>
+<tr>
+<th>依赖</th>
+<th>作用</th>
+<th>是否必要</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kubernetes</td>
+<td>承载所有组件和 Worker Pod</td>
+<td>必须</td>
+</tr>
+<tr>
+<td>PostgreSQL</td>
+<td>保存 Actor、Worker 等控制面状态</td>
+<td>必须</td>
+</tr>
+<tr>
+<td>对象存储（GCS/S3）</td>
+<td>保存 Actor 快照、模板快照</td>
+<td>持久化快照场景必须</td>
+</tr>
+<tr>
+<td>节点本地存储</td>
+<td>缓存运行时资源、快照文件</td>
+<td>需要</td>
+</tr>
+<tr>
+<td>gVisor 或 MicroVM 环境</td>
+<td>提供 Sandbox 隔离运行时</td>
+<td>必须至少选择一种</td>
+</tr>
+<tr>
+<td>Pod 证书能力</td>
+<td>提供内部身份认证和 mTLS</td>
+<td>按部署版本和配置要求</td>
+</tr>
+<tr>
+<td>凭据提供服务</td>
+<td>为 Actor 的出站请求注入受控凭据</td>
+<td>按功能配置</td>
+</tr>
+</tbody>
+</table>
+<p>这里尤其要区分 PostgreSQL 和对象存储：</p>
+<ul>
+<li>
+<p>PostgreSQL 保存的是 Actor 的元数据和状态，不是 Actor 的完整内存。</p>
+</li>
+<li>
+<p>对象存储保存的是 Actor 的快照文件。</p>
+</li>
+<li>
+<p><code>atelet</code> 负责节点与对象存储之间的快照传输。</p>
+</li>
+</ul>
+<p>官方架构还包含 Object Store Plugin，用来为快照上传、下载和资源缓存提供统一的对象存储接口。</p>
+<h3 id="2-3-实际部署顺序">2.3. 实际部署顺序</h3>
+<p>从零部署时，我建议按以下依赖顺序理解。</p>
+<ol>
+<li>
+<p>准备 Kubernetes 集群</p>
+<p>准备节点、网络、存储、证书 API，以及 Worker 所需的运行时能力。</p>
+</li>
+<li>
+<p>准备外部基础设施</p>
+<p>部署 PostgreSQL、对象存储、IAM / Workload Identity 等。</p>
+</li>
+<li>
+<p>部署 Kubernetes 扩展能力</p>
+<p>安装 Substrate CRD、证书相关组件、<code>podcertcontroller</code>。</p>
+</li>
+<li>
+<p>部署控制面</p>
+<p>安装 <code>ate-api-server</code>、<code>atecontroller</code>。</p>
+</li>
+<li>
+<p>部署节点管理组件</p>
+<p>安装 <code>atelet</code> DaemonSet。</p>
+</li>
+<li>
+<p>部署网络组件</p>
+<p>安装 <code>atenet</code>、Router、相关隧道和代理能力。</p>
+</li>
+<li>
+<p><strong>创建 WorkerPool</strong></p>
+<p>选择 gVisor 或 MicroVM，配置 Worker 数量和资源。</p>
+</li>
+<li>
+<p><strong>创建 ActorTemplate</strong></p>
+<p>配置 Actor 镜像、资源限制、快照存储位置等。</p>
+</li>
+<li>
+<p><strong>创建 Actor 并验证</strong></p>
+<p>创建 Actor，验证启动、访问、Suspend、Resume。</p>
+</li>
+</ol>
+<h2 id="3-核心组件及功能">3. 核心组件及功能</h2>
+<h3 id="2-1-控制面组件-ate-api-server">2.1 控制面组件【ate-api-server】</h3>
+<p>这是 Substrate 的核心控制面，主要负责：</p>
+<ul>
+<li>
+<p>提供 gRPC API，供 CLI、上层 Agent 平台调用。</p>
+</li>
+<li>
+<p>创建、删除和管理 Actor。</p>
+</li>
+<li>
+<p>管理 ActorTemplate、Atespace、Tag 等资源。</p>
+</li>
+<li>
+<p>维护 Actor 与 Worker 的映射关系。</p>
+</li>
+<li>
+<p>选择可用 Worker，完成 Actor 调度。</p>
+</li>
+<li>
+<p>编排 Actor 的 Suspend、Resume、Checkpoint、Restore。</p>
+</li>
+<li>
+<p>进行 API 身份认证和权限校验。</p>
+</li>
+</ul>
+<p>它的内部主要包含三个逻辑部分：</p>
+<table>
+<thead>
+<tr>
+<th>内部模块</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>State Store</td>
+<td>保存 Actor、Worker 状态及映射关系</td>
+</tr>
+<tr>
+<td>Scheduler</td>
+<td>选择可用 Worker</td>
+</tr>
+<tr>
+<td>Workflow Engine</td>
+<td>编排 Actor 暂停、恢复等多步骤操作</td>
+</tr>
+</tbody>
+</table>
+<p>部署形态： Kubernetes Deployment。</p>
+<p>它不直接运行 Agent，也不直接操作底层 Sandbox，而是通过节点管理组件协调执行。</p>
+<h3 id="2-2-kubernetes-controller-atecontroller">2.2 Kubernetes Controller【atecontroller】</h3>
+<p>这是 Substrate 与 Kubernetes 之间的桥梁。</p>
+<p>主要负责：</p>
+<ul>
+<li>
+<p>Watch Substrate 定义的 Kubernetes CRD。</p>
+</li>
+<li>
+<p>监听 WorkerPool 的创建、修改和删除。</p>
+</li>
+<li>
+<p>根据 WorkerPool 配置创建或更新 Kubernetes Deployment。</p>
+</li>
+<li>
+<p>维护 Worker Pod 的期望状态。</p>
+</li>
+</ul>
+<p>例如，创建一个 WorkerPool：</p>
+<pre tabindex="0"><code>apiVersion: ate.dev/v1alpha1
+kind: WorkerPool
+metadata:
+  name: gvisor-pool
+spec:
+  replicas: 10
+</code></pre><p>Controller 负责将它转换为实际运行的 Worker Pod。</p>
+<p>部署形态： Kubernetes Deployment。</p>
+<p>注意：ActorTemplate 并不是 Kubernetes CRD，它通过 Substrate API 管理；WorkerPool 才是 Kubernetes 侧管理的资源。</p>
+<h3 id="2-3-节点管理组件-atelet">2.3 节点管理组件【atelet】</h3>
+<p><code>atelet</code> 是运行在 Kubernetes Node 上的节点级管理进程。</p>
+<p>它主要负责：</p>
+<ol>
+<li>
+<p>监听和管理当前节点上的 Worker。</p>
+</li>
+<li>
+<p>准备 Sandbox 需要的镜像和运行时资源。</p>
+</li>
+<li>
+<p>组装 OCI Bundle。</p>
+</li>
+<li>
+<p>调用 Worker 内部的管理进程执行 Sandbox 启动。</p>
+</li>
+<li>
+<p>协调 Actor 的 Checkpoint 和 Restore。</p>
+</li>
+<li>
+<p>将快照上传到对象存储，或从对象存储下载快照。</p>
+</li>
+<li>
+<p>管理节点本地的 Sandbox Asset Cache。</p>
+</li>
+</ol>
+<p>它是整个数据面的重要执行协调者。</p>
+<p>部署形态： Kubernetes DaemonSet。</p>
+<p>也就是说，符合调度条件的每个 Node 都会运行一个 <code>atelet</code>。</p>
+<h3 id="2-4-worker-内部管理组件-ateom-ateworker">2.4 Worker 内部管理组件【ateom / ateworker】</h3>
+<p>这是运行在 Worker Pod 内部的 Sandbox 管理进程。</p>
+<p>不同版本和文档中使用过 <code>ateworker</code>、<code>ateom</code> 这些名称。当前架构文档使用 <code>ateom</code> 描述这一层的职责。</p>
+<p>它主要负责：</p>
+<ul>
+<li>
+<p>接收 <code>atelet</code> 下发的操作。</p>
+</li>
+<li>
+<p>创建和管理 Actor 对应的 Sandbox。</p>
+</li>
+<li>
+<p>调用底层 Sandbox Runtime。</p>
+</li>
+<li>
+<p>执行 RunWorkload、CheckpointWorkload、RestoreWorkload。</p>
+</li>
+<li>
+<p>管理 Actor 的网络连接。</p>
+</li>
+<li>
+<p>通过内部网络服务 <code>atunnel</code> 转发 Actor 流量。</p>
+</li>
+</ul>
+<p>它与 <code>atelet</code> 的关系是：</p>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>所在位置</th>
+<th>主要职责</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>atelet</td>
+<td>Kubernetes Node</td>
+<td>管理节点上的 Worker，协调生命周期和快照</td>
+</tr>
+<tr>
+<td>ateom</td>
+<td>Worker Pod 内</td>
+<td>具体操作 Sandbox，驱动运行时</td>
+</tr>
+<tr>
+<td>atunnel</td>
+<td>Worker 内部网络服务</td>
+<td>接收经过认证的流量并转发给 Actor</td>
+</tr>
+</tbody>
+</table>
+<p>部署形态： Worker Pod 内的容器或管理进程，具体由 WorkerPool 选择的 Sandbox 类型决定。</p>
+<h3 id="2-5-sandbox-runtime">2.5 Sandbox Runtime</h3>
+<p>Substrate 需要真正提供隔离执行环境的底层 Runtime。</p>
+<p>目前主要有两种运行时实现：</p>
+<h4 id="2-5-1-gvisor">2.5.1. gVisor</h4>
+<ul>
+<li>
+<p>使用用户态内核提供系统调用隔离。</p>
+</li>
+<li>
+<p>由 <code>runsc</code> 执行 Sandbox 的创建、Checkpoint 和 Restore。</p>
+</li>
+<li>
+<p>相比完整虚拟机，运行开销通常更低。</p>
+</li>
+<li>
+<p>是 Substrate 默认使用的隔离运行时之一。</p>
+</li>
+</ul>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1793430789/article/substrate/gvisor.jpg" alt=""></p>
+<h4 id="2-5-2-microvm">2.5.2. MicroVM</h4>
+<ul>
+<li>
+<p>使用轻量级虚拟机提供隔离。</p>
+</li>
+<li>
+<p>当前实现使用 Cloud Hypervisor。</p>
+</li>
+<li>
+<p>Worker 需要具备相应虚拟化能力。</p>
+</li>
+<li>
+<p>适合需要更强虚拟化隔离边界的场景。</p>
+</li>
+</ul>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1793430789/article/substrate/microvm.jpg" alt="MicroVMs"></p>
+<p>对应的 Worker 管理程序包括：</p>
+<ul>
+<li>
+<p><code>ateworker-gvisor</code></p>
+</li>
+<li>
+<p><code>ateworker-microvm</code></p>
+</li>
+</ul>
+<p>注意：不能直接把普通 <code>runc</code> 容器当作 Substrate 已支持的 Sandbox Runtime。Substrate 的设计依赖运行时支持的 Checkpoint/Restore 能力。</p>
+<h3 id="2-6-网络组件-atenet">2.6 网络组件【atenet】</h3>
+<p><code>atenet</code> 是 Substrate 的网络组件集合，负责 Actor 流量入口、路由和网络隔离。</p>
+<p>主要包括：</p>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>atenet-controller</td>
+<td>管理网络相关配置和代理工作负载</td>
+</tr>
+<tr>
+<td>atenet-router</td>
+<td>Envoy 网关，接收 Actor 请求并进行路由</td>
+</tr>
+<tr>
+<td>atunnel</td>
+<td>Worker 内部隧道服务，将请求转发到 Actor</td>
+</tr>
+</tbody>
+</table>
+<p>其中 <code>atenet-router</code> 是一个非常重要的组件。</p>
+<p>例如，上层 Agent 平台访问某个 Actor：</p>
+<pre tabindex="0"><code>POST /execute HTTP/1.1
+Host: agent.example.com
+ate-target-actor: demo/my-agent
+</code></pre><p>路由过程：</p>
+<ol>
+<li>
+<p>Router 识别请求中的 Actor 标识。</p>
+</li>
+<li>
+<p>调用 <code>ate-api-server</code> 查询 Actor 状态。</p>
+</li>
+<li>
+<p>如果 Actor 已暂停，则触发 Resume。</p>
+</li>
+<li>
+<p>Control Plane 分配 Worker。</p>
+</li>
+<li>
+<p><code>atelet</code> 和 Worker 内部管理进程恢复 Actor。</p>
+</li>
+<li>
+<p>Router 与 Worker 的 <code>atunnel</code> 建立认证隧道。</p>
+</li>
+<li>
+<p><code>atunnel</code> 将请求转发到 Actor。</p>
+</li>
+</ol>
+<p>这样，上层应用不需要知道 Actor 当前在哪个 Worker 上。</p>
+<h3 id="2-7-身份认证组件-podcertcontroller">2.7 身份认证组件【podcertcontroller】</h3>
+<p>这是 Kubernetes Pod 证书签发控制器。</p>
+<p>主要负责：</p>
+<ul>
+<li>
+<p>为 Substrate 组件提供短期证书。</p>
+</li>
+<li>
+<p>为组件提供可验证的身份。</p>
+</li>
+<li>
+<p>支持内部服务之间的 mTLS 通信。</p>
+</li>
+<li>
+<p>为 Actor 运行环境提供身份认证基础。</p>
+</li>
+</ul>
+<p>部署形态： Kubernetes Deployment 或相应控制器工作负载。</p>
+<p>此外，还有：</p>
+<p>ate-idp-server</p>
+<p>负责提供 OpenID Connect Discovery 文档和 JWKS 公钥信息，供依赖方验证 Actor JWT。</p>
+<p>它与 <code>podcertcontroller</code> 不是同一个东西：</p>
+<ul>
+<li>
+<p><code>podcertcontroller</code>：解决 Pod 及内部组件的证书身份问题。</p>
+</li>
+<li>
+<p><code>ate-idp-server</code>：提供 JWT 验证所需的身份提供方元数据。</p>
+</li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+    
+    
+	
+    
+
+<div class="td-content" style="page-break-before: always">
+    
+	<h1 id="pg-17d6358f862cf7d56bb037f897128a96">1.2 - 部署 Substrate Sandbox</h1>
+    
+	<p>本文主要描述在已经部署好 Agent Substrate 的 Kubernetes 集群上执行的完整示例。</p>
+<p>先创建一个简单的 HTTP Sandbox Actor，验证完整链路：</p>
+<p><code>Atespace → WorkerPool → ActorTemplate → Actor → Resume → 访问 → Suspend</code></p>
+<p>这里有一个容易忽略的地方：Atespace、ActorTemplate、Actor 是通过 Substrate API 管理的逻辑资源，不是 Kubernetes CRD；WorkerPool 和 SandboxConfig 才是 Kubernetes 资源。 因此不能全部使用 <code>kubectl apply</code> 创建。</p>
+<h2 id="0-检查-substrate-是否部署正常">0. 检查 Substrate 是否部署正常</h2>
+<p>先检查核心组件：</p>
+<pre tabindex="0"><code>kubectl get pods -n ate-system
+kubectl get crd | grep -E &#39;workerpools|sandboxconfigs&#39;
+</code></pre><p>检查 Substrate CLI：</p>
+<pre tabindex="0"><code>kubectl ate get atespaces
+kubectl ate get workers
+</code></pre><p>如果本地还没有 <code>kubectl ate</code>：</p>
+<pre tabindex="0"><code>go install github.com/agent-substrate/substrate/cmd/kubectl-ate@latest
+</code></pre><p>注意：CLI 版本尽量与集群部署的 Substrate 版本保持一致。</p>
+<h2 id="1-创建-atespace-租户">1. 创建 Atespace【租户】</h2>
+<p>先创建 Kubernetes Namespace：</p>
+<pre tabindex="0"><code>kubectl create namespace demo-space
+</code></pre><p>现在创建 Substrate 逻辑隔离空间：</p>
+<pre tabindex="0"><code>kubectl ate create atespace demo-space
+</code></pre><p>查看：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl ate get atespace demo-space
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic">#示例</span>
+</span></span><span style="display:flex;"><span>ATESPACE       NAME            TEMPLATE                  STATE                 WORKER POD                    WORKER IPS   VERSION   AGE
+</span></span><span style="display:flex;"><span>demo-space   ate-demo-actor   ate-demo/demo-template   ACTOR_STATE_RUNNING   ate-demo/demo-68c995676b-f7tmn   1.1.1.1     <span style="color:#0000cf;font-weight:bold">3</span>         39h
+</span></span></code></pre></div><p>注意这里有两个同名对象：</p>
+<table>
+<thead>
+<tr>
+<th>对象</th>
+<th>所属系统</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Namespace <code>demo-space</code></td>
+<td>Kubernetes</td>
+<td>WorkerPool 等 K8s 资源的命名空间</td>
+</tr>
+<tr>
+<td>Atespace <code>demo-space</code></td>
+<td>Substrate</td>
+<td>Actor 的逻辑隔离空间</td>
+</tr>
+</tbody>
+</table>
+<p>它们不是同一个对象，只是为了方便示例使用了相同名称。注意执行ate的参数指定atespace 是用参数<code>-a</code>而不是<code>-n</code>。</p>
+<h2 id="2-创建-workerpool-资源池">2. 创建 WorkerPool【资源池】</h2>
+<p>这是创建 Actor 之前最重要的准备工作。</p>
+<p>WorkerPool 是 Kubernetes CRD，负责提供可以承载 Actor 的 Worker Pod。可以理解为资源池。</p>
+<p>创建 <code>workerpool.yaml</code>：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">apiVersion</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">ate.dev/v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">kind</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">WorkerPool</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo-pool</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">namespace</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo-space</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">labels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">workload</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo-agent</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">spec</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">replicas</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">2</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#8f5902;font-style:italic"># 必须使用与当前 Substrate 部署版本匹配的 Worker 镜像</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">workerImage</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">&lt;你的 ateworker-gvisor 镜像&gt;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">sandboxClasses</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">gvisor</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">template</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">limits</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#4e9a06">&#34;2&#34;</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">memory</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">2Gi</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">requests</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">cpu</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">500m</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">memory</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">2Gi</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>这里的 <code>workerImage</code> 不能随意填写。应该使用你当前 Substrate 安装时使用的 <code>ateworker-gvisor</code> 镜像，确保版本一致。</p>
+<p>应用：</p>
+<pre tabindex="0"><code>kubectl apply -f workerpool.yaml
+</code></pre><p>检查：</p>
+<pre tabindex="0"><code>kubectl get workerpool -n demo-space
+
+kubectl get pods -n demo-space -w
+</code></pre><p>预期有两个 Worker Pod 逐渐变成 Running。</p>
+<p>WorkerPool 有几个重要概念：</p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>replicas</td>
+<td>预热 Worker 的数量</td>
+</tr>
+<tr>
+<td>workerImage</td>
+<td>Worker 内部管理程序的镜像</td>
+</tr>
+<tr>
+<td>sandboxClasses</td>
+<td>支持的 Sandbox Runtime</td>
+</tr>
+<tr>
+<td>template.resources</td>
+<td>Worker Pod 的资源配置</td>
+</tr>
+<tr>
+<td>metadata.labels</td>
+<td>供 ActorTemplate 的 workerSelector 选择</td>
+</tr>
+</tbody>
+</table>
+<p>这里要特别注意：WorkerPool 的资源限制决定 Worker 可承载的容量；ActorTemplate 的资源限制决定单个 Actor 申请的资源。两者不是同一个概念。</p>
+<h2 id="3-创建-actortemplate-sandbox模板">3. 创建 ActorTemplate【Sandbox模板】</h2>
+<p>ActorTemplate 用来定义 Actor 运行什么程序、使用什么资源、使用什么 Sandbox Runtime，以及如何保存快照。</p>
+<p>这一步需要准备一个容器镜像。</p>
+<p>这里推荐直接使用一个自己构建的 HTTP 服务镜像，假设它具有以下行为：</p>
+<ul>
+<li>
+<p>容器启动后监听 80 端口。</p>
+</li>
+<li>
+<p><code>GET /readyz</code> 返回 HTTP 200。</p>
+</li>
+<li>
+<p><code>GET /</code> 返回 <code>Hello from Agent Substrate</code>。</p>
+</li>
+<li>
+<p>工作目录为 <code>/workspace</code>。</p>
+</li>
+</ul>
+<p>假设你的镜像为：</p>
+<pre tabindex="0"><code>registry.example.com/agent/demo-server:v1
+</code></pre><p>创建 <code>actor-template.yaml</code>：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#204a87;font-weight:bold">metadata</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">atespace</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo-space</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo-template</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#8f5902;font-style:italic"># 选择前面创建的 WorkerPool</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">workerSelector</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">matchLabels</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">workload</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">demo-agent</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">containers</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">agent</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">image</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">registry.example.com/agent/demo-server:v1</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">ports</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">containerPort</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">80</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">wakeupProbe</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span><span style="color:#204a87;font-weight:bold">httpGet</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">path</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/readyz</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">port</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">80</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">volumeMounts</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">      </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">workspace</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">        </span><span style="color:#204a87;font-weight:bold">mountPath</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">/workspace</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">resources</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">limits</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">cpuMillicores</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1000</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">memoryBytes</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#0000cf;font-weight:bold">1073741824</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">snapshotConfig</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">storageLocation</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">gs://YOUR_BUCKET/agent-substrate/demo-space/</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">sandboxConfig</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">sandboxClass</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">SANDBOX_CLASS_GVISOR</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span><span style="color:#204a87;font-weight:bold">configName</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">gvisor-default</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline"></span><span style="color:#204a87;font-weight:bold">volumes</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">  </span>- <span style="color:#204a87;font-weight:bold">name</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span><span style="color:#000">workspace</span><span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span><span style="display:flex;"><span><span style="color:#f8f8f8;text-decoration:underline">    </span><span style="color:#204a87;font-weight:bold">durableDir</span><span style="color:#000;font-weight:bold">:</span><span style="color:#f8f8f8;text-decoration:underline"> </span>{}<span style="color:#f8f8f8;text-decoration:underline">
+</span></span></span></code></pre></div><p>需要替换：</p>
+<ul>
+<li>
+<p><code>registry.example.com/agent/demo-server:v1</code>：替换成你自己的镜像。</p>
+</li>
+<li>
+<p><code>gs://YOUR_BUCKET/...</code>：替换成当前 Substrate 对象存储插件支持的快照存储路径。这里沿用官方 GCS 示例；如果你部署的是其他存储后端，要使用对应支持的 URI。</p>
+</li>
+<li>
+<p><code>gvisor-default</code>：确保集群里存在对应的 SandboxConfig。</p>
+</li>
+</ul>
+<p>关于几个关键字段：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>metadata.atespace</td>
+<td>ActorTemplate 所属的 Atespace</td>
+</tr>
+<tr>
+<td>metadata.name</td>
+<td>模板名称</td>
+</tr>
+<tr>
+<td>workerSelector</td>
+<td>选择具有对应标签的 WorkerPool</td>
+</tr>
+<tr>
+<td>containers</td>
+<td>Actor 内部运行的容器</td>
+</tr>
+<tr>
+<td>resources</td>
+<td>Actor 的资源申请</td>
+</tr>
+<tr>
+<td>wakeupProbe</td>
+<td>恢复后判断服务是否就绪</td>
+</tr>
+<tr>
+<td>snapshotConfig</td>
+<td>配置快照策略和存储位置</td>
+</tr>
+<tr>
+<td>sandboxConfig</td>
+<td>选择 Sandbox Runtime</td>
+</tr>
+<tr>
+<td>durableDir</td>
+<td>Actor 独立的持久化数据目录</td>
+</tr>
+</tbody>
+</table>
+<p>这里使用 <code>durableDir</code>，是为了让 <code>/workspace</code> 中的数据能够在 Actor Suspend/Resume 后保留。</p>
+<p>关于快照： 当前示例重点是持久化工作目录。如果你还要求进程内存状态也恢复，需要根据当前 Substrate 版本配置相应的完整内存快照策略。</p>
+<p>官方 Counter Demo 提供了完整的 gVisor、DurableDir 和内存快照配置，可以作为进一步参考 <a href="https://github.com/agent-substrate/substrate/blob/main/demos/counter/counter-template.yaml.tmpl">substrate/demos/counter</a>。</p>
+<p>创建模板：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl ate create actor-template -f actor-template.yaml
+</span></span></code></pre></div><p>查看：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl ate get actor-templates -a demo-space
+</span></span></code></pre></div><p>查看具体模板：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl ate get actor-template demo-template <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>  -a demo-space <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>  -o yaml
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># status 输出</span>
+</span></span><span style="display:flex;"><span>status:
+</span></span><span style="display:flex;"><span>  goldenSnapshotStatus:
+</span></span><span style="display:flex;"><span>    goldenTag:
+</span></span><span style="display:flex;"><span>      atespace: ate-golden
+</span></span><span style="display:flex;"><span>      name: 0afe4a06-1432-424e-9e9c-ca60bb991a17
+</span></span><span style="display:flex;"><span>    takeGoldenSnapshotAt: <span style="color:#4e9a06">&#34;2026-10-31T11:34:52.168080494Z&#34;</span>
+</span></span></code></pre></div><p>注意</p>
+<p>ActorTemplate 创建后，Substrate 默认会创建 Golden Snapshot。Golden Snapshot 是模板的初始快照，不是你创建的每个 Actor 的独立快照。</p>
+<p>需要等待模板初始化完成，再创建 Actor。检查模板状态以及 Golden Tag 是否已经生成。</p>
+<h2 id="4-创建-actor-sandbox逻辑实例">4. 创建 Actor【sandbox逻辑实例】</h2>
+<p>现在终于可以创建 Actor 了。actor 是sandbox的逻辑实例，类似一个轻量型虚拟机，初始化是未开机状态。</p>
+<pre tabindex="0"><code>kubectl ate create actor my-agent-001 \
+  -a demo-space \
+  --template demo-template
+</code></pre><p>这里：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>my-agent-001</td>
+<td>Actor 名称</td>
+</tr>
+<tr>
+<td>-a demo-space</td>
+<td>Actor 所属 Atespace</td>
+</tr>
+<tr>
+<td>--template demo-template</td>
+<td>使用哪个 ActorTemplate</td>
+</tr>
+</tbody>
+</table>
+<p>查看 Actor：</p>
+<pre tabindex="0"><code>kubectl ate get actors -a demo-space
+</code></pre><p>查看具体 Actor：</p>
+<pre tabindex="0"><code>kubectl ate get actor my-agent-001 \
+  -a demo-space \
+  -o yaml
+</code></pre><p>这里要注意：</p>
+<p>创建 Actor 并不等于立即启动 Actor。</p>
+<p>CreateActor 主要是在 Substrate 控制面注册一个逻辑 Actor，真正分配 Worker 和恢复 Sandbox 需要执行 Resume，或者通过 Router 的请求触发自动恢复。</p>
+<h2 id="5-启动-sandbox-resume-actor">5. 启动 Sandbox【Resume Actor】</h2>
+<p>执行：</p>
+<pre tabindex="0"><code>kubectl ate resume actor my-agent-001 \
+  -a demo-space
+</code></pre><p>这时候 Substrate 会完成大致如下流程：</p>
+<p><code>kubectl ate resume actor</code></p>
+<p><img src="https://res.cloudinary.com/dqxtn0ick/image/upload/v1793805413/article/substrate/resume-actor.png" alt=""></p>
+<p>查看 Actor 状态：</p>
+<pre tabindex="0"><code>kubectl ate get actor my-agent-001 \
+  -a demo-space \
+  -o yaml
+</code></pre><p>查看 Worker：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl ate get workers
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 输出</span>
+</span></span><span style="display:flex;"><span>NAME                                   POOL                   STATE                 ACTORS   CPU   MEMORY    POD                                                              AGE
+</span></span><span style="display:flex;"><span>978b42b3-8bed-4b8c-a1b0-957c5b343f76   demo-pool        WORKER_STATE_ACTIVE   0/1      0/1   0/2Gi     ate-demo-pool/demo-pool-68c995676b-2nrvm             39h
+</span></span><span style="display:flex;"><span>009b30f6-e170-43a0-9b5d-7cfe236e9e9f   demo-pool        WORKER_STATE_ACTIVE   1/1      1/1   1Gi/2Gi   ate-demo-pool/demo-pool-68c995676b-f7tmn             39h
+</span></span><span style="display:flex;"><span>fef5851c-52b1-4805-b7b0-c86af3d53143   demo-pool        WORKER_STATE_ACTIVE   0/1      0/1   0/2Gi     ate-demo-pool/demo-pool-68c995676b-kcwnz             39h
+</span></span></code></pre></div><p>你应该能看到一个 Worker 被分配给 <code>demo-space/my-agent-001</code>。</p>
+<h2 id="6-通过-router-访问-actor">6. 通过 Router 访问 Actor</h2>
+<p>Substrate 不要求你直接访问 Worker Pod IP。</p>
+<p>通过 <code>atenet-router</code> 访问：</p>
+<p>先转发 Router：</p>
+<pre tabindex="0"><code>kubectl port-forward \
+  -n ate-system \
+  svc/atenet-router 8000:80
+</code></pre><p>另外打开一个终端：</p>
+<pre tabindex="0"><code>curl -i \
+  -H &#34;ate-target-actor: demo-space/my-agent-001&#34; \
+  http://localhost:8000/
+</code></pre><p>预期：</p>
+<pre tabindex="0"><code>HTTP/1.1 200 OK
+
+Hello from Agent Substrate
+</code></pre><p>这里最重要的是：</p>
+<pre tabindex="0"><code>ate-target-actor: demo-space/my-agent-001
+</code></pre><p>它告诉 Router 应该把请求路由到哪个 Actor。</p>
+<p>Router 不需要知道 Actor 当前在哪一个 Worker Pod 上。</p>
+<h2 id="7-暂停sandbox-suspend-actor">7. 暂停sandbox【Suspend Actor】</h2>
+<p>这是 Substrate 最值得验证的功能。</p>
+<p>先在 Actor 工作目录中创建一个文件：</p>
+<pre tabindex="0"><code># 这里假设你的 demo-server 提供了文件操作接口
+# 或者通过你自己的 Actor 命令接口写入文件
+</code></pre><p>然后暂停 Actor：</p>
+<pre tabindex="0"><code>kubectl ate suspend actor my-agent-001 \
+  -a demo-space
+</code></pre><p>查看状态：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl ate get actor my-agent-001 <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>  -a demo-space
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 示例</span>
+</span></span><span style="display:flex;"><span>ATESPACE       NAME             TEMPLATE               STATE                   WORKER POD   WORKER IPS   VERSION   AGE
+</span></span><span style="display:flex;"><span>demo-space   ate-demo-actor   ate-demo/demo-template   ACTOR_STATE_SUSPENDED   &lt;none&gt;                    <span style="color:#0000cf;font-weight:bold">5</span>         39h
+</span></span></code></pre></div><p>此时 Actor 应该进入 <code>SUSPENDED</code> 状态，并释放原来占用的 Worker。</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>kubectl ate get workers
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 输出</span>
+</span></span><span style="display:flex;"><span>NAME                                   POOL                   STATE                 ACTORS   CPU   MEMORY    POD                                                              AGE
+</span></span><span style="display:flex;"><span>978b42b3-8bed-4b8c-a1b0-957c5b343f76   demo-pool        WORKER_STATE_ACTIVE   0/1      0/1   0/2Gi     ate-demo-pool/demo-pool-68c995676b-2nrvm             39h
+</span></span><span style="display:flex;"><span>009b30f6-e170-43a0-9b5d-7cfe236e9e9f   demo-pool        WORKER_STATE_ACTIVE   0/1      0/1   0/2Gi   ate-demo-pool/demo-pool-68c995676b-f7tmn             39h
+</span></span><span style="display:flex;"><span>fef5851c-52b1-4805-b7b0-c86af3d53143   demo-pool        WORKER_STATE_ACTIVE   0/1      0/1   0/2Gi     ate-demo-pool/demo-pool-68c995676b-kcwnz             39h
+</span></span></code></pre></div><p>再次访问：</p>
+<pre tabindex="0"><code>curl -i \
+  -H &#34;ate-target-actor: demo-space/my-agent-001&#34; \
+  http://localhost:8000/
+</code></pre><p>Router 会触发 Actor 恢复，然后将请求转发到新的执行位置。</p>
+<p>你可以再查看：</p>
+<pre tabindex="0"><code>kubectl ate get actor my-agent-001 \
+  -a demo-space \
+  -o yaml
+
+kubectl ate get workers
+</code></pre><p>这就完成了 Actor 的创建、启动、访问、暂停和恢复。</p>
+<h2 id="8-完整创建流程汇总">8. 完整创建流程汇总</h2>
+<p>如果前面的准备工作都完成了，后续日常创建 Actor 主要就是下面这些命令：</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 1. 创建 Kubernetes Namespace</span>
+</span></span><span style="display:flex;"><span>kubectl create namespace demo-space
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 2. 创建 WorkerPool</span>
+</span></span><span style="display:flex;"><span>kubectl apply -f workerpool.yaml
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 3. 创建 Atespace</span>
+</span></span><span style="display:flex;"><span>kubectl ate create atespace demo-space
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 4. 创建 ActorTemplate</span>
+</span></span><span style="display:flex;"><span>kubectl ate create actor-template -f actor-template.yaml
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 5. 等待 Golden Snapshot 就绪</span>
+</span></span><span style="display:flex;"><span>kubectl ate get actor-templates -a demo-space
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 6. 创建 Actor</span>
+</span></span><span style="display:flex;"><span>kubectl ate create actor my-agent-001 <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>  -a demo-space <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>  --template demo-template
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 7. 启动 Actor</span>
+</span></span><span style="display:flex;"><span>kubectl ate resume actor my-agent-001 <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>  -a demo-space
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 8. 查看 Actor</span>
+</span></span><span style="display:flex;"><span>kubectl ate get actor my-agent-001 -a demo-space
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 9. 查看 Worker</span>
+</span></span><span style="display:flex;"><span>kubectl ate get workers
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 10. 暂停 Actor</span>
+</span></span><span style="display:flex;"><span>kubectl ate <span style="color:#204a87">suspend</span> actor my-agent-001 <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>  -a demo-space
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#8f5902;font-style:italic"># 11. 删除 Actor</span>
+</span></span><span style="display:flex;"><span>kubectl ate delete actor my-agent-001 <span style="color:#4e9a06">\
+</span></span></span><span style="display:flex;"><span><span style="color:#4e9a06"></span>  -a demo-space
+</span></span></code></pre></div><p>参考：</p>
+<ul>
+<li><a href="https://github.com/agent-substrate/substrate/tree/main/demos">https://github.com/agent-substrate/substrate/tree/main/demos</a></li>
+</ul>
+
+</div>
+
+
+
+    
+	
+  
+
+    
+	
+  
+
+
+
+          </main>
+        </div>
+      </div>
+      
+<footer class="bg-dark py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        
+        
+        
+      </div>
+      <div class="col-6 col-sm-4 text-right text-xs-center order-sm-3">
+        
+        
+        
+<ul class="list-inline mb-0">
+  
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="GitHub" aria-label="GitHub">
+    <a class="text-white" target="_blank" rel="noopener" href="https://github.com/huweihuang/blog.huweihuang.com" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
+  </li>
+  
+</ul>
+
+        
+        
+      </div>
+      <div class="col-12 col-sm-4 text-center py-2 order-sm-2">
+        <small class="text-white">&copy; 2026 www.huweihuang.com 保留所有权利</small>
+        <small class="ml-1"><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">隐私政策</a></small>
+	
+		<p class="mt-2"><a href="/about/">About</a></p>
+	
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+    integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.min.js"
+    integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA=="
+    crossorigin="anonymous"></script>
+
+
+
+
+
+<script src='/js/tabpane-persist.js'></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="/js/main.min.91798a335c881f1b6b805085ba4aa22d1dbd2b0b18d105d05189fa104ddae350.js" integrity="sha256-kXmKM1yIHxtrgFCFukqiLR29KwsY0QXQUYn6EE3a41A=" crossorigin="anonymous"></script>
+
+
+
+<script src='/js/prism.js'></script>
+
+
+
+  </body>
+</html>
